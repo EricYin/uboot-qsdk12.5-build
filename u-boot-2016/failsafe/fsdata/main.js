@@ -15,9 +15,251 @@
 const APP_STATE = {
     lang: "en",
     theme: "auto",
-    page: "",
-    settingsOpen: false
+    page: ""
 };
+
+// ==============================
+// 工具函数
+// ==============================
+
+/**
+ * 标准化语言代码
+ */
+function normalizeLang(lang) {
+    if (!lang) return "en";
+    const lowerLang = String(lang).toLowerCase();
+    return lowerLang.indexOf("zh") === 0 ? "zh-cn" : "en";
+}
+
+/**
+ * 检测用户语言偏好
+ */
+function detectLang() {
+    // 尝试从 localStorage 读取
+    try {
+        const savedLang = localStorage.getItem("lang");
+        if (savedLang) return normalizeLang(savedLang);
+    } catch (error) {
+        console.warn("Failed to read language from localStorage:", error);
+    }
+
+    // 从浏览器检测
+    const browserLanguages = navigator.languages ||
+                            (navigator.language ? [navigator.language] : []);
+    return normalizeLang(browserLanguages[0]);
+}
+
+/**
+ * 检测主题偏好
+ */
+function detectTheme() {
+    try {
+        const savedTheme = localStorage.getItem("theme");
+        if (savedTheme) return savedTheme;
+    } catch (error) {
+        console.warn("Failed to read theme from localStorage:", error);
+    }
+    return "auto";
+}
+
+/**
+ * 翻译函数
+ */
+function t(key) {
+    const lang = APP_STATE.lang || "en";
+
+    // 尝试目标语言
+    if (I18N[lang] && I18N[lang][key] !== undefined) {
+        return I18N[lang][key];
+    }
+
+    // 回退到英语
+    if (I18N.en && I18N.en[key] !== undefined) {
+        return I18N.en[key];
+    }
+
+    // 返回键名作为最后的回退
+    return key;
+}
+
+/**
+ * 应用国际化到指定元素或整个文档
+ */
+function applyI18n(element) {
+    const container = element || document;
+
+    // 更新文本内容
+    const textElements = container.querySelectorAll("[data-i18n]");
+    textElements.forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        el.textContent = t(key);
+    });
+
+    // 更新HTML内容
+    const htmlElements = container.querySelectorAll("[data-i18n-html]");
+    htmlElements.forEach(el => {
+        const key = el.getAttribute("data-i18n-html");
+        el.innerHTML = t(key);
+    });
+
+    // 更新属性
+    const attrElements = container.querySelectorAll("[data-i18n-attr]");
+    attrElements.forEach(el => {
+        const attrSpec = el.getAttribute("data-i18n-attr");
+        const [attrName, ...keyParts] = attrSpec.split(":");
+        const key = keyParts.join(":");
+
+        if (attrName && key) {
+            el.setAttribute(attrName, t(key));
+        }
+    });
+}
+
+/**
+ * 设置语言
+ */
+function setLang(lang) {
+    APP_STATE.lang = normalizeLang(lang);
+
+    try {
+        localStorage.setItem("lang", APP_STATE.lang);
+    } catch (error) {
+        console.warn("Failed to save language to localStorage:", error);
+    }
+
+    applyI18n(document);
+
+    // 更新特定组件
+    if (typeof updateSidebarI18n === "function") {
+        updateSidebarI18n();
+    }
+
+    // 更新设置面板国际化
+    if (typeof updateSettingsI18n === "function") {
+        updateSettingsI18n();
+    }
+
+    updateDocumentTitle();
+}
+
+/**
+ * 设置主题
+ */
+function setTheme(theme) {
+    APP_STATE.theme = theme || "auto";
+
+    try {
+        localStorage.setItem("theme", APP_STATE.theme);
+    } catch (error) {
+        console.warn("Failed to save theme to localStorage:", error);
+    }
+
+    const htmlElement = document.documentElement;
+
+    if (APP_STATE.theme === "auto") {
+        htmlElement.removeAttribute("data-theme");
+    } else {
+        htmlElement.setAttribute("data-theme", APP_STATE.theme);
+    }
+
+    // 更新设置面板中的选择器值
+    const themeSelect = document.getElementById('theme_select_settings');
+    if (themeSelect) {
+        themeSelect.value = APP_STATE.theme;
+    }
+}
+
+/**
+ * 更新文档标题
+ */
+function updateDocumentTitle() {
+    if (!APP_STATE.page) return;
+
+    const key = APP_STATE.page + ".title";
+
+    if (I18N[APP_STATE.lang] && I18N[APP_STATE.lang][key]) {
+        document.title = t(key);
+        return;
+    }
+
+    // 处理特殊页面
+    if (APP_STATE.page === "reboot") {
+        document.title = t("reboot.title.in_progress");
+    }
+}
+
+/**
+ * 将字节转换为可读格式
+ */
+function bytesToHuman(bytes) {
+    if (bytes === null || bytes === undefined) return "";
+
+    const numBytes = Number(bytes);
+    if (!isFinite(numBytes) || numBytes < 0) return "";
+
+    if (numBytes >= 1024 * 1024 * 1024) {
+        return (numBytes / (1024 * 1024 * 1024)).toFixed(2) + " GiB";
+    } else if (numBytes >= 1024 * 1024) {
+        return (numBytes / (1024 * 1024)).toFixed(2) + " MiB";
+    } else if (numBytes >= 1024) {
+        return (numBytes / 1024).toFixed(2) + " KiB";
+    } else {
+        return String(Math.floor(numBytes)) + " B";
+    }
+}
+
+/**
+ * 封装 AJAX 请求
+ */
+function ajax(options) {
+    const xhr = window.XMLHttpRequest ?
+                new XMLHttpRequest() :
+                new ActiveXObject("Microsoft.XMLHTTP");
+
+    // 上传进度事件
+    if (options.progress && xhr.upload) {
+        xhr.upload.addEventListener("progress", options.progress);
+    }
+
+    // 状态变化事件
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200 && options.done) {
+            options.done(xhr.responseText);
+        }
+    }
+
+    // 超时设置
+    if (options.timeout) {
+        xhr.timeout = options.timeout;
+    }
+
+    // 发送请求
+    const method = options.data ? "POST" : "GET";
+    xhr.open(method, options.url);
+    xhr.send(options.data);
+}
+
+/**
+ * HTML转义（防止XSS）
+ */
+function escapeHtml(str) {
+    if (!str) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+/**
+ * 检查是否处于 9008 模式
+ * @returns {boolean}
+ */
+function is9008Mode() {
+    const sysinfo = APP_STATE.sysinfo;
+    return sysinfo && sysinfo.is_9008_mode;
+}
 
 // ==============================
 // 侧边导航栏
@@ -694,249 +936,6 @@ function updateSidebarI18n() {
 }
 
 // ==============================
-// 工具函数
-// ==============================
-
-/**
- * 标准化语言代码
- */
-function normalizeLang(lang) {
-    if (!lang) return "en";
-    const lowerLang = String(lang).toLowerCase();
-    return lowerLang.indexOf("zh") === 0 ? "zh-cn" : "en";
-}
-
-/**
- * 检测用户语言偏好
- */
-function detectLang() {
-    // 尝试从 localStorage 读取
-    try {
-        const savedLang = localStorage.getItem("lang");
-        if (savedLang) return normalizeLang(savedLang);
-    } catch (error) {
-        console.warn("Failed to read language from localStorage:", error);
-    }
-
-    // 从浏览器检测
-    const browserLanguages = navigator.languages ||
-                            (navigator.language ? [navigator.language] : []);
-    return normalizeLang(browserLanguages[0]);
-}
-
-/**
- * 检测主题偏好
- */
-function detectTheme() {
-    try {
-        const savedTheme = localStorage.getItem("theme");
-        if (savedTheme) return savedTheme;
-    } catch (error) {
-        console.warn("Failed to read theme from localStorage:", error);
-    }
-    return "auto";
-}
-
-/**
- * 翻译函数
- */
-function t(key) {
-    const lang = APP_STATE.lang || "en";
-
-    // 尝试目标语言
-    if (I18N[lang] && I18N[lang][key] !== undefined) {
-        return I18N[lang][key];
-    }
-
-    // 回退到英语
-    if (I18N.en && I18N.en[key] !== undefined) {
-        return I18N.en[key];
-    }
-
-    // 返回键名作为最后的回退
-    return key;
-}
-
-/**
- * 应用国际化到指定元素或整个文档
- */
-function applyI18n(element) {
-    const container = element || document;
-
-    // 更新文本内容
-    const textElements = container.querySelectorAll("[data-i18n]");
-    textElements.forEach(el => {
-        const key = el.getAttribute("data-i18n");
-        el.textContent = t(key);
-    });
-
-    // 更新HTML内容
-    const htmlElements = container.querySelectorAll("[data-i18n-html]");
-    htmlElements.forEach(el => {
-        const key = el.getAttribute("data-i18n-html");
-        el.innerHTML = t(key);
-    });
-
-    // 更新属性
-    const attrElements = container.querySelectorAll("[data-i18n-attr]");
-    attrElements.forEach(el => {
-        const attrSpec = el.getAttribute("data-i18n-attr");
-        const [attrName, ...keyParts] = attrSpec.split(":");
-        const key = keyParts.join(":");
-
-        if (attrName && key) {
-            el.setAttribute(attrName, t(key));
-        }
-    });
-}
-
-/**
- * 设置语言
- */
-function setLang(lang) {
-    APP_STATE.lang = normalizeLang(lang);
-
-    try {
-        localStorage.setItem("lang", APP_STATE.lang);
-    } catch (error) {
-        console.warn("Failed to save language to localStorage:", error);
-    }
-
-    applyI18n(document);
-
-    // 更新特定组件
-    if (typeof updateSidebarI18n === "function") {
-        updateSidebarI18n();
-    }
-
-    // 更新设置面板国际化
-    if (typeof updateSettingsI18n === "function") {
-        updateSettingsI18n();
-    }
-
-    updateDocumentTitle();
-}
-
-/**
- * 设置主题
- */
-function setTheme(theme) {
-    APP_STATE.theme = theme || "auto";
-
-    try {
-        localStorage.setItem("theme", APP_STATE.theme);
-    } catch (error) {
-        console.warn("Failed to save theme to localStorage:", error);
-    }
-
-    const htmlElement = document.documentElement;
-
-    if (APP_STATE.theme === "auto") {
-        htmlElement.removeAttribute("data-theme");
-    } else {
-        htmlElement.setAttribute("data-theme", APP_STATE.theme);
-    }
-
-    // 更新设置面板中的选择器值
-    const themeSelect = document.getElementById('theme_select_settings');
-    if (themeSelect) {
-        themeSelect.value = APP_STATE.theme;
-    }
-}
-
-/**
- * 更新文档标题
- */
-function updateDocumentTitle() {
-    if (!APP_STATE.page) return;
-
-    const key = APP_STATE.page + ".title";
-
-    if (I18N[APP_STATE.lang] && I18N[APP_STATE.lang][key]) {
-        document.title = t(key);
-        return;
-    }
-
-    // 处理特殊页面
-    if (APP_STATE.page === "reboot") {
-        document.title = t("reboot.title.in_progress");
-    }
-}
-
-/**
- * 将字节转换为可读格式
- */
-function bytesToHuman(bytes) {
-    if (bytes === null || bytes === undefined) return "";
-
-    const numBytes = Number(bytes);
-    if (!isFinite(numBytes) || numBytes < 0) return "";
-
-    if (numBytes >= 1024 * 1024 * 1024) {
-        return (numBytes / (1024 * 1024 * 1024)).toFixed(2) + " GiB";
-    } else if (numBytes >= 1024 * 1024) {
-        return (numBytes / (1024 * 1024)).toFixed(2) + " MiB";
-    } else if (numBytes >= 1024) {
-        return (numBytes / 1024).toFixed(2) + " KiB";
-    } else {
-        return String(Math.floor(numBytes)) + " B";
-    }
-}
-
-/**
- * 封装 AJAX 请求
- */
-function ajax(options) {
-    const xhr = window.XMLHttpRequest ?
-                new XMLHttpRequest() :
-                new ActiveXObject("Microsoft.XMLHTTP");
-
-    // 上传进度事件
-    if (options.progress && xhr.upload) {
-        xhr.upload.addEventListener("progress", options.progress);
-    }
-
-    // 状态变化事件
-    xhr.onreadystatechange = function() {
-        if (xhr.readyState === 4 && xhr.status === 200 && options.done) {
-            options.done(xhr.responseText);
-        }
-    }
-
-    // 超时设置
-    if (options.timeout) {
-        xhr.timeout = options.timeout;
-    }
-
-    // 发送请求
-    const method = options.data ? "POST" : "GET";
-    xhr.open(method, options.url);
-    xhr.send(options.data);
-}
-
-/**
- * HTML转义（防止XSS）
- */
-function escapeHtml(str) {
-    if (!str) return "";
-    return String(str)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
-
-/**
- * 检查是否处于 9008 模式
- * @returns {boolean}
- */
-function is9008Mode() {
-    const sysinfo = APP_STATE.sysinfo;
-    return sysinfo && sysinfo.is_9008_mode;
-}
-
-// ==============================
 // 版本信息模块
 // ==============================
 
@@ -1313,32 +1312,37 @@ const messageBuilder = (() => {
     }
 
     /**
-     * 生成无效响应错误信息
-     * @param {string} rawResponse - 原始响应文本
+     * 构建错误信息
+     * @param {object} info - 错误信息对象
+     * @param {string} info.type - 错误类型
      * @returns {string} HTML字符串
      */
-    function buildInvalidResponseMessage(rawResponse) {
-        return `
-            <div class="error-title">❌ ${t("error.invalid_response")}</div>
-            <table class="info-table error-table">
-                <tbody>
-                    <tr>
-                        <td class="info-label">${t("error.title")}</td>
-                        <td class="info-value">${escapeHtml(rawResponse || "")}</td>
-                    </tr>
-                </tbody>
-            </table>`;
+    function buildErrorMessage(info) {
+        switch (info?.type) {
+            case "file_too_big":
+                return buildFileTooBigMessage(info);
+            case "part_not_found":
+                return buildPartNotFoundMessage(info);
+            case "wrong_file_type":
+                return buildWrongFileTypeMessage(info);
+            case "flash_not_found":
+                return buildFlashNotFoundMessage(info);
+            case "run_cmd_failed":
+                return buildRunCmdFailedMessage(info);
+            default:
+                return buildUnknownErrorMessage(info);
+        }
     }
 
     /**
-     * 构建成功信息表格
+     * 构建成功信息
      * @param {object} info - 成功信息对象
      * @param {string} info.type - 文件类型
      * @param {number} info.size - 文件大小
      * @param {string} info.md5 - MD5哈希值
      * @returns {string} HTML字符串
      */
-    function buildSuccessTable(info) {
+    function buildSuccessMessage(info) {
         let html = `
             <table class="info-table">
                 <tbody>`;
@@ -1383,15 +1387,8 @@ const messageBuilder = (() => {
     }
 
     return {
-        buildErrorTable,
-        buildFileTooBigMessage,
-        buildPartNotFoundMessage,
-        buildWrongFileTypeMessage,
-        buildFlashNotFoundMessage,
-        buildRunCmdFailedMessage,
-        buildUnknownErrorMessage,
-        buildInvalidResponseMessage,
-        buildSuccessTable,
+        buildErrorMessage,
+        buildSuccessMessage
     };
 })();
 
@@ -1861,7 +1858,7 @@ class FileUploadComponent {
         if (type === 'upload') {
             this.showElementAndHideOthers('uploadSuccess');
             if (els.uploadSuccessInfo && !isMibibPage) {
-                els.uploadSuccessInfo.innerHTML = messageBuilder.buildSuccessTable(info);
+                els.uploadSuccessInfo.innerHTML = messageBuilder.buildSuccessMessage(info);
             }
             if (els.updateRebootBtn) {
                 els.updateRebootBtn.style.display = (isMibibPage || isInitramfsPage) ? 'none' : 'inline-block';
@@ -1887,30 +1884,8 @@ class FileUploadComponent {
         this.setTitleAndHint('fail.title', 'fail.hint');
         this.showElementAndHideOthers('errorArea');
 
-        let errorMessage = "";
-
-        switch (info?.type) {
-            case "file_too_big":
-                errorMessage = messageBuilder.buildFileTooBigMessage(info);
-                break;
-            case "part_not_found":
-                errorMessage = messageBuilder.buildPartNotFoundMessage(info);
-                break;
-            case "wrong_file_type":
-                errorMessage = messageBuilder.buildWrongFileTypeMessage(info);
-                break;
-            case "flash_not_found":
-                errorMessage = messageBuilder.buildFlashNotFoundMessage(info);
-                break;
-            case "run_cmd_failed":
-                errorMessage = messageBuilder.buildRunCmdFailedMessage(info);
-                break;
-            default:
-                errorMessage = messageBuilder.buildUnknownErrorMessage(info);
-        }
-
         if (this.elements.errorInfo) {
-            this.elements.errorInfo.innerHTML = errorMessage;
+            this.elements.errorInfo.innerHTML = messageBuilder.buildErrorMessage(info);
         }
     }
 
