@@ -35,7 +35,7 @@ extern bool httpd_debug_on;
 #define httpd_debug(fmt, args...)   do { } while (0)
 #endif
 
-enum {
+typedef enum {
     WEBFAILSAFE_UPGRADE_TYPE_UNKNOWN = -1,
     WEBFAILSAFE_UPGRADE_TYPE_FIRMWARE,
     WEBFAILSAFE_UPGRADE_TYPE_UBOOT,
@@ -44,7 +44,7 @@ enum {
     WEBFAILSAFE_UPGRADE_TYPE_PTABLE,
     WEBFAILSAFE_UPGRADE_TYPE_SIMG,
     WEBFAILSAFE_UPGRADE_TYPE_INITRAMFS,
-};
+} upgrade_type_t;
 
 enum {
     RET_FAILURE = -1,

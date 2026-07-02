@@ -290,12 +290,26 @@ struct upload_session {
     int body_sent;
 };
 
+static const struct {
+	upgrade_type_t type;
+	const char *label;
+} upgrade_types[] = {
+	{ WEBFAILSAFE_UPGRADE_TYPE_FIRMWARE, "firmware" },
+	{ WEBFAILSAFE_UPGRADE_TYPE_UBOOT, "uboot" },
+	{ WEBFAILSAFE_UPGRADE_TYPE_ART, "art" },
+	{ WEBFAILSAFE_UPGRADE_TYPE_CDT, "cdt" },
+	{ WEBFAILSAFE_UPGRADE_TYPE_PTABLE, "ptable" },
+	{ WEBFAILSAFE_UPGRADE_TYPE_SIMG, "simg" },
+	{ WEBFAILSAFE_UPGRADE_TYPE_INITRAMFS, "initramfs" }
+};
+
 static void upload_handler(enum httpd_uri_handler_status status,
 				struct httpd_request *request,
 				struct httpd_response *response)
 {
 	struct httpd_form_value *form_value;
 	struct upload_session *sess;
+	int idx;
 
 	if (status == HTTP_CB_NEW) {
 		sess = calloc(1, sizeof(*sess));
@@ -335,61 +349,28 @@ static void upload_handler(enum httpd_uri_handler_status status,
 		/* new upload session identifier */
 		fs_upload_id = rand();
 
-		form_value = httpd_request_find_value(request, "firmware");
-		if (form_value) {
-			upgrade_type = WEBFAILSAFE_UPGRADE_TYPE_FIRMWARE;
-			goto done;
+		for (idx = 0; idx < ARRAY_SIZE(upgrade_types); idx++) {
+			form_value = httpd_request_find_value(request, upgrade_types[idx].label);
+			if (form_value) {
+				upgrade_type = upgrade_types[idx].type;
+				break;
+			}
 		}
 
-		form_value = httpd_request_find_value(request, "uboot");
-		if (form_value) {
-			upgrade_type = WEBFAILSAFE_UPGRADE_TYPE_UBOOT;
-			goto done;
+		if (idx == ARRAY_SIZE(upgrade_types)) {
+			puts("NO supported upgrade type found!\n");
+
+			/* 没有匹配的 upgrade_type，返回 fail*/
+			response->data = "{\"status\":\"fail\","
+							"\"info\":{\"type\":\"wrong_upgrade_type\"}}";
+			response->size = strlen(response->data);
+			sess->body_sent = 1;
+
+			httpd_debug("response message: %s\n", response->data);
+
+			return;
 		}
 
-		form_value = httpd_request_find_value(request, "art");
-		if (form_value) {
-			upgrade_type = WEBFAILSAFE_UPGRADE_TYPE_ART;
-			goto done;
-		}
-
-		form_value = httpd_request_find_value(request, "cdt");
-		if (form_value) {
-			upgrade_type = WEBFAILSAFE_UPGRADE_TYPE_CDT;
-			goto done;
-		}
-
-		form_value = httpd_request_find_value(request, "ptable");
-		if (form_value) {
-			upgrade_type = WEBFAILSAFE_UPGRADE_TYPE_PTABLE;
-			goto done;
-		}
-
-		form_value = httpd_request_find_value(request, "simg");
-		if (form_value) {
-			upgrade_type = WEBFAILSAFE_UPGRADE_TYPE_SIMG;
-			goto done;
-		}
-
-		form_value = httpd_request_find_value(request, "initramfs");
-		if (form_value) {
-			upgrade_type = WEBFAILSAFE_UPGRADE_TYPE_INITRAMFS;
-			goto done;
-		}
-
-		puts("NO supported upgrade type found!\n");
-
-		/* 没有匹配的 upgrade_type，返回 fail*/
-		response->data = "{\"status\":\"fail\","
-						"\"info\":{\"type\":\"wrong_upgrade_type\"}}";
-		response->size = strlen(response->data);
-		sess->body_sent = 1;
-
-		httpd_debug("response message: %s\n", response->data);
-
-		return;
-
-	done:
 		upload_data_id = fs_upload_id;
 		upload_data = form_value->data;
 		upload_size = form_value->size;
