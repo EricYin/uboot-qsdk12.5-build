@@ -2403,9 +2403,8 @@ const backupManager = (() => {
 const envManager = (() => {
     let elements = null;
     let envData = []; // 存储解析后的环境变量数据
-    let editMode = null; // 'add' | 'edit' | null
-    let editingKey = null; // 正在编辑的变量名
     let refreshTimer = null; // 延迟刷新定时器
+    let isAddingNew = false; // 是否正在添加新变量
 
     /**
      * 获取或缓存 DOM 元素
@@ -2420,10 +2419,6 @@ const envManager = (() => {
             emptyHint: document.getElementById("env_empty"),
             status: document.getElementById("env_status"),
             count: document.getElementById("env_count"),
-            editPanel: document.getElementById("env_edit_panel"),
-            editTitle: document.getElementById("env_edit_title"),
-            editName: document.getElementById("env_edit_name"),
-            editValue: document.getElementById("env_edit_value"),
             restoreFile: document.getElementById("env_restore_file"),
         };
 
@@ -2451,6 +2446,184 @@ const envManager = (() => {
     }
 
     /**
+     * 取消之前的延迟刷新定时器
+     */
+    function cancelDelayedRefresh() {
+        if (refreshTimer) {
+            clearTimeout(refreshTimer);
+            refreshTimer = null;
+        }
+    }
+
+    /**
+     * 延迟刷新环境变量列表
+     */
+    function delayedRefresh(delay) {
+        cancelDelayedRefresh();
+        delay = delay || 1500;
+        refreshTimer = setTimeout(async () => {
+            refreshTimer = null;
+            await refresh();
+        }, delay);
+    }
+
+    /**
+     * 更新空状态显示
+     * 检查表格中是否还有行，如果没有则显示空状态提示
+     */
+    function updateEmptyState() {
+        const rows = document.querySelectorAll('.env-row:not([data-is-new="true"])');
+        const els = getElements();
+
+        if (els.emptyHint) {
+            els.emptyHint.style.display = (rows.length === 0) ? 'flex' : 'none';
+        }
+
+        if (els.envTable) {
+            els.envTable.style.display = (rows.length === 0) ? 'none' : 'table';
+        }
+    }
+
+    /**
+     * 取消所有行的编辑状态
+     */
+    function cancelAllEditing() {
+        document.querySelectorAll('.env-row.editing').forEach((row) => {
+            // 如果是新增行，直接移除
+            if (row.dataset.isNew === 'true') {
+                row.remove();
+                isAddingNew = false;
+                return;
+            }
+
+            const inp = row.querySelector('.env-value-input');
+            const roGroup = row.querySelector('.env-action-group-readonly');
+            const edGroup = row.querySelector('.env-action-group-editing');
+            if (inp) {
+                inp.value = inp.dataset.originalValue || '';
+                inp.readOnly = true;
+                inp.disabled = true;
+                inp.classList.remove('editing');
+            }
+            if (roGroup) roGroup.style.display = '';
+            if (edGroup) edGroup.style.display = 'none';
+            row.classList.remove('editing');
+        });
+
+        updateEmptyState();
+        isAddingNew = false;
+    }
+
+    /**
+     * 创建操作列按钮组
+     */
+    function createActionGroups(row, inputEl, isNewRow = false) {
+        const tdActions = document.createElement('td');
+        tdActions.className = 'env-col-actions';
+
+        // ===== 只读状态按钮组 =====
+        const readOnlyGroup = document.createElement('span');
+        readOnlyGroup.className = 'env-action-group env-action-group-readonly';
+        if (isNewRow) {
+            readOnlyGroup.style.display = 'none';
+        }
+
+        // 编辑按钮
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'button env-action-btn';
+        editBtn.textContent = t('env.action.edit') || 'Edit';
+        editBtn.dataset.action = 'edit';
+        editBtn.addEventListener('click', () => {
+            enterEditMode(row, inputEl, readOnlyGroup, editGroup);
+        });
+
+        // 删除按钮
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'button button-danger env-action-btn';
+        deleteBtn.textContent = t('env.action.delete') || 'Delete';
+        deleteBtn.dataset.action = 'delete';
+        deleteBtn.addEventListener('click', () => {
+            if (isNewRow) {
+                // 新增行直接移除
+                row.remove();
+                isAddingNew = false;
+                updateEmptyState();
+                setStatus(t('env.status.ready'));
+                return;
+            }
+            deleteSingle(row.dataset.key);
+        });
+
+        readOnlyGroup.appendChild(editBtn);
+        readOnlyGroup.appendChild(deleteBtn);
+
+        // ===== 编辑状态按钮组 =====
+        const editGroup = document.createElement('span');
+        editGroup.className = 'env-action-group env-action-group-editing';
+        if (!isNewRow) {
+            editGroup.style.display = 'none';
+        }
+
+        // 保存按钮
+        const saveBtn = document.createElement('button');
+        saveBtn.type = 'button';
+        saveBtn.className = 'button env-action-btn';
+        saveBtn.textContent = t('env.action.save') || 'Save';
+        saveBtn.dataset.action = 'save';
+        saveBtn.addEventListener('click', () => {
+            if (isNewRow) {
+                saveNewVariable(row, inputEl, readOnlyGroup, editGroup);
+            } else {
+                saveInlineEdit(row, inputEl, readOnlyGroup, editGroup);
+            }
+        });
+
+        // 重置为默认值按钮（仅对已存在的变量显示）
+        const resetBtn = document.createElement('button');
+        resetBtn.type = 'button';
+        resetBtn.className = 'button button-warn env-action-btn';
+        resetBtn.textContent = t('env.action.reset_single') || 'Reset';
+        resetBtn.dataset.action = 'reset';
+        resetBtn.addEventListener('click', () => {
+            resetSingleInline(row, inputEl, readOnlyGroup, editGroup);
+        });
+        if (isNewRow) {
+            resetBtn.style.display = 'none';
+        }
+
+        // 取消按钮
+        const cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'button env-action-btn';
+        cancelBtn.textContent = t('env.action.cancel') || 'Cancel';
+        cancelBtn.dataset.action = 'cancel';
+        cancelBtn.addEventListener('click', () => {
+            if (isNewRow) {
+                // 新增行直接移除
+                row.remove();
+                isAddingNew = false;
+                updateEmptyState();
+                setStatus(t('env.status.ready'));
+                return;
+            }
+            cancelInlineEdit(row, inputEl, readOnlyGroup, editGroup);
+        });
+
+        editGroup.appendChild(saveBtn);
+        if (!isNewRow) {
+            editGroup.appendChild(resetBtn);
+        }
+        editGroup.appendChild(cancelBtn);
+
+        tdActions.appendChild(readOnlyGroup);
+        tdActions.appendChild(editGroup);
+
+        return tdActions;
+    }
+
+    /**
      * 渲染环境变量表格
      */
     function renderTable(data) {
@@ -2471,50 +2644,310 @@ const envManager = (() => {
 
         // 渲染每一行
         data.forEach((item) => {
-            const row = document.createElement('tr');
-            row.className = 'env-row';
-            row.dataset.key = item.key;
-
-            // 名称列
-            const tdName = document.createElement('td');
-            tdName.className = 'env-col-name';
-            tdName.textContent = item.key;
-            tdName.title = item.key;
-
-            // 值列
-            const tdValue = document.createElement('td');
-            tdValue.className = 'env-col-value';
-            tdValue.textContent = item.value;
-            tdValue.title = item.value;
-
-            // 操作列
-            const tdActions = document.createElement('td');
-            tdActions.className = 'env-col-actions';
-
-            // 编辑按钮
-            const editBtn = document.createElement('button');
-            editBtn.type = 'button';
-            editBtn.className = 'button button-sm env-action-btn';
-            editBtn.textContent = '✎';
-            editBtn.title = t('env.action.edit') || 'Edit';
-            editBtn.addEventListener('click', () => showEditPanel(item.key, item.value));
-
-            // 删除按钮
-            const deleteBtn = document.createElement('button');
-            deleteBtn.type = 'button';
-            deleteBtn.className = 'button button-sm button-danger env-action-btn';
-            deleteBtn.textContent = '✕';
-            deleteBtn.title = t('env.action.delete') || 'Delete';
-            deleteBtn.addEventListener('click', () => deleteSingle(item.key));
-
-            tdActions.appendChild(editBtn);
-            tdActions.appendChild(deleteBtn);
-
-            row.appendChild(tdName);
-            row.appendChild(tdValue);
-            row.appendChild(tdActions);
+            const row = createDataRow(item.key, item.value, false);
             els.tableBody.appendChild(row);
         });
+    }
+
+    /**
+     * 创建数据行
+     */
+    function createDataRow(key, value, isNewRow = false) {
+        const row = document.createElement('tr');
+        row.className = 'env-row';
+        row.dataset.key = key;
+        if (isNewRow) {
+            row.dataset.isNew = 'true';
+        }
+
+        // 名称列
+        const tdName = document.createElement('td');
+        tdName.className = 'env-col-name';
+
+        if (isNewRow) {
+            // 新增行：名称使用输入框
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.className = 'env-name-input';
+            nameInput.placeholder = t('env.placeholder.name') || 'Enter variable name';
+            nameInput.autocomplete = 'off';
+            nameInput.autocapitalize = 'off';
+            nameInput.autocorrect = 'off';
+            nameInput.spellcheck = false;
+            nameInput.dataset.isNameInput = 'true';
+            tdName.appendChild(nameInput);
+            // 聚焦到名称输入框
+            setTimeout(() => nameInput.focus(), 50);
+        } else {
+            tdName.textContent = key;
+            tdName.title = key;
+        }
+
+        // 值列 - 使用输入框
+        const tdValue = document.createElement('td');
+        tdValue.className = 'env-col-value';
+
+        const valueInput = document.createElement('input');
+        valueInput.type = 'text';
+        valueInput.className = 'env-value-input';
+        valueInput.value = value || '';
+        valueInput.readOnly = !isNewRow;
+        valueInput.disabled = !isNewRow;
+        valueInput.title = value || '';
+        valueInput.dataset.originalValue = value || '';
+        valueInput.dataset.key = key;
+        if (isNewRow) {
+            valueInput.classList.add('editing');
+            valueInput.placeholder = t('env.placeholder.value') || 'Enter variable value';
+        }
+        tdValue.appendChild(valueInput);
+
+        // 操作列
+        const tdActions = createActionGroups(row, valueInput, isNewRow);
+
+        row.appendChild(tdName);
+        row.appendChild(tdValue);
+        row.appendChild(tdActions);
+
+        // 如果是新行，自动进入编辑状态
+        if (isNewRow) {
+            row.classList.add('editing');
+            // 名称输入框获得焦点
+            const nameInput = tdName.querySelector('.env-name-input');
+            if (nameInput) {
+                setTimeout(() => nameInput.focus(), 100);
+            }
+        }
+
+        return row;
+    }
+
+    /**
+     * 进入行内编辑模式
+     */
+    function enterEditMode(row, inputEl, readOnlyGroup, editGroup) {
+        // 先取消其他行的编辑状态（包括新增行）
+        document.querySelectorAll('.env-row.editing').forEach((r) => {
+            if (r !== row) {
+                if (r.dataset.isNew === 'true') {
+                    // 移除其他新增行
+                    r.remove();
+                    isAddingNew = false;
+                    return;
+                }
+                const inp = r.querySelector('.env-value-input');
+                const roGroup = r.querySelector('.env-action-group-readonly');
+                const edGroup = r.querySelector('.env-action-group-editing');
+                if (inp) {
+                    inp.value = inp.dataset.originalValue || '';
+                    inp.readOnly = true;
+                    inp.disabled = true;
+                    inp.classList.remove('editing');
+                }
+                if (roGroup) roGroup.style.display = '';
+                if (edGroup) edGroup.style.display = 'none';
+                r.classList.remove('editing');
+            }
+        });
+
+        // 进入编辑模式
+        row.classList.add('editing');
+        inputEl.readOnly = false;
+        inputEl.disabled = false;
+        inputEl.classList.add('editing');
+        inputEl.focus();
+        inputEl.select();
+
+        readOnlyGroup.style.display = 'none';
+        editGroup.style.display = '';
+
+        setStatus(t('env.status.edit_mode') + row.dataset.key);
+    }
+
+    /**
+     * 保存新变量
+     */
+    async function saveNewVariable(row, inputEl, readOnlyGroup, editGroup) {
+        const nameInput = row.querySelector('.env-name-input');
+        const name = nameInput ? nameInput.value.trim() : '';
+        const value = inputEl.value;
+
+        if (!name) {
+            alert(t("env.error.no_name"));
+            nameInput?.focus();
+            return;
+        }
+
+        // 检查名称是否已存在
+        const existingRow = document.querySelector(`.env-row[data-key="${name}"]`);
+        if (existingRow && existingRow !== row) {
+            alert(`${name}: ${t("env.error.already_exists") || 'Variable already exists!'}`);
+            nameInput?.focus();
+            return;
+        }
+
+        try {
+            setStatus(t('env.status.saving'));
+
+            const formData = new FormData();
+            formData.append("name", name);
+            formData.append("value", value);
+
+            const response = await fetch("/env/set", {
+                method: "POST",
+                body: formData
+            });
+
+            const result = await response.text();
+
+            if (!response.ok) {
+                throw new Error(`${t("env.status.http")} ${response.status}: ${result}`);
+            }
+
+            if (result !== "ok") {
+                throw new Error(result || t("env.status.error"));
+            }
+
+            // 更新行数据
+            row.dataset.key = name;
+            delete row.dataset.isNew;
+            row.classList.remove('editing');
+
+            // 更新名称列为纯文本
+            const tdName = row.querySelector('.env-col-name');
+            tdName.innerHTML = '';
+            tdName.textContent = name;
+            tdName.title = name;
+
+            // 更新值输入框
+            inputEl.dataset.originalValue = value;
+            inputEl.readOnly = true;
+            inputEl.disabled = true;
+            inputEl.classList.remove('editing');
+            inputEl.removeAttribute('placeholder');
+
+            // 切换按钮组
+            readOnlyGroup.style.display = '';
+            editGroup.style.display = 'none';
+
+            // 更新重置按钮显示
+            const resetBtn = editGroup.querySelector('[data-action="reset"]');
+            if (resetBtn) {
+                resetBtn.style.display = '';
+            }
+
+            isAddingNew = false;
+            setStatus(t('env.status.saved'));
+            delayedRefresh();
+
+        } catch (error) {
+            setStatus(formatError(error), true);
+        }
+    }
+
+    /**
+     * 保存行内编辑
+     */
+    async function saveInlineEdit(row, inputEl, readOnlyGroup, editGroup) {
+        const key = row.dataset.key;
+        const newValue = inputEl.value;
+
+        // 如果值没有变化，直接取消编辑
+        if (newValue === inputEl.dataset.originalValue) {
+            cancelInlineEdit(row, inputEl, readOnlyGroup, editGroup);
+            return;
+        }
+
+        try {
+            setStatus(t('env.status.saving'));
+
+            const formData = new FormData();
+            formData.append("name", key);
+            formData.append("value", newValue);
+
+            const response = await fetch("/env/set", {
+                method: "POST",
+                body: formData
+            });
+
+            const result = await response.text();
+
+            if (!response.ok) {
+                throw new Error(`${t("env.status.http")} ${response.status}: ${result}`);
+            }
+
+            if (result !== "ok") {
+                throw new Error(result || t("env.status.error"));
+            }
+
+            inputEl.dataset.originalValue = newValue;
+            inputEl.value = newValue;
+
+            cancelAllEditing();
+            setStatus(t('env.status.saved'));
+            delayedRefresh();
+
+        } catch (error) {
+            cancelAllEditing();
+            setStatus(formatError(error), true);
+        }
+    }
+
+    /**
+     * 重置单行变量为默认值（行内）
+     */
+    async function resetSingleInline(row, inputEl, readOnlyGroup, editGroup) {
+        const key = row.dataset.key;
+
+        if (!confirm(`${key}: ${t("env.confirm.reset_single")}`)) return;
+
+        try {
+            setStatus(t('env.status.saving'));
+
+            const formData = new FormData();
+            formData.append("name", key);
+
+            const response = await fetch("/env/reset/single", {
+                method: "POST",
+                body: formData
+            });
+
+            const result = await response.text();
+
+            if (!response.ok) {
+                throw new Error(`${t("env.status.http")} ${response.status}: ${result}`);
+            }
+
+            if (result !== "ok") {
+                throw new Error(result || t("env.status.error"));
+            }
+
+            cancelAllEditing();
+            setStatus(t('env.status.reset_single'));
+            delayedRefresh();
+
+        } catch (error) {
+            cancelAllEditing();
+            setStatus(formatError(error), true);
+        }
+    }
+
+    /**
+     * 取消行内编辑
+     */
+    function cancelInlineEdit(row, inputEl, readOnlyGroup, editGroup) {
+        // 恢复原始值
+        inputEl.value = inputEl.dataset.originalValue || '';
+        inputEl.readOnly = true;
+        inputEl.disabled = true;
+        inputEl.classList.remove('editing');
+
+        row.classList.remove('editing');
+
+        readOnlyGroup.style.display = '';
+        editGroup.style.display = 'none';
+
+        setStatus(t('env.status.ready'));
     }
 
     /**
@@ -2524,6 +2957,15 @@ const envManager = (() => {
         cancelDelayedRefresh();
 
         const els = getElements();
+
+        // 如果有新增行，先取消
+        if (isAddingNew) {
+            const newRow = document.querySelector('.env-row[data-is-new="true"]');
+            if (newRow) {
+                newRow.remove();
+                isAddingNew = false;
+            }
+        }
 
         try {
             setStatus(t("env.status.loading"));
@@ -2578,174 +3020,24 @@ const envManager = (() => {
     }
 
     /**
-     * 取消之前的延迟刷新定时器
+     * 添加新变量（在表格中创建新行）
      */
-    function cancelDelayedRefresh() {
-        if (refreshTimer) {
-            clearTimeout(refreshTimer);
-            refreshTimer = null;
-        }
-    }
+    function addVariable() {
+        // 如果有正在编辑的行，先取消
+        cancelAllEditing();
 
-    /**
-     * 延迟刷新环境变量列表
-     * 先显示成功状态，延迟一段时间后再刷新
-     * @param {number} delay - 延迟时间（毫秒），默认 1500ms
-     */
-    function delayedRefresh(delay) {
-        cancelDelayedRefresh();
-
-        delay = delay || 1500; // 默认 1.5 秒
-
-        refreshTimer = setTimeout(async () => {
-            refreshTimer = null;
-            await refresh();
-        }, delay);
-    }
-
-    /**
-     * 显示编辑面板
-     */
-    function showEditPanel(key, value) {
         const els = getElements();
 
-        editMode = 'edit';
-        editingKey = key;
+        // 如果表格为空，显示表格
+        if (els.emptyHint) els.emptyHint.style.display = 'none';
+        if (els.envTable) els.envTable.style.display = 'table';
 
-        if (els.editPanel) els.editPanel.style.display = 'block';
-        if (els.editTitle) els.editTitle.textContent = t('env.edit.title') || 'Edit Variable';
+        // 创建新行
+        const newRow = createDataRow('', '', true);
+        els.tableBody.appendChild(newRow);
+        isAddingNew = true;
 
-        if (els.editName) {
-            els.editName.value = key || '';
-            els.editName.disabled = true; // 编辑模式下名称不可修改
-        }
-
-        if (els.editValue) {
-            els.editValue.value = value || '';
-            els.editValue.focus();
-        }
-    }
-
-    /**
-     * 显示添加面板
-     */
-    function showAddPanel() {
-        const els = getElements();
-
-        editMode = 'add';
-        editingKey = null;
-
-        if (els.editPanel) els.editPanel.style.display = 'block';
-        if (els.editTitle) els.editTitle.textContent = t('env.add.title') || 'Add Variable';
-
-        if (els.editName) {
-            els.editName.value = '';
-            els.editName.disabled = false;
-            els.editName.focus();
-        }
-
-        if (els.editValue) els.editValue.value = '';
-    }
-
-    /**
-     * 取消编辑
-     */
-    function cancelEdit() {
-        const els = getElements();
-
-        editMode = null;
-        editingKey = null;
-
-        if (els.editPanel) els.editPanel.style.display = 'none';
-        if (els.editName) els.editName.value = '';
-        if (els.editValue) els.editValue.value = '';
-    }
-
-    /**
-     * 保存编辑（新增或修改）
-     */
-    async function saveEdit() {
-        const els = getElements();
-        const name = els.editName ? els.editName.value.trim() : '';
-        const value = els.editValue ? els.editValue.value : '';
-
-        if (!name) {
-            alert(t("env.error.no_name"));
-            els.editName?.focus();
-            return;
-        }
-
-        try {
-            setStatus(t("env.status.saving"));
-
-            const formData = new FormData();
-            formData.append("name", name);
-            formData.append("value", value);
-
-            const response = await fetch("/env/set", {
-                method: "POST",
-                body: formData
-            });
-
-            const result = await response.text();
-
-            if (!response.ok) {
-                throw new Error(`${t("env.status.http")} ${response.status}: ${result}`);
-            }
-
-            if (result !== "ok") {
-                throw new Error(result || t("env.status.error"));
-            }
-
-            setStatus(t("env.status.saved"));
-            cancelEdit();
-            delayedRefresh();
-        } catch (error) {
-            setStatus(formatError(error), true);
-        }
-    }
-
-    /**
-     * 重置单个环境变量为默认值
-     */
-    async function resetSingle() {
-        const els = getElements();
-        const name = els.editName ? els.editName.value.trim() : '';
-
-        if (!name) {
-            alert(t("env.error.no_name"));
-            return;
-        }
-
-        if (!confirm(`${name}: ${t("env.confirm.reset_single")}`)) return;
-
-        try {
-            setStatus(t("env.status.saving"));
-
-            const formData = new FormData();
-            formData.append("name", name);
-
-            const response = await fetch("/env/reset/single", {
-                method: "POST",
-                body: formData
-            });
-
-            const result = await response.text();
-
-            if (!response.ok) {
-                throw new Error(`${t("env.status.http")} ${response.status}: ${result}`);
-            }
-
-            if (result !== "ok") {
-                throw new Error(result || t("env.status.error"));
-            }
-
-            setStatus(t("env.status.reset_single"));
-            cancelEdit();
-            delayedRefresh();
-        } catch (error) {
-            setStatus(formatError(error), true);
-        }
+        setStatus(t('env.status.adding') || 'Adding new variable...');
     }
 
     /**
@@ -2808,7 +3100,6 @@ const envManager = (() => {
             }
 
             setStatus(t("env.status.reset"));
-            cancelEdit();
             delayedRefresh();
         } catch (error) {
             setStatus(formatError(error), true);
@@ -2882,17 +3173,28 @@ const envManager = (() => {
             });
         }
 
+        // 点击页面其他区域时，取消正在编辑的行
+        document.addEventListener('click', function(e) {
+            const row = e.target.closest('.env-row');
+            const isButton = e.target.closest('button');
+            const isInput = e.target.closest('input');
+
+            // 如果点击的是按钮或输入框，不处理
+            if (isButton || isInput) return;
+
+            if (!row) {
+                cancelAllEditing();
+                setStatus(t('env.status.ready'));
+            }
+        });
+
         refresh();
     }
 
     return {
         init,
         refresh,
-        showAddPanel,
-        showEditPanel,
-        cancelEdit,
-        saveEdit,
-        resetSingle,
+        addVariable,
         deleteSingle,
         resetAll,
         restore,
@@ -5933,20 +6235,15 @@ const I18N = (() => {
             "env.thead.name": "Name",
             "env.thead.value": "Value",
             "env.thead.actions": "Actions",
-            "env.label.name": "Name:",
-            "env.label.value": "Value:",
-            "env.action.unset": "Delete",
             "env.action.refresh": "Refresh",
             "env.action.reset": "Reset to defaults",
-            "env.action.restore": "Restore",
+            "env.action.restore": "Restore from file",
             "env.action.add": "Add",
             "env.action.edit": "Edit",
             "env.action.save": "Save",
             "env.action.delete": "Delete",
             "env.action.cancel": "Cancel",
             "env.action.reset_single": "Reset to Default",
-            "env.edit.title": "Edit Variable",
-            "env.add.title": "Add Variable",
             "env.delete.forbid": "the variable cannot be deleted!",
             "env.confirm.reset_single": "reset this variable to default value?",
             "env.confirm.delete": "Delete variable",
@@ -5955,6 +6252,11 @@ const I18N = (() => {
             "env.error.no_name": "Please enter variable name",
             "env.error.no_file": "Please select a file",
             "env.placeholder": "No environment variables loaded",
+            "env.placeholder.name": "Enter variable name",
+            "env.placeholder.value": "Enter variable value",
+            "env.error.already_exists": "Variable already exists!",
+            "env.status.adding": "Adding new variable...",
+            "env.status.edit_mode": "Editing: ",
             "env.warn.1": "Modifying environment variables may affect boot behavior.",
             "env.warn.2": "Do not power off during save or restore.",
             "env.warn.3": "The RESTORE function supports uploading a previously saved binary U-Boot environment image (CRC + data) to restore.",
@@ -6248,20 +6550,15 @@ const I18N = (() => {
             "env.thead.name": "名称",
             "env.thead.value": "值",
             "env.thead.actions": "操作",
-            "env.label.name": "名称:",
-            "env.label.value": "值:",
-            "env.action.unset": "删除",
             "env.action.refresh": "刷新",
             "env.action.reset": "重置为默认值",
-            "env.action.restore": "恢复",
+            "env.action.restore": "从文件恢复",
             "env.action.add": "添加",
             "env.action.edit": "编辑",
             "env.action.save": "保存",
             "env.action.delete": "删除",
             "env.action.cancel": "取消",
             "env.action.reset_single": "重置为默认值",
-            "env.edit.title": "编辑变量",
-            "env.add.title": "添加变量",
             "env.delete.forbid": "该变量不能删除！",
             "env.confirm.reset_single": "确定将此变量重置为默认值？",
             "env.confirm.delete": "删除变量",
@@ -6270,6 +6567,11 @@ const I18N = (() => {
             "env.error.no_name": "请输入变量名称",
             "env.error.no_file": "请选择文件",
             "env.placeholder": "暂无环境变量",
+            "env.placeholder.name": "输入变量名",
+            "env.placeholder.value": "输入变量值",
+            "env.error.already_exists": "变量已存在！",
+            "env.status.adding": "正在添加新变量...",
+            "env.status.edit_mode": "正在编辑：",
             "env.warn.1": "修改环境变量可能影响系统启动行为。",
             "env.warn.2": "保存或恢复过程中请勿断电。",
             "env.warn.3": "恢复功能支持上传你之前保存的二进制环境变量镜像文件（含 CRC）进行恢复。",
