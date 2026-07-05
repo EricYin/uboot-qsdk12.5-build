@@ -1304,7 +1304,7 @@ const messageBuilder = (() => {
         }
 
         return buildErrorTable(
-            "fail.title",
+            "error.title",
             [
                 { label: "error.title", value: message }
             ]
@@ -1878,10 +1878,15 @@ class FileUploadComponent {
     /**
      * 显示错误界面
      */
-    showError(info) {
+    showError(type, info) {
         this.isUploading = false;
 
-        this.setTitleAndHint('fail.title', 'fail.hint');
+        if (type === 'upload') {
+            this.setTitleAndHint('fail.title.validate', 'fail.hint.validate');
+        } else {
+            this.setTitleAndHint('fail.title.update', 'fail.hint.update');
+        }
+
         this.showElementAndHideOthers('errorArea');
 
         if (this.elements.errorInfo) {
@@ -1931,7 +1936,7 @@ class FileUploadComponent {
                     try {
                         response = JSON.parse(xhr.responseText);
                     } catch (e) {
-                        this.showError({ type: 'invalid_response', message: xhr.responseText });
+                        this.showError('upload', { type: 'invalid_response', message: xhr.responseText });
                         return;
                     }
 
@@ -1940,13 +1945,13 @@ class FileUploadComponent {
                             this.showSuccess('upload', response.info);
                             break;
                         case 'fail':
-                            this.showError(response.info);
+                            this.showError('upload', response.info);
                             break;
                         default:
-                            this.showError({ type: 'unknown_status', message: xhr.responseText });
+                            this.showError('upload', { type: 'unknown_status', message: xhr.responseText });
                     }
                 } else {
-                    this.showError({ type: 'http_error', message: `HTTP ${xhr.status}` });
+                    this.showError('upload', { type: 'http_error', message: `HTTP ${xhr.status}` });
                 }
             }
         };
@@ -1994,7 +1999,7 @@ class FileUploadComponent {
                     try {
                         response = JSON.parse(xhr.responseText);
                     } catch (e) {
-                        this.showError({ type: 'invalid_response', message: xhr.responseText });
+                        this.showError('result', { type: 'invalid_response', message: xhr.responseText });
                         return;
                     }
 
@@ -2004,13 +2009,13 @@ class FileUploadComponent {
                             this.showSuccess('result', response.info);
                             break;
                         case 'fail':
-                            this.showError(response.info);
+                            this.showError('result', response.info);
                             break;
                         default:
-                            this.showError({ type: 'unknown_status', message: xhr.responseText });
+                            this.showError('result', { type: 'unknown_status', message: xhr.responseText });
                     }
                 } else {
-                    this.showError({ type: 'http_error', message: `HTTP ${xhr.status}` });
+                    this.showError('result', { type: 'http_error', message: `HTTP ${xhr.status}` });
                 }
             }
         };
@@ -7315,8 +7320,10 @@ const I18N = (() => {
             "booting.hint.done": "Your device was successfully booted into initramfs!",
             "404.title": "PAGE NOT FOUND",
             "404.hint": "The page you were looking for doesn't exist!",
-            "fail.title": "UPDATE FAILED",
-            "fail.hint": "Something went wrong during update. Probably you have chosen wrong file.<p>Please, try again or contact with the author of this modification. You can also get more information during update in U-Boot console.",
+            "fail.title.validate": "VALIDATION FAILED",
+            "fail.title.update": "UPDATE FAILED",
+            "fail.hint.validate": "The file failed validation.",
+            "fail.hint.update": "Something went wrong during update.",
             "error.title": "Error",
             "error.label.file_type": "File Type",
             "error.label.file_size": "File Size",
@@ -7652,8 +7659,10 @@ const I18N = (() => {
             "404.hint": "你访问的页面不存在！",
             "upload.title.in_progress": "正在上传",
             "upload.title.done": "上传完成",
-            "fail.title": "更新失败",
-            "fail.hint": "更新过程中出现错误。可能选择了错误的文件。<p>请重试或联系此修改的作者。你也可以在 U-Boot 控制台查看更多刷写过程信息。",
+            "fail.title.validate": "验证失败",
+            "fail.title.update": "更新失败",
+            "fail.hint.validate": "文件未通过验证。",
+            "fail.hint.update": "更新过程中出现错误。",
             "error.title": "错误",
             "error.label.file_type": "文件类型",
             "error.label.file_size": "文件大小",
@@ -7675,7 +7684,7 @@ const I18N = (() => {
             "error.invalid_response": "无效的服务器响应",
             "error.suggestion.file_too_big": "请选择小于分区大小的文件或扩容分区。",
             "error.suggestion.part_not_found": "目标分区不存在或不可用。<br>请检查设备分区表或联系技术支持。",
-            "error.suggestion.wrong_file_type": "请选择正确的文件类型。",
+            "error.suggestion.wrong_file_type": "请选择正确类型的文件。",
             "error.suggestion.flash_not_found": "找不到与所选文件类型对应的闪存设备。",
             "unknown": "未知"
         }
