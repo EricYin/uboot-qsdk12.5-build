@@ -67,7 +67,6 @@ struct backup_session {
 	enum backup_phase phase;
 
 	u64 start;
-	u64 end;
 	u64 total;
 	u64 cur;
 	u64 target_size;
@@ -88,7 +87,7 @@ struct backup_session {
 	nand_info_t *nand;
 };
 
-static void str_sanitize_component(char *s)
+static void str_sanitize_component(char *s, char sep)
 {
 	char *p;
 
@@ -101,7 +100,7 @@ static void str_sanitize_component(char *s)
 		if (isalnum(c) || c == '-' || c == '_' || c == '.')
 			continue;
 
-		*p = '_';
+		*p = sep;
 	}
 }
 
@@ -218,20 +217,18 @@ void backup_handler(enum httpd_uri_handler_status status,
 {
 	const detected_flash_device_t *dfd = &detected_flash_device;
 	struct backup_session *st;
-	struct httpd_form_value *mode, *target, *start, *end;
+	struct httpd_form_value *mode, *target, *start, *size;
 	char target_name[64] = "";
 	char storage_sel[16] = "";
-	char board_model_name[64];
-	const char *board_model = NULL;
-	u64 off_start = 0, off_end = 0;
-	uint32_t offset_in_bytes = 0, size_in_bytes = 0;
+	u64 start_offset = 0, total_size = 0;
+	uint32_t offset_bytes = 0, size_bytes = 0;
 	int ret;
 
 	if (status == HTTP_CB_NEW) {
 		mode = httpd_request_find_value(request, "mode");
 		target = httpd_request_find_value(request, "target");
 		start = httpd_request_find_value(request, "start");
-		end = httpd_request_find_value(request, "end");
+		size = httpd_request_find_value(request, "size");
 
 		if (!mode || !mode->data || !target || !target->data)
 			goto bad;
@@ -251,15 +248,15 @@ void backup_handler(enum httpd_uri_handler_status status,
 			goto bad;
 		}
 
-		if (!strcmp(mode->data, "part")) {
-			off_start = 0;
-			off_end = ULLONG_MAX;
+		if (!strcmp(mode->data, "full")) {
+			start_offset = 0;
+			total_size = ULLONG_MAX;
 		} else if (!strcmp(mode->data, "range")) {
-			if (!start || !end || !start->data || !end->data)
+			if (!start || !size || !start->data || !size->data)
 				goto bad;
-			if (parse_u64_len(start->data, &off_start))
+			if (parse_u64_len(start->data, &start_offset))
 				goto bad;
-			if (parse_u64_len(end->data, &off_end))
+			if (parse_u64_len(size->data, &total_size))
 				goto bad;
 		} else {
 			goto bad;
@@ -318,15 +315,15 @@ void backup_handler(enum httpd_uri_handler_status status,
 				goto bad_target;
 			}
 		} else if (!strcasecmp(storage_sel, "smem")) {
-			ret = getpart_offset_size(target_name, &offset_in_bytes, &size_in_bytes);
+			ret = getpart_offset_size(target_name, &offset_bytes, &size_bytes);
 			if (ret)
 				goto bad_target;
 
 			st->src = BACKUP_SRC_SMEM;
-			st->target_size = (u64)size_in_bytes;
+			st->target_size = (u64)size_bytes;
 
-			st->smem.start = offset_in_bytes;
-			st->smem.size = size_in_bytes;
+			st->smem.start = offset_bytes;
+			st->smem.size = size_bytes;
 			st->smem.flash_type = qca_smem_flash_info.flash_type;
 			st->smem.which_flash = get_which_flash_param(target_name);
 			strlcpy(st->smem.name, target_name, sizeof(st->smem.name));
@@ -361,38 +358,31 @@ void backup_handler(enum httpd_uri_handler_status status,
 		}
 
 		/* range normalization */
-		if (!strcmp(mode->data, "part")) {
-			off_start = 0;
-			off_end = st->target_size;
+		if (!strcmp(mode->data, "full")) {
+			start_offset = 0;
+			total_size = st->target_size;
 		}
 
-		if (off_end == ULLONG_MAX)
-			off_end = st->target_size;
-
-		if (off_start >= off_end)
+		if (start_offset + total_size > st->target_size)
 			goto bad_range;
 
-		if (off_end > st->target_size)
-			goto bad_range;
-
-		st->start = off_start;
-		st->end = off_end;
-		st->total = st->end - st->start;
+		st->start = start_offset;
+		st->total = total_size;
 		st->cur = 0;
 		st->phase = BACKUP_PHASE_HDR;
 
 		/* filename */
-		board_model = fdt_getprop(gd->fdt_blob, 0, "model", NULL);
-		board_model = board_model ? board_model : "device";
-		strlcpy(board_model_name, board_model, sizeof(board_model_name));
-		str_sanitize_component(board_model_name);
-		str_sanitize_component(target_name);
+		str_sanitize_component(target_name, '-');
 
-		snprintf(st->filename, sizeof(st->filename),
-			"backup_%s_%s_%s_0x%llx-0x%llx.bin",
-			board_model_name, storage_sel, target_name,
-			(unsigned long long)st->start,
-			(unsigned long long)st->end);
+		if (!strcmp(mode->data, "full")) {
+			snprintf(st->filename, sizeof(st->filename),
+				"%s_%s.bin", storage_sel, target_name);
+		} else {
+			snprintf(st->filename, sizeof(st->filename),
+				"%s_%s_0x%llx@0x%llx.bin",
+				storage_sel, target_name,
+				(unsigned long long)st->total, (unsigned long long)st->start);
+		}
 
 		/* build HTTP header (CUSTOM response must include header) */
 		st->hdr_len = snprintf(st->hdr, sizeof(st->hdr),

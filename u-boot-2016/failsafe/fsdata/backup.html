@@ -28,42 +28,81 @@
 					<div class="card-main-inner">
 						<div class="backup-form">
 							<div class="form-row form-row-2" id="backup_mode_target_row">
+								<!-- 备份模式 -->
 								<div class="field">
 									<label for="backup_mode" data-i18n="backup.label.mode"></label>
 									<select id="backup_mode" class="field-control">
-										<option value="part" data-i18n="backup.mode.part"></option>
+										<option value="full" data-i18n="backup.mode.full"></option>
 										<option value="range" data-i18n="backup.mode.range"></option>
 									</select>
 								</div>
 
-								<div class="field" id="backup_target_field">
-									<label for="backup_target" data-i18n="backup.label.target"></label>
-									<select id="backup_target" class="field-control"></select>
+								<!-- 目标分类 -->
+								<div class="field" id="backup_target_category_field">
+									<label for="backup_target_category" data-i18n="backup.label.target"></label>
+									<select id="backup_target_category" class="field-control"></select>
 								</div>
 							</div>
 
+							<!-- 自定义范围（仅 range 模式显示） -->
 							<div id="backup_range" class="backup-range" style="display: none;">
+								<!-- 选中的条目信息 -->
+								<div id="backup_range_info" class="backup-range-info" style="display: none;">
+									<span class="backup-range-info-name" id="backup_range_info_name"></span>
+								</div>
 								<div class="form-row form-row-2">
 									<div class="field">
 										<label for="backup_start" data-i18n="backup.label.start"></label>
-										<input id="backup_start" class="field-control" type="text" placeholder="0x0 / 64KiB">
+										<input id="backup_start" class="field-control" type="text" placeholder="0x0 / 64k">
 									</div>
 									<div class="field">
-										<label for="backup_end" data-i18n="backup.label.end"></label>
-										<input id="backup_end" class="field-control" type="text" placeholder="0x1000 / 128KiB">
+										<label for="backup_size" data-i18n="backup.label.size"></label>
+										<input id="backup_size" class="field-control" type="text" placeholder="0x1000 / 128k">
 									</div>
 								</div>
 								<div id="backup_range_hint" class="backup-range-hint"></div>
+								<div class="backup-range-actions">
+									<button type="button" class="button" onclick="backupManager.startBackup()" data-i18n="backup.action.download"></button>
+								</div>
 							</div>
 
-							<div class="form-actions">
-								<button type="button" class="button" onclick="backupManager.start()"
-									data-i18n="backup.action.download"></button>
+							<!-- 条目列表区域（仅 full 模式显示） -->
+							<div class="backup-items-container" id="backup_items_container" style="display: none;">
+								<div class="backup-items-toolbar">
+									<div class="backup-items-toolbar-left">
+										<span class="backup-items-count" id="backup_items_count"></span>
+									</div>
+									<div class="backup-items-toolbar-right">
+										<button type="button" class="button button-sm" onclick="backupManager.selectAll()" data-i18n="backup.action.select_all"></button>
+										<button type="button" class="button button-sm button-warn" onclick="backupManager.selectAllForce()" data-i18n="backup.action.select_all_force"></button>
+										<button type="button" class="button button-sm" onclick="backupManager.deselectAll()" data-i18n="backup.action.deselect_all"></button>
+										<button type="button" class="button button-sm" onclick="backupManager.startBackup()" data-i18n="backup.action.download"></button>
+									</div>
+								</div>
+								<div class="backup-items-scroll" id="backup_items_scroll">
+									<div id="backup_items_list"></div>
+								</div>
+							</div>
+
+							<!-- 下载进度区域 -->
+							<div class="backup-progress-container" id="backup_progress_container" style="display: none;">
+								<div class="backup-progress-header">
+									<span class="backup-progress-title" data-i18n="backup.progress.title"></span>
+									<span class="backup-progress-percent" id="backup_progress_percent"></span>
+									<span class="backup-progress-status" id="backup_progress_status"></span>
+								</div>
+								<!-- 总体进度条 -->
+								<div class="backup-progress-bar-wrapper">
+									<div class="backup-progress-bar-track">
+										<div class="backup-progress-bar-fill" id="backup_progress_bar_fill" style="width: 0%;"></div>
+									</div>
+									<span class="backup-progress-bar-text" id="backup_progress_bar_text"></span>
+								</div>
+								<div class="backup-progress-scroll" id="backup_progress_scroll">
+									<div id="backup_progress_list"></div>
+								</div>
 							</div>
 						</div>
-
-						<div class="bar-circle" id="backup_progress" style="display: none; --percent: 0;"></div>
-						<div id="backup_status" style="display: none;" class="backup-status"></div>
 					</div>
 				</div>
 
@@ -75,6 +114,8 @@
 								<li data-i18n="backup.warn.1"></li>
 								<li data-i18n="backup.warn.2"></li>
 								<li data-i18n="backup.warn.3"></li>
+								<li data-i18n="backup.warn.4"></li>
+								<li data-i18n="backup.warn.5"></li>
 							</ul>
 						</div>
 					</div>

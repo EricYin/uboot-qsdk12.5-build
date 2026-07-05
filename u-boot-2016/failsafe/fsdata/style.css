@@ -2453,57 +2453,17 @@ html[data-theme="dark"] .bar-circle-mini::before {
     width: 100%;
 }
 
-/* 自定义范围区域 */
-.backup-range {
-    margin-top: 1rem;
-    padding: 1rem;
-    background: var(--panel-2);
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border);
-}
-
-/* 范围提示信息 */
-.backup-range-hint {
-    margin-top: 0.75rem;
-    padding: 0.5rem 0.75rem;
-    background: var(--panel);
-    border-radius: var(--radius-sm);
-    font-size: 0.8rem;
-    color: var(--primary);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    border-left: 3px solid var(--primary);
-    word-break: break-all;
-}
-
-/* 备份状态显示 */
-.backup-status {
-    margin-top: 1rem;
-    padding: 0.75rem 1rem;
-    background: var(--panel-2);
-    border-radius: var(--radius-sm);
-    font-size: 0.85rem;
-    color: var(--text);
-    text-align: center;
-    border: 1px solid var(--border);
-    word-break: break-word;
-}
-
-/* 备份进度条 - 复用已有的 bar-circle 样式，但可以添加特定调整 */
-#backup_progress {
-    margin: 1rem auto;
-}
-
 /* 备份页面表单行调整 */
 .backup-form .form-row-2 {
     margin-bottom: 0.5rem;
 }
 
 /* 备份目标选择器样式增强 */
-#backup_target {
+#backup_target_category {
     cursor: pointer;
 }
 
-#backup_target option {
+#backup_target_category option {
     padding: 0.5rem;
     font-size: 0.85rem;
 }
@@ -2522,17 +2482,585 @@ html[data-theme="dark"] .bar-circle-mini::before {
     font-size: 0.8rem;
 }
 
-/* 暗色主题下的备份区域样式优化 */
+/* ====== Range 模式信息显示 ====== */
+
+/* 自定义范围区域 */
+.backup-range {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--panel-2);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+}
+
+.backup-range-info {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.75rem;
+    background: var(--panel);
+    border: 1px solid var(--primary);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--primary);
+}
+
+.backup-range-info-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--primary);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    word-break: break-word;
+}
+
+/* 范围提示信息 */
+.backup-range-hint {
+    margin-top: 0.95rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--panel);
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    color: var(--primary);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    border-left: 3px solid var(--primary);
+    word-break: break-all;
+}
+
+.backup-range-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+
 html[data-theme="dark"] .backup-range {
     background: rgba(17, 28, 51, 0.8);
+}
+
+html[data-theme="dark"] .backup-range-info {
+    background: rgba(17, 28, 51, 0.8);
+    border-color: var(--primary-2);
+    border-left-color: var(--primary-2);
 }
 
 html[data-theme="dark"] .backup-range-hint {
     background: rgba(15, 23, 42, 0.8);
 }
 
-html[data-theme="dark"] .backup-status {
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .backup-range-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+        padding: 0.5rem 0.65rem;
+    }
+
+    .backup-range-info-name {
+        font-size: 0.8rem;
+    }
+
+    .backup-range-hint {
+        font-size: 0.7rem;
+        padding: 0.4rem 0.6rem;
+    }
+}
+
+/* ====== 备份页面 - 条目列表样式 ====== */
+
+/* 条目列表容器 */
+.backup-items-container {
+    margin-top: 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: var(--panel-2);
+}
+
+/* 工具栏 */
+.backup-items-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.backup-items-count {
+    font-size: 0.85rem;
+    color: var(--muted);
+    font-weight: 500;
+}
+
+.backup-items-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* 条目滚动容器 */
+.backup-items-scroll {
+    max-height: 250px;
+    min-height: 100px;
+    overflow-y: auto;
+    padding: 0.25rem 0;
+    -webkit-overflow-scrolling: touch;
+}
+
+.backup-items-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+.backup-items-scroll::-webkit-scrollbar-track {
+    background: var(--panel-2);
+    border-radius: 3px;
+}
+
+.backup-items-scroll::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+}
+
+.backup-items-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--muted);
+}
+
+/* 单个条目 */
+.backup-item {
+    padding: 0.4rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    transition: background-color 0.15s ease;
+}
+
+.backup-item:last-child {
+    border-bottom: none;
+}
+
+.backup-item:hover {
+    background-color: rgba(var(--panel-rgb), 0.5);
+}
+
+.backup-item-label {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    width: 100%;
+}
+
+.backup-item-checkbox {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--primary);
+}
+
+.backup-item-name {
+    font-size: 0.85rem;
+    color: var(--text);
+    word-break: break-word;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* 空状态 */
+.backup-items-empty {
+    padding: 2rem 1rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+/* ====== 备份进度样式 ====== */
+
+/* 进度容器 */
+.backup-progress-container {
+    margin-top: 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: var(--panel-2);
+}
+
+/* 进度头部 */
+.backup-progress-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.backup-progress-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.backup-progress-status {
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+/* 进度滚动容器 */
+.backup-progress-scroll {
+    max-height: 200px;
+    min-height: 80px;
+    overflow-y: auto;
+    padding: 0.25rem 0;
+    -webkit-overflow-scrolling: touch;
+}
+
+.backup-progress-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+.backup-progress-scroll::-webkit-scrollbar-track {
+    background: var(--panel-2);
+    border-radius: 3px;
+}
+
+.backup-progress-scroll::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+}
+
+.backup-progress-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--muted);
+}
+
+/* 进度条目 */
+.backup-progress-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.35rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.8rem;
+    transition: background-color 0.15s ease;
+}
+
+.backup-progress-item:last-child {
+    border-bottom: none;
+}
+
+.backup-progress-item.done {
+    background-color: rgba(49, 161, 161, 0.05);
+}
+
+.backup-progress-item.error {
+    background-color: rgba(245, 54, 92, 0.05);
+}
+
+.backup-progress-item-name {
+    flex: 1;
+    color: var(--text);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.8rem;
+    word-break: break-word;
+    min-width: 100px;
+}
+
+.backup-progress-item-status {
+    flex-shrink: 0;
+    font-weight: 500;
+    font-size: 0.75rem;
+    min-width: 80px;
+    text-align: right;
+}
+
+.backup-progress-item-status[data-status="pending"] {
+    color: var(--muted);
+}
+
+.backup-progress-item-status[data-status="downloading"] {
+    color: var(--primary);
+    animation: pulse-text 1s ease-in-out infinite;
+}
+
+.backup-progress-item-status[data-status="done"] {
+    color: var(--primary);
+}
+
+.backup-progress-item-status[data-status="error"] {
+    color: var(--danger);
+}
+
+.backup-progress-item-size {
+    flex-shrink: 0;
+    color: var(--muted);
+    font-size: 0.7rem;
+    min-width: 60px;
+    text-align: right;
+}
+
+@keyframes pulse-text {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
+html[data-theme="dark"] .backup-items-container {
     background: rgba(17, 28, 51, 0.6);
+}
+
+html[data-theme="dark"] .backup-progress-container {
+    background: rgba(17, 28, 51, 0.6);
+}
+
+html[data-theme="dark"] .backup-item:hover {
+    background-color: rgba(148, 163, 184, 0.05);
+}
+
+html[data-theme="dark"] .backup-progress-item.done {
+    background-color: rgba(26, 137, 137, 0.08);
+}
+
+html[data-theme="dark"] .backup-progress-item.error {
+    background-color: rgba(248, 113, 113, 0.06);
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .backup-items-scroll {
+        max-height: 180px;
+        min-height: 80px;
+    }
+
+    .backup-progress-scroll {
+        max-height: 150px;
+        min-height: 60px;
+    }
+
+    .backup-item {
+        padding: 0.3rem 0.5rem;
+    }
+
+    .backup-item-name {
+        font-size: 0.75rem;
+    }
+
+    .backup-progress-item {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .backup-progress-item-name {
+        font-size: 0.75rem;
+        min-width: 60px;
+    }
+
+    .backup-progress-item-status {
+        font-size: 0.7rem;
+        min-width: 60px;
+    }
+
+    .backup-progress-item-size {
+        font-size: 0.65rem;
+        min-width: 40px;
+    }
+
+    .backup-items-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.3rem;
+    }
+
+    .backup-items-actions {
+        justify-content: flex-end;
+    }
+
+    .backup-progress-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.3rem;
+    }
+}
+
+/* ====== 进度条样式 ====== */
+
+.backup-progress-bar-wrapper {
+    padding: 0.25rem 0.75rem 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.backup-progress-bar-track {
+    flex: 1;
+    height: 6px;
+    background: var(--panel-2);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+}
+
+.backup-progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--primary-2));
+    border-radius: 3px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.backup-progress-bar-text {
+    font-size: 0.75rem;
+    color: var(--muted);
+    min-width: 40px;
+    text-align: right;
+    font-family: ui-monospace, monospace;
+}
+
+/* ====== 进度头部百分比 ====== */
+
+.backup-progress-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.backup-progress-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.backup-progress-percent {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary);
+    font-family: ui-monospace, monospace;
+}
+
+.backup-progress-status {
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+/* ====== 进度条目百分比 ====== */
+
+.backup-progress-item-percent {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--primary);
+    min-width: 40px;
+    text-align: right;
+    font-family: ui-monospace, monospace;
+}
+
+.backup-progress-item.done .backup-progress-item-percent {
+    color: var(--primary);
+}
+
+.backup-progress-item.error .backup-progress-item-percent {
+    color: var(--danger);
+}
+
+/* ====== 工具栏样式 ====== */
+
+.backup-items-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.backup-items-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.backup-items-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+html[data-theme="dark"] .backup-progress-bar-track {
+    background: rgba(17, 28, 51, 0.6);
+}
+
+html[data-theme="dark"] .backup-progress-bar-fill {
+    background: linear-gradient(90deg, var(--primary-2), var(--primary));
+}
+
+@media (max-width: 768px) {
+    .backup-progress-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.2rem;
+        text-align: center;
+    }
+
+    .backup-progress-bar-wrapper {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .backup-progress-bar-text {
+        text-align: center;
+    }
+
+    .backup-progress-item {
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+
+    .backup-progress-item-percent {
+        min-width: 30px;
+        font-size: 0.7rem;
+    }
+}
+
+/* ====== 大文件标记样式 ====== */
+
+.backup-item-large {
+    background-color: rgba(245, 158, 11, 0.05);
+}
+
+.backup-item-large:hover {
+    background-color: rgba(245, 158, 11, 0.1);
+}
+
+.backup-item-badge {
+    font-size: 0.6rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 10px;
+    background-color: #f59e0b;
+    color: #fff;
+    font-weight: 600;
+    margin-left: 0.5rem;
+    flex-shrink: 0;
+}
+
+html[data-theme="dark"] .backup-item-large {
+    background-color: rgba(245, 158, 11, 0.08);
+}
+
+html[data-theme="dark"] .backup-item-large:hover {
+    background-color: rgba(245, 158, 11, 0.15);
+}
+
+html[data-theme="dark"] .backup-item-badge {
+    background-color: #b45309;
 }
 
 /* ====== 系统信息表格样式 ====== */
@@ -3037,16 +3565,6 @@ html[data-theme="light"] .syslog-output {
 
     .form-actions {
         justify-content: center;
-    }
-
-    .backup-range-hint {
-        font-size: 0.7rem;
-        padding: 0.4rem 0.6rem;
-    }
-
-    .backup-status {
-        font-size: 0.75rem;
-        padding: 0.6rem 0.8rem;
     }
 
     .card-main-section .table {

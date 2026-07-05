@@ -2060,11 +2060,24 @@ function getUnifiedUploadManager() {
 
 /**
  * 备份管理器
- * 负责处理闪存备份的配置、执行和文件下载等功能
+ * 负责处理闪存备份的配置、条目选择、批量下载等功能
  */
 const backupManager = (() => {
     let elements = null;
     let targetsLoaded = false;
+    let rawDevicesData = {};     // 存储原始设备数据
+    let smemPartsData = [];      // 存储 SMEM 分区数据
+    let mmcPartsData = [];       // 存储 MMC 分区数据
+    let itemsData = [];          // 当前显示的条目列表
+    let selectedItems = new Set(); // 选中的条目索引
+    let isDownloading = false;
+    const MAX_AUTO_SELECT_SIZE = 256 * 1024 * 1024; // 256 MiB
+
+    // 输入验证状态
+    let validationState = {
+        start: { valid: true, value: null, message: '' },
+        size: { valid: true, value: null, message: '' }
+    };
 
     /**
      * 获取或缓存 DOM 元素
@@ -2074,48 +2087,97 @@ const backupManager = (() => {
 
         elements = {
             mode: document.getElementById("backup_mode"),
-            target: document.getElementById("backup_target"),
+            target: document.getElementById("backup_target_category"),
             range: document.getElementById("backup_range"),
+            rangeInfo: document.getElementById("backup_range_info"),
+            rangeInfoName: document.getElementById("backup_range_info_name"),
             start: document.getElementById("backup_start"),
-            end: document.getElementById("backup_end"),
+            size: document.getElementById("backup_size"),
             rangeHint: document.getElementById("backup_range_hint"),
-            progress: document.getElementById("backup_progress"),
-            status: document.getElementById("backup_status"),
+            itemsContainer: document.getElementById("backup_items_container"),
+            itemsScroll: document.getElementById("backup_items_scroll"),
+            itemsList: document.getElementById("backup_items_list"),
+            itemsCount: document.getElementById("backup_items_count"),
+            progressContainer: document.getElementById("backup_progress_container"),
+            progressScroll: document.getElementById("backup_progress_scroll"),
+            progressList: document.getElementById("backup_progress_list"),
+            progressStatus: document.getElementById("backup_progress_status"),
+            progressPercent: document.getElementById("backup_progress_percent"),
+            progressBarFill: document.getElementById("backup_progress_bar_fill"),
+            progressBarText: document.getElementById("backup_progress_bar_text"),
         };
 
         return elements;
     }
 
     /**
-     * 设置备份状态显示
+     * 格式化字节数为可读字符串
      */
-    function setStatus(text, isError) {
-        const el = getElements().status;
-        if (el) {
-            el.style.display = text ? "block" : "none";
-            el.textContent = text || "";
-            if (isError) {
-                el.style.color = "var(--danger)";
-            } else {
-                el.style.color = "";
-            }
+    function bytesToHuman(bytes) {
+        if (bytes === null || bytes === undefined) return "未知";
+        const numBytes = Number(bytes);
+        if (!isFinite(numBytes) || numBytes < 0) return "未知";
+        if (numBytes >= 1024 * 1024 * 1024) {
+            return (numBytes / (1024 * 1024 * 1024)).toFixed(2) + " GiB";
+        } else if (numBytes >= 1024 * 1024) {
+            return (numBytes / (1024 * 1024)).toFixed(2) + " MiB";
+        } else if (numBytes >= 1024) {
+            return (numBytes / 1024).toFixed(2) + " KiB";
+        } else {
+            return String(Math.floor(numBytes)) + " B";
         }
     }
 
     /**
-     * 设置备份进度
+     * 获取条目的大小（以字节为单位）
      */
-    function setProgress(percent) {
-        const el = getElements().progress;
-        if (el) {
-            const p = Math.max(0, Math.min(100, parseInt(percent || 0)));
-            el.style.display = "block";
-            el.style.setProperty("--percent", p);
+    function getItemSize(item) {
+        if (item.size !== null && item.size !== undefined && typeof item.size === 'number') {
+            return item.size;
         }
+        return 0;
+    }
+
+    /**
+     * 检查条目是否超过自动选择阈值（MAX_AUTO_SELECT_SIZE）
+     */
+    function isLargeItem(item) {
+        return getItemSize(item) > MAX_AUTO_SELECT_SIZE;
+    }
+
+    /**
+     * 获取当前选中的条目（range 模式下应该只有一个）
+     */
+    function getSelectedItem() {
+        const selectedIndices = Array.from(selectedItems);
+        if (selectedIndices.length === 1) {
+            return itemsData[selectedIndices[0]];
+        }
+        return null;
+    }
+
+    /**
+     * 检查用户是否输入起始偏移
+     */
+    function hasStartInput() {
+        const els = getElements();
+        const startInput = els.start ? els.start.value.trim() : '';
+        return startInput !== '';
+    }
+
+    /**
+     * 检查用户是否输入大小
+     */
+    function hasSizeInput() {
+        const els = getElements();
+        const sizeInput = els.size ? els.size.value.trim() : '';
+        return sizeInput !== '';
     }
 
     /**
      * 解析用户输入的长度（支持十六进制和K/M后缀）
+     * @param {string} str - 用户输入的字符串
+     * @returns {object|null} { value: 字节数, raw: 原始数值, unit: 单位 }
      */
     function parseUserLen(str) {
         if (!str) return null;
@@ -2130,32 +2192,227 @@ const backupManager = (() => {
         if (!isFinite(val) || val < 0) return null;
 
         const suffix = (match[2] || "").toLowerCase();
-        if (suffix === "" || suffix === "b") return val;
-        if (suffix === "k" || suffix === "kb" || suffix === "kib") return val * 1024;
-        if (suffix === "m" || suffix === "mb" || suffix === "mib") return val * 1024 * 1024;
+        let bytes = val;
+        let unit = suffix || "B";
 
-        return null;
+        if (suffix === "" || suffix === "b") {
+            bytes = val;
+            unit = "B";
+        } else if (suffix === "k" || suffix === "kb" || suffix === "kib") {
+            bytes = val * 1024;
+            unit = "KiB";
+        } else if (suffix === "m" || suffix === "mb" || suffix === "mib") {
+            bytes = val * 1024 * 1024;
+            unit = "MiB";
+        } else {
+            return null;
+        }
+
+        return { value: bytes, raw: val, unit: unit };
+    }
+
+    /**
+     * 验证 range 模式的输入
+     * @returns {object} { valid: boolean, start: number|null, size: number|null, errors: array }
+     */
+    function validateRangeInput() {
+        const els = getElements();
+        if (els.mode?.value !== 'range') {
+            return;
+        }
+
+        const useChinese = APP_STATE.lang && APP_STATE.lang === 'zh-cn';
+        const startStr = els.start?.value || '';
+        const sizeStr = els.size?.value || '';
+        const errors = [];
+        let startValue = null;
+        let sizeValue = null;
+
+        // 获取当前选中的条目
+        const selectedItem = getSelectedItem();
+        const itemSize = selectedItem ? getItemSize(selectedItem) : 0;
+
+        // 解析起始地址
+        const startResult = parseUserLen(startStr);
+        if (startResult === null) {
+            const message = hasStartInput()
+                ? t('backup.range.error.invalid_start')
+                : t('backup.range.error.empty_start');
+            errors.push({ field: 'start', message: message });
+            validationState.start = { valid: false, value: null, message: message };
+        } else {
+            startValue = startResult.value;
+            if (startValue >= itemSize) {
+                const message = useChinese
+                    ? '起始地址超出条目大小范围（最大 ' + bytesToHuman(itemSize) + '）'
+                    : 'Start address exceeds item size (max ' + bytesToHuman(itemSize) + ')';
+                errors.push({ field: 'start', message: message });
+                validationState.start = { valid: false, value: startValue, message: message };
+            } else {
+                validationState.start = { valid: true, value: startValue, message: '' };
+            }
+        }
+
+        // 解析大小
+        const sizeResult = parseUserLen(sizeStr);
+        if (sizeResult === null) {
+            const message = hasSizeInput()
+                ? t('backup.range.error.invalid_size')
+                : t('backup.range.error.empty_size');
+            errors.push({ field: 'size', message: message });
+            validationState.size = { valid: false, value: null, message: message };
+        } else if (sizeResult.value <= 0) {
+            const message = t('backup.range.error.size_zero');
+            errors.push({ field: 'size', message: message });
+            validationState.size = { valid: false, value: null, message: message };
+        } else {
+            sizeValue = sizeResult.value;
+            validationState.size = { valid: true, value: sizeValue, message: '' };
+        }
+
+        // 如果两个都有效，检查是否在条目范围内
+        if (startValue !== null && sizeValue !== null && selectedItem) {
+            if (itemSize > 0) {
+                // 检查起始地址 + 大小是否超出范围
+                if (startValue + sizeValue > itemSize) {
+                    const message = useChinese
+                        ? '起始地址 + 大小超出条目大小范围（最大 ' + bytesToHuman(itemSize) + '）'
+                        : 'Start + size exceeds item size (max ' + bytesToHuman(itemSize) + ')';
+                    errors.push({ field: 'size', message: message });
+                    validationState.size = { valid: false, value: sizeValue, message: message };
+                }
+
+                // 检查起始地址 + 大小是否等于条目大小（允许等于，表示备份到末尾）
+                // 这是允许的，不需要报错
+            }
+        }
+
+        // 更新输入框样式
+        updateInputValidation();
+
+        return {
+            valid: errors.length === 0,
+            start: startValue,
+            size: sizeValue,
+            itemSize: itemSize,
+            errors: errors
+        };
+    }
+
+    /**
+     * 更新输入框的验证样式
+     */
+    function updateInputValidation() {
+        const els = getElements();
+
+        // 更新起始地址输入框
+        if (els.start) {
+            els.start.classList.remove('input-valid', 'input-invalid');
+            if (validationState.start.valid || !hasStartInput()) {
+                els.start.classList.add('input-valid');
+            } else {
+                els.start.classList.add('input-invalid');
+            }
+        }
+
+        // 更新大小输入框
+        if (els.size) {
+            els.size.classList.remove('input-valid', 'input-invalid');
+            if (validationState.size.valid || !hasSizeInput()) {
+                els.size.classList.add('input-valid');
+            } else {
+                els.size.classList.add('input-invalid');
+            }
+        }
+
+        // 更新提示信息
+        updateRangeHint();
     }
 
     /**
      * 更新范围提示
      */
     function updateRangeHint() {
-        const hint = getElements().rangeHint;
+        const els = getElements();
+        const hint = els.rangeHint;
         if (!hint) return;
 
-        const startVal = parseUserLen(getElements().start?.value);
-        const endVal = parseUserLen(getElements().end?.value);
+        const startState = validationState.start;
+        const sizeState = validationState.size;
+        const startValid = startState.valid;
+        const sizeValid = sizeState.valid;
+        const defaultHint = t("backup.range.hint");
 
-        if (startVal === null || endVal === null) {
-            hint.textContent = t("backup.range.hint");
-        } else if (endVal > startVal) {
-            const size = endVal - startVal;
-            hint.textContent = "Start=" + startVal + " B (" + bytesToHuman(startVal) + ")" +
-                              ", End=" + endVal + " B (" + bytesToHuman(endVal) + ")" +
-                              ", Size=" + size + " B (" + bytesToHuman(size) + ")";
+        if (!hasStartInput() && !hasSizeInput()) {
+            hint.textContent = defaultHint;
+            hint.style.color = '';
+            return;
+        }
+
+        // 如果有错误信息，显示错误
+        if (!startValid) {
+            hint.textContent = '❌ ' + startState.message;
+            hint.style.color = 'var(--danger)';
+            return;
+        }
+        if (!sizeValid) {
+            hint.textContent = '❌ ' + sizeState.message;
+            hint.style.color = 'var(--danger)';
+            return;
+        }
+
+        // 如果两个都有效，显示范围信息
+        if (startValid && sizeValid) {
+            const startVal = startState.value;
+            const sizeVal = sizeState.value;
+            const end = startVal + sizeVal - 1;
+
+            hint.textContent = "Start = " + startVal + " B (" + bytesToHuman(startVal) + ")" +
+                              ", Size = " + sizeVal + " B (" + bytesToHuman(sizeVal) + ")" +
+                              ", End = " + end + " B (" + bytesToHuman(end) + ")";
+            hint.style.color = 'var(--primary)';
+
+            return;
+        }
+
+        hint.textContent = defaultHint;
+        hint.style.color = '';
+    }
+
+    /**
+     * 重置输入验证状态
+     */
+    function resetValidation() {
+        validationState.start = { valid: true, value: null, message: '' };
+        validationState.size = { valid: true, value: null, message: '' };
+        const els = getElements();
+        if (els.start) {
+            els.start.classList.remove('input-valid', 'input-invalid');
+        }
+        if (els.size) {
+            els.size.classList.remove('input-valid', 'input-invalid');
+        }
+        updateRangeHint();
+    }
+
+    /**
+     * 更新 range 模式下的条目信息显示
+     */
+    function updateRangeInfo() {
+        const els = getElements();
+        const selectedItem = getSelectedItem();
+
+        if (selectedItem && els.rangeInfo) {
+            els.rangeInfo.style.display = 'block';
+            if (els.rangeInfoName) {
+                els.rangeInfoName.textContent = selectedItem.display;
+            }
+            // 当条目信息更新时，重新验证输入
+            validateRangeInput();
         } else {
-            hint.textContent = t("backup.range.hint");
+            if (els.rangeInfo) {
+                els.rangeInfo.style.display = 'none';
+            }
         }
     }
 
@@ -2172,19 +2429,38 @@ const backupManager = (() => {
     }
 
     /**
-     * 更新UI模式显示
+     * 生成安全的文件名
      */
-    function updateModeUI() {
-        const els = getElements();
-        const isRange = els.mode?.value === "range";
+    function generateSafeFilename(target, index, total) {
+        const now = new Date();
+        const timestamp = now.getFullYear() +
+            String(now.getMonth() + 1).padStart(2, '0') +
+            String(now.getDate()).padStart(2, '0') + '_' +
+            String(now.getHours()).padStart(2, '0') +
+            String(now.getMinutes()).padStart(2, '0') +
+            String(now.getSeconds()).padStart(2, '0');
 
-        if (els.range) {
-            els.range.style.display = isRange ? "block" : "none";
-        }
+        let name = target.replace(/^raw:/, 'RAW_')
+                         .replace(/^smem:/, 'SMEM_')
+                         .replace(/^mmc:/, 'MMC_')
+                         .replace(/[^a-zA-Z0-9_\-]/g, '_');
 
-        if (isRange) {
-            updateRangeHint();
+        if (total > 1) {
+            return `${timestamp}_${name}_${index + 1}of${total}.bin`;
         }
+        return `${timestamp}_${name}.bin`;
+    }
+
+    /**
+     * 初始化条目选中状态（默认勾选不超过 MAX_AUTO_SELECT_SIZE 的条目）
+     */
+    function initSelection() {
+        selectedItems.clear();
+        itemsData.forEach(function(item, index) {
+            if (!isLargeItem(item)) {
+                selectedItems.add(index);
+            }
+        });
     }
 
     /**
@@ -2192,7 +2468,6 @@ const backupManager = (() => {
      */
     function loadTargets() {
         const els = getElements();
-
         if (!els.target) return;
 
         ajax({
@@ -2203,110 +2478,628 @@ const backupManager = (() => {
                 try {
                     info = JSON.parse(text);
                 } catch (e) {
-                    setStatus(t("backup.error.exception") + " " + t("sysinfo.error.parse"), true);
+                    showError(t("backup.error.exception") + " " + t("sysinfo.error.parse"));
                     return;
                 }
 
-                // 清空并添加占位符
                 els.target.innerHTML = '<option value="" data-i18n="backup.target.placeholder"></option>';
 
-                // 添加RAW选项
-                if (info.devices) {
-                    const rawDevices = [
-                        { key: "spi", label: "SPI" },
-                        { key: "mmc", label: "MMC" },
-                        { key: "nand", label: "NAND" }
-                    ];
+                rawDevicesData = {};
+                smemPartsData = [];
+                mmcPartsData = [];
 
-                    rawDevices.forEach(function(dev) {
-                        const device = info.devices[dev.key];
+                let hasRawDevice = false;
+                if (info.devices) {
+                    const rawTypes = ['spi', 'mmc', 'nand'];
+                    rawTypes.forEach(function(key) {
+                        const device = info.devices[key];
                         if (device && device.present) {
-                            const opt = document.createElement("option");
-                            opt.value = "raw:" + dev.key;
-                            opt.textContent = "[RAW] " + dev.label + ": " +
-                                (device.name || device.product || "") +
-                                (device.size ? " (" + bytesToHuman(device.size) + ")" : "");
-                            els.target.appendChild(opt);
+                            rawDevicesData[key] = device;
+                            hasRawDevice = true;
                         }
                     });
                 }
 
-                // 添加分区选项
-                if (info.partitions) {
-                    addPartitionOptions(info.partitions.smem, "smem");
-                    addPartitionOptions(info.partitions.mmc, "mmc");
+                if (hasRawDevice) {
+                    const opt = document.createElement("option");
+                    opt.value = "raw";
+                    opt.textContent = t('backup.target.raw');
+                    opt.dataset.category = "raw";
+                    els.target.appendChild(opt);
                 }
 
-                // 选择第一个有效选项
-                if (els.target.options.length > 1) {
-                    els.target.selectedIndex = 1;
+                if (info.partitions && info.partitions.smem && info.partitions.smem.present) {
+                    smemPartsData = info.partitions.smem.parts || [];
+                    const opt = document.createElement("option");
+                    opt.value = "smem";
+                    opt.textContent = t('backup.target.smem');
+                    opt.dataset.category = "smem";
+                    els.target.appendChild(opt);
+                }
+
+                if (info.partitions && info.partitions.mmc && info.partitions.mmc.present) {
+                    mmcPartsData = info.partitions.mmc.parts || [];
+                    const opt = document.createElement("option");
+                    opt.value = "mmc";
+                    opt.textContent = t('backup.target.mmc');
+                    opt.dataset.category = "mmc";
+                    els.target.appendChild(opt);
                 }
 
                 applyI18n(els.target);
                 targetsLoaded = true;
+
+                if (els.target.options.length > 1) {
+                    els.target.selectedIndex = 1;
+                    onTargetChange();
+                }
+
+                els.target.addEventListener("change", onTargetChange);
             }
         });
     }
 
     /**
-     * 添加分区选项
+     * 目标选择变更处理
      */
-    function addPartitionOptions(partData, type) {
+    function onTargetChange() {
         const els = getElements();
+        const selectedOption = els.target.options[els.target.selectedIndex];
 
-        if (!partData || !partData.present || !partData.parts || !partData.parts.length) {
+        if (!selectedOption || !selectedOption.value) {
+            els.itemsContainer.style.display = "none";
+            itemsData = [];
+            selectedItems.clear();
+            renderItems();
+            updateModeUI();
+            updateRangeInfo();
+            resetValidation();
             return;
         }
 
-        partData.parts.forEach(function(part) {
-            if (part && part.name) {
-                const opt = document.createElement("option");
-                opt.value = type + ":" + part.name;
-                opt.textContent = "[" + type.toUpperCase() + "] " + part.name +
-                                 (part.size ? " (" + bytesToHuman(part.size) + ")" : "");
-                els.target.appendChild(opt);
+        const category = selectedOption.dataset.category;
+        itemsData = [];
+        selectedItems.clear();
+
+        if (category === 'raw') {
+            const typeLabels = {
+                'spi': 'SPI',
+                'mmc': 'MMC',
+                'nand': 'NAND'
+            };
+
+            Object.keys(rawDevicesData).forEach(function(key) {
+                const device = rawDevicesData[key];
+                if (device) {
+                    const label = '[RAW] ' + (typeLabels[key] || key.toUpperCase()) +
+                                    ': ' + (device.name || device.product || '');
+                    itemsData.push({
+                        id: 'raw:' + key,
+                        type: 'raw',
+                        name: label,
+                        device: key,
+                        size: device.size || null,
+                        display: label + (device.size ? ' (' + bytesToHuman(device.size) + ')' : '')
+                    });
+                }
+            });
+        } else if (category === 'smem') {
+            smemPartsData.forEach(function(part) {
+                if (part && part.name) {
+                    itemsData.push({
+                        id: 'smem:' + part.name,
+                        type: 'smem',
+                        name: part.name,
+                        size: part.size || 0,
+                        display: '[SMEM] ' + part.name +
+                                (part.size ? ' (' + bytesToHuman(part.size) + ')' : '')
+                    });
+                }
+            });
+        } else if (category === 'mmc') {
+            mmcPartsData.forEach(function(part) {
+                if (part && part.name) {
+                    itemsData.push({
+                        id: 'mmc:' + part.name,
+                        type: 'mmc',
+                        name: part.name,
+                        size: part.size || 0,
+                        display: '[MMC] ' + part.name +
+                                (part.size ? ' (' + bytesToHuman(part.size) + ')' : '')
+                    });
+                }
+            });
+        }
+
+        initSelection();
+        renderItems();
+        updateItemsCount();
+        updateModeUI();
+        updateRangeInfo();
+        resetValidation();
+
+        if (els.mode.value === 'full' && itemsData.length > 0) {
+            els.itemsContainer.style.display = "block";
+        } else {
+            els.itemsContainer.style.display = "none";
+        }
+    }
+
+    /**
+     * 渲染条目列表
+     */
+    function renderItems() {
+        const els = getElements();
+        const list = els.itemsList;
+        if (!list) return;
+
+        if (itemsData.length === 0) {
+            list.innerHTML = '<div class="backup-items-empty" data-i18n="backup.items.empty"></div>';
+            return;
+        }
+
+        let html = '';
+        itemsData.forEach(function(item, index) {
+            const checked = selectedItems.has(index) ? 'checked' : '';
+            const isLarge = isLargeItem(item);
+            const largeClass = isLarge ? ' backup-item-large' : '';
+
+            html += `
+                <div class="backup-item${largeClass}" data-index="${index}">
+                    <label class="backup-item-label">
+                        <input type="checkbox" class="backup-item-checkbox" ${checked} data-index="${index}">
+                        <span class="backup-item-name">${escapeHtml(item.display)}</span>
+                        ${isLarge ? '<span class="backup-item-badge" data-i18n="backup.badge.large"></span>' : ''}
+                    </label>
+                </div>
+            `;
+        });
+
+        list.innerHTML = html;
+        applyI18n(list);
+
+        list.querySelectorAll('.backup-item-checkbox').forEach(function(cb) {
+            cb.addEventListener('change', function() {
+                const index = parseInt(this.dataset.index);
+                if (this.checked) {
+                    selectedItems.add(index);
+                } else {
+                    selectedItems.delete(index);
+                }
+                updateItemsCount();
+                updateModeUI();
+                updateRangeInfo();
+                validateRangeInput();
+            });
+        });
+    }
+
+    /**
+     * 更新条目计数
+     */
+    function updateItemsCount() {
+        const els = getElements();
+        if (els.itemsCount) {
+            const total = itemsData.length;
+            const selected = selectedItems.size;
+            const largeCount = itemsData.filter(function(item) { return isLargeItem(item); }).length;
+            let largeInfo = '';
+            if (largeCount > 0) {
+                largeInfo = ` (${largeCount} ` + t('backup.badge.large') + ')';
+            }
+            els.itemsCount.textContent = t('backup.items.count') + ': ' + selected + ' / ' + total + largeInfo;
+        }
+    }
+
+    /**
+     * 全选（跳过超过 MAX_AUTO_SELECT_SIZE 的条目）
+     */
+    function selectAll() {
+        selectedItems.clear();
+        itemsData.forEach(function(item, index) {
+            if (!isLargeItem(item)) {
+                selectedItems.add(index);
+            }
+        });
+        renderItems();
+        updateItemsCount();
+        updateModeUI();
+        updateRangeInfo();
+        validateRangeInput();
+    }
+
+    /**
+     * 全选（包括大文件）
+     */
+    function selectAllForce() {
+        selectedItems.clear();
+        itemsData.forEach(function(_, index) {
+            selectedItems.add(index);
+        });
+        renderItems();
+        updateItemsCount();
+        updateModeUI();
+        updateRangeInfo();
+        validateRangeInput();
+    }
+
+    /**
+     * 取消全选
+     */
+    function deselectAll() {
+        selectedItems.clear();
+        renderItems();
+        updateItemsCount();
+        updateModeUI();
+        updateRangeInfo();
+        validateRangeInput();
+    }
+
+    /**
+     * 添加进度条目（不自动滚动到底部）
+     */
+    function addProgressItem(index, total, name) {
+        const els = getElements();
+        const list = els.progressList;
+        if (!list) return;
+
+        const div = document.createElement('div');
+        div.className = 'backup-progress-item';
+        div.dataset.index = index;
+        div.innerHTML = `
+            <span class="backup-progress-item-name">${escapeHtml(name)}</span>
+            <span class="backup-progress-item-status" data-status="pending">${t('backup.status.pending')}</span>
+            <span class="backup-progress-item-size"></span>
+            <span class="backup-progress-item-percent">0%</span>
+        `;
+        list.appendChild(div);
+
+        updateOverallProgress();
+    }
+
+    /**
+     * 更新进度条目状态（不自动滚动到底部）
+     */
+    function updateProgressItem(index, status, message, size, percent) {
+        const els = getElements();
+        const list = els.progressList;
+        if (!list) return;
+
+        const item = list.querySelector(`.backup-progress-item[data-index="${index}"]`);
+        if (!item) return;
+
+        const statusEl = item.querySelector('.backup-progress-item-status');
+        const sizeEl = item.querySelector('.backup-progress-item-size');
+        const percentEl = item.querySelector('.backup-progress-item-percent');
+
+        if (statusEl) {
+            statusEl.dataset.status = status;
+            statusEl.textContent = t('backup.status.' + status);
+        }
+
+        if (sizeEl && size !== undefined) {
+            sizeEl.textContent = bytesToHuman(size);
+        }
+
+        if (percentEl && percent !== undefined) {
+            percentEl.textContent = Math.round(percent) + '%';
+        }
+
+        if (status === 'done') {
+            item.classList.add('done');
+        } else if (status === 'error') {
+            item.classList.add('error');
+        }
+
+        updateOverallProgress();
+    }
+
+    /**
+     * 更新总体进度
+     */
+    function updateOverallProgress() {
+        const els = getElements();
+        const items = els.progressList?.querySelectorAll('.backup-progress-item') || [];
+
+        if (items.length === 0) return;
+
+        let done = 0;
+        let total = items.length;
+
+        items.forEach(function(item) {
+            const status = item.querySelector('.backup-progress-item-status')?.dataset.status;
+            if (status === 'done' || status === 'error') {
+                done++;
+            }
+        });
+
+        const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+
+        if (els.progressPercent) {
+            els.progressPercent.textContent = percent + '%';
+        }
+
+        if (els.progressBarFill) {
+            els.progressBarFill.style.width = percent + '%';
+        }
+
+        if (els.progressBarText) {
+            els.progressBarText.textContent = done + ' / ' + total;
+        }
+    }
+
+    /**
+     * 更新总体进度状态
+     */
+    function updateOverallStatus(text) {
+        const els = getElements();
+        if (els.progressStatus) {
+            els.progressStatus.textContent = text;
+        }
+    }
+
+    /**
+     * 显示进度区域
+     */
+    function showProgressArea() {
+        const els = getElements();
+        els.progressContainer.style.display = 'block';
+        els.progressList.innerHTML = '';
+        updateOverallStatus('');
+        updateOverallProgress();
+        // 滚动到进度区域顶部，方便用户看到所有进度
+        if (els.progressContainer) {
+            els.progressContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    /**
+     * 隐藏进度区域
+     */
+    function hideProgressArea() {
+        const els = getElements();
+        els.progressContainer.style.display = 'none';
+        els.progressList.innerHTML = '';
+    }
+
+    /**
+     * 显示错误信息
+     */
+    function showError(text) {
+        const els = getElements();
+        if (els.progressContainer) {
+            els.progressContainer.style.display = 'block';
+            els.progressList.innerHTML = '';
+            updateOverallStatus('❌ ' + text);
+        }
+    }
+
+    /**
+     * 更新UI模式显示
+     */
+    function updateModeUI() {
+        const els = getElements();
+        const rangeEl = els.range;
+        const itemsContainer = els.itemsContainer;
+        const selectedCount = selectedItems.size;
+        const currentMode = els.mode?.value;
+
+        if (currentMode === 'range' && selectedCount !== 1) {
+            els.mode.value = 'full';
+            if (rangeEl) {
+                rangeEl.style.display = 'none';
+            }
+            if (itemsContainer && itemsData.length > 0) {
+                itemsContainer.style.display = 'block';
+            }
+            return;
+        }
+
+        if (rangeEl) {
+            if (currentMode === 'range' && selectedCount === 1) {
+                rangeEl.style.display = 'block';
+                updateRangeInfo();
+                validateRangeInput();
+            } else {
+                rangeEl.style.display = 'none';
+            }
+        }
+
+        if (itemsContainer) {
+            if (currentMode === 'full' && itemsData.length > 0) {
+                itemsContainer.style.display = 'block';
+            } else {
+                itemsContainer.style.display = 'none';
+            }
+        }
+    }
+
+    /**
+     * 处理模式切换事件
+     */
+    function onModeChange() {
+        const els = getElements();
+        const selectedCount = selectedItems.size;
+        const newMode = els.mode?.value;
+
+        if (newMode === 'range' && selectedCount !== 1) {
+            alert(t('backup.error.range_require_one'));
+            els.mode.value = 'full';
+        } else if (newMode === 'range') {
+            // 切换到 range 模式时，重置验证状态并重新验证
+            resetValidation();
+            validateRangeInput();
+        }
+
+        updateModeUI();
+        updateRangeInfo();
+    }
+
+    /**
+     * 下载单个条目
+     */
+    function downloadItem(item, index, total) {
+        return new Promise((resolve, reject) => {
+            const formData = new FormData();
+            formData.append("mode", "full");
+            formData.append("target", item.id);
+
+            updateProgressItem(index, 'downloading', '', 0, 0);
+
+            const xhr = new XMLHttpRequest();
+            const chunks = [];
+            let totalSize = 0;
+            let receivedSize = 0;
+
+            xhr.open("POST", "/backup", true);
+            xhr.responseType = 'arraybuffer';
+
+            xhr.onprogress = function(event) {
+                if (event.lengthComputable) {
+                    totalSize = event.total;
+                    receivedSize = event.loaded;
+                    const percent = totalSize > 0 ? Math.round((receivedSize / totalSize) * 100) : 0;
+                    updateProgressItem(index, 'downloading', '', receivedSize, percent);
+                }
+            };
+
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 3 || xhr.readyState === 4) {
+                    try {
+                        if (xhr.response && xhr.response.byteLength > 0) {
+                            if (!xhr._lastResponseSize || xhr._lastResponseSize !== xhr.response.byteLength) {
+                                const chunk = new Uint8Array(xhr.response);
+                                chunks.push(chunk);
+                                xhr._lastResponseSize = xhr.response.byteLength;
+
+                                if (!totalSize) {
+                                    receivedSize += chunk.length;
+                                    updateProgressItem(index, 'downloading', '', receivedSize, 0);
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        // ignore
+                    }
+                }
+
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try {
+                            let totalLength = 0;
+                            const chunksCopy = chunks.slice();
+                            chunksCopy.forEach(function(chunk) {
+                                totalLength += chunk.length;
+                            });
+
+                            if (totalLength === 0) {
+                                if (xhr.response && xhr.response.byteLength > 0) {
+                                    const directData = new Uint8Array(xhr.response);
+                                    chunksCopy.push(directData);
+                                    totalLength = directData.length;
+                                }
+                            }
+
+                            if (totalLength === 0) {
+                                throw new Error('No data received');
+                            }
+
+                            const result = new Uint8Array(totalLength);
+                            let offset = 0;
+                            chunksCopy.forEach(function(chunk) {
+                                result.set(chunk, offset);
+                                offset += chunk.length;
+                            });
+
+                            let filename = parseFilenameFromDisposition(
+                                xhr.getResponseHeader("Content-Disposition")
+                            );
+                            if (!filename) {
+                                filename = generateSafeFilename(item.id, index, total);
+                            }
+
+                            const blob = new Blob([result.buffer], { type: "application/octet-stream" });
+                            const link = document.createElement("a");
+                            link.href = URL.createObjectURL(blob);
+                            link.download = filename;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            URL.revokeObjectURL(link.href);
+
+                            updateProgressItem(index, 'done', '', totalLength, 100);
+                            resolve({ success: true, filename: filename, size: totalLength });
+                        } catch (e) {
+                            updateProgressItem(index, 'error', 'Save failed: ' + e.message, 0, 0);
+                            reject(new Error('Save failed: ' + e.message));
+                        }
+                    } else {
+                        let errorMsg = 'HTTP ' + xhr.status;
+                        try {
+                            const resp = JSON.parse(xhr.responseText);
+                            if (resp.info && resp.info.message) {
+                                errorMsg = resp.info.message;
+                            }
+                        } catch (e) {
+                            // ignore
+                        }
+                        updateProgressItem(index, 'error', 'Fail: ' + errorMsg, 0, 0);
+                        reject(new Error(errorMsg));
+                    }
+                }
+            };
+
+            try {
+                xhr.send(formData);
+            } catch (e) {
+                updateProgressItem(index, 'error', 'Send failed: ' + e.message, 0, 0);
+                reject(e);
             }
         });
     }
 
     /**
-     * 开始备份
+     * 执行 range 模式备份
      */
-    async function start() {
+    async function executeRangeBackup() {
         const els = getElements();
-        const mode = els.mode?.value;
-        const target = els.target?.value;
+        const startInput = els.start;
+        const sizeInput = els.size;
 
-        if (!target) {
-            alert(t("backup.error.no_target"));
+        // 验证输入
+        const validation = validateRangeInput();
+        if (!validation.valid) {
+            const errorMessages = validation.errors.map(function(e) {
+                return e.message;
+            }).join('\n');
+            alert(t('backup.error.invalid_input') + ':\n' + errorMessages);
             return;
         }
+
+        const selectedIndices = Array.from(selectedItems);
+        if (selectedIndices.length !== 1) {
+            alert(t('backup.error.range_require_one'));
+            return;
+        }
+
+        const item = itemsData[selectedIndices[0]];
 
         const formData = new FormData();
-        formData.append("mode", mode);
-        formData.append("target", target);
+        formData.append("mode", "range");
+        formData.append("target", item.id);
+        formData.append("start", String(validation.start));
+        formData.append("size", String(validation.size));
 
-        if (mode === "range") {
-            const startInput = els.start;
-            const endInput = els.end;
-
-            if (!startInput || !endInput || !startInput.value || !endInput.value) {
-                alert(t("backup.error.bad_range"));
-                return;
-            }
-
-            formData.append("start", startInput.value);
-            formData.append("end", endInput.value);
-        }
-
-        setProgress(0);
-        setStatus(t("backup.status.starting"));
+        showProgressArea();
+        addProgressItem(0, 1, item.display);
+        updateOverallStatus(t('backup.status.downloading'));
 
         try {
             const response = await fetch("/backup", { method: "POST", body: formData });
 
             if (!response.ok) {
-                setStatus(t("backup.error.http") + " " + response.status, true);
+                updateProgressItem(0, 'error', 'HTTP ' + response.status, 0, 0);
+                updateOverallStatus(t('backup.status.error'));
                 return;
             }
 
@@ -2327,19 +3120,16 @@ const backupManager = (() => {
                 chunks.push(value);
                 received += value.length;
                 if (totalSize) {
-                    setProgress((received / totalSize) * 100);
+                    const percent = (received / totalSize) * 100;
+                    updateProgressItem(0, 'downloading', '', received, percent);
                 }
-                setStatus(
+                updateOverallStatus(
                     t("backup.status.downloading") + " " +
                     bytesToHuman(received) +
                     (totalSize ? " / " + bytesToHuman(totalSize) : "")
                 );
             }
 
-            setProgress(100);
-            setStatus(t("backup.status.preparing"));
-
-            // 保存文件
             const blob = new Blob(chunks, { type: "application/octet-stream" });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
@@ -2348,13 +3138,110 @@ const backupManager = (() => {
             link.click();
             document.body.removeChild(link);
 
-            setStatus(t("backup.status.done") + " " + filename);
+            updateProgressItem(0, 'done', '', blob.size, 100);
+            updateOverallStatus(t('backup.status.done') + ': ' + filename);
 
         } catch (error) {
-            setStatus(
-                t("backup.error.exception") + " " + (error.message || String(error)),
-                true
+            updateProgressItem(0, 'error', error.message || 'Unknown error', 0, 0);
+            updateOverallStatus(t('backup.status.error'));
+        }
+    }
+
+    /**
+     * 执行 full 模式备份（批量下载）
+     */
+    async function executeFullBackup() {
+        const els = getElements();
+        const useChinese = APP_STATE.lang && APP_STATE.lang === 'zh-cn';
+
+        const selectedIndices = Array.from(selectedItems).sort((a, b) => a - b);
+        if (selectedIndices.length === 0) {
+            alert(t('backup.error.no_selection'));
+            return;
+        }
+
+        const confirmMsg = t('backup.confirm.download') + `${selectedIndices.length}`;
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+
+        isDownloading = true;
+        showProgressArea();
+        updateOverallStatus(useChinese
+            ? `开始下载 ${selectedIndices.length} 个条目...`
+            : `Starting downloading ${selectedIndices.length} items...`
+        );
+
+        selectedIndices.forEach(function(idx, order) {
+            const item = itemsData[idx];
+            addProgressItem(order, selectedIndices.length, item.display);
+        });
+
+        let successCount = 0;
+        let failCount = 0;
+        const errors = [];
+
+        for (let order = 0; order < selectedIndices.length; order++) {
+            const idx = selectedIndices[order];
+            const item = itemsData[idx];
+
+            updateOverallStatus((useChinese ? '正在下载' : 'Downloading') +
+                ` (${order + 1}/${selectedIndices.length}): ${item.display}`
             );
+
+            try {
+                await downloadItem(item, order, selectedIndices.length);
+                successCount++;
+            } catch (error) {
+                failCount++;
+                errors.push({ name: item.display, error: error.message });
+                updateProgressItem(order, 'error', 'Fail: ' + error.message, 0, 0);
+            }
+        }
+
+        let finalStatus = useChinese
+            ? `下载完成：✅ ${successCount} 成功`
+            : `Download complete: ✅ ${successCount} successfully`;
+        if (failCount > 0) {
+            finalStatus += useChinese ? `，❌ ${failCount} 失败` : `, ❌ ${failCount} failed`;
+            if (errors.length > 0) {
+                finalStatus += useChinese ? '（详情见下方列表）' : ' (see the list below for details)';
+            }
+        }
+        updateOverallStatus(finalStatus);
+
+        isDownloading = false;
+
+        if (errors.length > 0) {
+            let errorMsg = useChinese ? '以下条目下载失败：\n' : 'The following items failed to download:\n';
+            errors.forEach(function(e) {
+                errorMsg += `- ${e.name}: ${e.error}\n`;
+            });
+            alert(errorMsg);
+        }
+    }
+
+    /**
+     * 开始备份
+     */
+    async function startBackup() {
+        const els = getElements();
+        const mode = els.mode?.value;
+
+        if (isDownloading) {
+            alert(t('backup.error.downloading'));
+            return;
+        }
+
+        if (!els.target.value) {
+            alert(t('backup.error.no_target'));
+            return;
+        }
+
+        if (mode === 'range') {
+            await executeRangeBackup();
+        } else {
+            await executeFullBackup();
         }
     }
 
@@ -2364,31 +3251,41 @@ const backupManager = (() => {
     function init() {
         const els = getElements();
 
-        // 绑定模式切换事件
         if (els.mode) {
-            els.mode.addEventListener("change", updateModeUI);
+            els.mode.addEventListener("change", onModeChange);
         }
 
-        // 绑定范围输入事件
         if (els.start) {
-            els.start.addEventListener("input", updateRangeHint);
+            els.start.addEventListener("input", function() {
+                validateRangeInput();
+            });
         }
-        if (els.end) {
-            els.end.addEventListener("input", updateRangeHint);
+        if (els.size) {
+            els.size.addEventListener("input", function() {
+                validateRangeInput();
+            });
         }
 
-        // 初始化UI状态
-        updateModeUI();
-        setStatus("");
-
-        // 加载目标设备列表
         loadTargets();
+
+        hideProgressArea();
+        itemsData = [];
+        selectedItems.clear();
+        renderItems();
+        updateModeUI();
+        updateRangeInfo();
+        resetValidation();
     }
 
     return {
         init,
-        start,
+        startBackup,
         loadTargets,
+        selectAll,
+        selectAllForce,
+        deselectAll,
+        getSelectedCount: () => selectedItems.size,
+        getTotalCount: () => itemsData.length,
     };
 })();
 
@@ -6180,25 +7077,44 @@ const I18N = (() => {
             "backup.label.mode": "Mode:",
             "backup.label.target": "Target:",
             "backup.label.start": "Start:",
-            "backup.label.end": "End (exclusive):",
-            "backup.mode.part": "Partition backup",
-            "backup.mode.range": "Custom range",
+            "backup.label.size": "Size:",
+            "backup.mode.full": "Full backup",
+            "backup.mode.range": "Custom range backup",
+            "backup.target.placeholder": "-- Select target --",
+            "backup.target.raw": "RAW Flash Devices",
+            "backup.target.smem": "SMEM Partitions",
+            "backup.target.mmc": "MMC Partitions",
+            "backup.range.hint": "Start offset and size (supports hex 0x... or decimal with K/KiB suffix)",
+            "backup.range.error.empty_start": "No start offset",
+            "backup.range.error.empty_size": "No size",
+            "backup.range.error.invalid_start": "Invalid start address format (e.g. 0x1000 or 4096 or 4k)",
+            "backup.range.error.invalid_size": "Invalid size format (e.g. 0x1000 or 64k)",
+            "backup.range.error.size_zero": "Size must be greater than 0",
+            "backup.status.pending": "⏳ Pending",
+            "backup.status.downloading": "⬇️ Downloading",
+            "backup.status.done": "✅ Done",
+            "backup.status.error": "❌ Error",
+            "backup.items.count": "Items",
+            "backup.items.empty": "No items available",
+            "backup.badge.large": "Large",
+            "backup.progress.title": "Download Progress",
+            "backup.confirm.download": "About to download, continue?\n\nNumber of items to be downloaded: ",
+            "backup.action.select_all": "Select All (excl. large)",
+            "backup.action.select_all_force": "Select All (incl. large)",
+            "backup.action.deselect_all": "Deselect All",
             "backup.action.download": "Download",
-            "backup.status.starting": "Starting backup...",
-            "backup.status.downloading": "Downloading data...",
-            "backup.status.preparing": "Preparing file...",
-            "backup.status.done": "Backup completed:",
-            "backup.status.starting": "Starting backup...",
+            "backup.error.invalid_input": "Invalid input",
+            "backup.error.no_selection": "Please select at least one item",
+            "backup.error.downloading": "Download in progress, please wait...",
+            "backup.error.range_require_one": "Custom range backup mode requires selecting one and only one item.\n\nPlease select one item or uncheck any extra items and try again.",
             "backup.error.no_target": "Please select a target",
             "backup.error.bad_range": "Invalid range",
-            "backup.error.http": "HTTP error:",
             "backup.error.exception": "Error:",
-            "backup.range.hint": "Start and end offsets (supports hex 0x... or decimal with K/KiB suffix)",
-            "backup.target.placeholder": "-- Select target --",
-            "backup.storage.not_present": "Not present",
             "backup.warn.1": "Do not power off the device during backup.",
             "backup.warn.2": "Custom range reads raw bytes; be careful with offsets.",
             "backup.warn.3": "Large backups may take a long time depending on storage speed.",
+            "backup.warn.4": "Entries exceeding 256 MiB will be marked as large files, which are not selected by default.",
+            "backup.warn.5": "When downloading multiple files in batches, it is recommended to enable the auto-save function in your browser's download settings.",
             "webterm.title": "WEB TERMINAL",
             "webterm.input": "Input",
             "webterm.send": "Send",
@@ -6496,24 +7412,44 @@ const I18N = (() => {
             "backup.label.mode": "模式:",
             "backup.label.target": "目标:",
             "backup.label.start": "起始偏移:",
-            "backup.label.end": "结束偏移(不含):",
-            "backup.mode.part": "分区备份",
-            "backup.mode.range": "自定义范围",
+            "backup.label.size": "大小:",
+            "backup.mode.full": "完整备份",
+            "backup.mode.range": "自定义范围备份",
+            "backup.target.placeholder": "-- 选择目标 --",
+            "backup.target.raw": "RAW 闪存设备",
+            "backup.target.smem": "SMEM 分区",
+            "backup.target.mmc": "MMC 分区",
+            "backup.range.hint": "起始偏移和大小支持十进制、0x 十六进制及 KiB / MiB 后缀",
+            "backup.range.error.empty_start": "未输入起始偏移",
+            "backup.range.error.empty_size": "未输入大小",
+            "backup.range.error.invalid_start": "起始地址格式无效（正确示例：0x1000 或 4096 或 4k）",
+            "backup.range.error.invalid_size": "大小格式无效（正确示例：0x1000 或 64k）",
+            "backup.range.error.size_zero": "大小必须大于 0",
+            "backup.status.pending": "⏳ 等待中",
+            "backup.status.downloading": "⬇️ 下载中",
+            "backup.status.done": "✅ 已完成",
+            "backup.status.error": "❌ 错误",
+            "backup.items.count": "条目数",
+            "backup.items.empty": "暂无可用条目",
+            "backup.badge.large": "大文件",
+            "backup.progress.title": "下载进度",
+            "backup.confirm.download": "即将开始下载，是否继续？\n\n待下载条目数：",
+            "backup.action.select_all": "全选（不含大文件）",
+            "backup.action.select_all_force": "全选（包含大文件）",
+            "backup.action.deselect_all": "取消全选",
             "backup.action.download": "下载",
-            "backup.status.starting": "开始备份...",
-            "backup.status.downloading": "正在下载数据...",
-            "backup.status.preparing": "准备文件中...",
-            "backup.status.done": "备份完成:",
+            "backup.error.invalid_input": "输入无效",
+            "backup.error.no_selection": "请至少选择一个条目",
+            "backup.error.downloading": "正在下载中，请稍候...",
+            "backup.error.range_require_one": "自定义范围备份模式需选择一个且只能选择一个条目。\n\n请选择一个条目或取消勾选多余条目后再试。",
             "backup.error.no_target": "请选择目标",
             "backup.error.bad_range": "无效的范围",
-            "backup.error.http": "HTTP 错误:",
             "backup.error.exception": "错误:",
-            "backup.range.hint": "起始和结束偏移量支持十进制、0x 十六进制及 KiB / MiB 后缀",
-            "backup.target.placeholder": "-- 选择目标 --",
-            "backup.storage.not_present": "不存在",
             "backup.warn.1": "备份过程中请勿断电。",
             "backup.warn.2": "自定义范围读取原始字节，请谨慎设置偏移量。",
             "backup.warn.3": "大容量备份可能需要较长时间，取决于存储速度。",
+            "backup.warn.4": "超过 256 MiB 的条目会被标记为大文件，默认不会勾选。",
+            "backup.warn.5": "批量下载多个文件时，建议在浏览器的下载设置中打开自动保存功能。",
             "webterm.title": "网页终端",
             "webterm.input": "输入",
             "webterm.send": "发送",
