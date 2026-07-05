@@ -1516,10 +1516,6 @@ class FileUploadComponent {
                                     <div class="upload-progress" id="uploadProgress" style="display: none;">
                                         <div class="progress-container">
                                             <div class="bar-circle" id="bar-circle" style="--percent: 0;"></div>
-                                            <div class="progress-text">
-                                                <p class="progress-filename" id="progressFilename"></p>
-                                                <p class="progress-percent" id="progressPercent"></p>
-                                            </div>
                                         </div>
                                         <p class="progress-status" id="progressStatus" data-i18n="file.uploading"></p>
                                     </div>
@@ -1639,8 +1635,6 @@ class FileUploadComponent {
             fileInput: document.getElementById('fileInput'),
             uploadBtn: document.getElementById('uploadBtn'),
             progressCircle: document.getElementById('bar-circle'),
-            progressPercent: document.getElementById('progressPercent'),
-            progressFilename: document.getElementById('progressFilename'),
             progressStatus: document.getElementById('progressStatus'),
             uploadSuccessInfo: document.getElementById('upload-success-info'),
             resultSuccessInfo: document.getElementById('result-success-info'),
@@ -1800,11 +1794,6 @@ class FileUploadComponent {
      */
     showProgress() {
         this.showElementAndHideOthers('uploadProgress');
-
-        // 更新文件名显示
-        if (this.elements.progressFilename && this.selectedFile) {
-            this.elements.progressFilename.textContent = this.selectedFile.name;
-        }
     }
 
     /**
@@ -1815,10 +1804,6 @@ class FileUploadComponent {
 
         if (this.elements.progressCircle) {
             this.elements.progressCircle.style.setProperty('--percent', p);
-        }
-
-        if (this.elements.progressPercent) {
-            this.elements.progressPercent.textContent = `${p}%`;
         }
 
         if (this.elements.progressStatus) {
@@ -7376,7 +7361,7 @@ const I18N = (() => {
             "title.project": "查看项目",
             "file.dropzone.text": "将文件拖拽到此处，或点击以选择文件",
             "file.dropzone.hint": "最大文件大小：取决于分区大小",
-            "file.uploading": "正在上传",
+            "file.uploading": "上传中",
             "file.processing": "处理中",
             "common.upload": "上传",
             "common.update": "更新",
