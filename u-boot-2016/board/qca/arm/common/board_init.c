@@ -481,11 +481,19 @@ int board_late_init(void)
 
 	/* get machine type from SMEM and set in env */
 	machid = gd->bd->bi_arch_number;
-	printf("machid: %x\n", machid);
-	if (machid != 0) {
-		setenv_addr("machid", (void *)machid);
-		gd->bd->bi_arch_number = machid;
+#ifdef CONFIG_OF_COMBINE
+	if (dtb_status.match_found) {
+		printf("machid: %x\n", machid);
+	} else {
+		printf("CDT machid: %x\n", machid);
+		printf("DTB machid: %lx (fallback)\n", dtb_status.dtb_machid);
+		puts("WARNING: No matching DTB found, using first DTB as fallback\n");
 	}
+#else
+	printf("machid: %x\n", machid);
+#endif
+	if (machid != 0)
+		setenv_addr("machid", (void *)machid);
 
 	/* get current boot mode from smem and set in env*/
 	ret = get_current_flash_type(&flash_type);

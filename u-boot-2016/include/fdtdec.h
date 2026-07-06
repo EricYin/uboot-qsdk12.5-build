@@ -1003,4 +1003,14 @@ int fdtdec_decode_display_timing(const void *blob, int node, int index,
  */
 int fdtdec_setup(void);
 
+#ifdef CONFIG_OF_COMBINE
+struct dtb_combined_status {
+	bool match_found;            /* 是否有 machid 匹配的 DTB */
+	unsigned long smem_machid;   /* 从 SMEM 获取的 machid */
+	unsigned long dtb_machid;    /* 匹配到的 DTB 的 machid (fallback 时为第一个 DTB 的 machid) */
+};
+
+extern struct dtb_combined_status dtb_status;
+#endif /* CONFIG_OF_COMBINE */
+
 #endif

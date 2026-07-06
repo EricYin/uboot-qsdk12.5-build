@@ -149,7 +149,6 @@ dtb-$(CONFIG_TARGET_IPQ6018_REDMI_AX5_JDCLOUD) += ipq6018-ax5-jdcloud.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_SY_Y6010)          += ipq6018-y6010.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_ZN_M2)             += ipq6018-m2.dtb
 
-# TODO：配置相似的机型不用重复添加，只需在 get_dts_machid() 中设置 MACH TYPE
 ifdef CONFIG_ADD_EXTRA_DTB
 dtb-$(CONFIG_TARGET_IPQ6018_JDCLOUD_RE_CS_02)  += ipq6018-re-ss-01.dtb \
 												  ipq6018-ax5-jdcloud.dtb

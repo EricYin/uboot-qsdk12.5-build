@@ -1270,12 +1270,15 @@ struct dtb_combined_hdr {
 	unsigned long dtbaddr;
 };
 
+struct dtb_combined_status dtb_status;
 
 static int parse_combined_fdt(unsigned long machid)
 {
 	unsigned long *ptr = NULL;
 	struct dtb_combined_hdr *fdt_table;
+	struct dtb_combined_hdr *first_entry = NULL;
 	unsigned long ndtbs = 0;
+	unsigned long total_ndtbs = 0;
 #ifdef CONFIG_COMPRESSED_DTB_BASE
 	uint32_t size, uncompressed_size;
 	unsigned long dtb_end, dtb_begin, dtb_base;
@@ -1286,19 +1289,37 @@ static int parse_combined_fdt(unsigned long machid)
 # else
 	ptr = &__dtb_table_start;
 #endif
+
+	dtb_status.smem_machid = machid;
+
 	ndtbs = *ptr;
+	total_ndtbs = ndtbs;
+
+	if (ndtbs == 0) {
+		debug("No DTB entries found in combined table\n");
+		hang();
+	}
 
 	ptr++;
-
 	fdt_table = (struct dtb_combined_hdr *)ptr;
+	first_entry = fdt_table;
 
-	while(ndtbs && (fdt_table->machid != machid)) {
+	while (ndtbs && (fdt_table->machid != machid)) {
 		fdt_table++;
 		ndtbs--;
 	}
 
-	if(ndtbs == 0)
-		hang();
+	if (ndtbs > 0) {
+		/* 找到匹配，使用匹配的条目 */
+		dtb_status.match_found = true;
+	} else {
+		/* 未找到匹配，使用第一个条目作为回退 */
+		dtb_status.match_found = false;
+		fdt_table = first_entry;
+		ndtbs = total_ndtbs;
+	}
+
+	dtb_status.dtb_machid = fdt_table->machid;
 
 #ifdef CONFIG_COMPRESSED_DTB_BASE
 	dtb_begin = fdt_table->dtbaddr;
