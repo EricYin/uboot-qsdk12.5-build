@@ -1089,7 +1089,7 @@ static int tcp_send_packet_opt(struct tcp_conn *c, u16 flags, u32 seq, u32 ack,
 		TCP_HDR_LEN_SHIFT) | (flags & TCP_FLAG_MASK));
 	memcpy(&tcp->seq, &seq, 4);
 	memcpy(&tcp->ack, &ack, 4);
-	tcp->wnd = htons(c->mss);
+	tcp->wnd = htons(TCP_RCV_WND);
 	/* avoid compiler's optimization leading to an unaligned access */
 	memset(&tcp->urg, 0, sizeof(tcp->urg));
 	tcp->chksum = 0;
