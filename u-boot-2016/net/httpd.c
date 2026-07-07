@@ -96,9 +96,6 @@ static struct http_response_code http_resp_codes[] = {
 	{ 503, "Service Unavailable" }
 };
 
-#define LED_BLINK_FREQ_MS 250
-static ulong last_led_toggle;
-
 u32 upload_id = (u32) -1;
 
 static int is_uploading;
@@ -647,17 +644,10 @@ static int httpd_recv_payload(struct httpd_instance *inst,
 {
 	struct httpd_tcp_pdata *pdata = cbd->pdata;
 	u32 size_recv;
-	ulong now;
 
 	size_recv = min(pdata->payload_size - pdata->upload_size, cbd->datalen);
 	memcpy(pdata->upload_ptr + pdata->upload_size, cbd->data, size_recv);
 	pdata->upload_size += size_recv;
-
-	now = get_timer(0);
-	if (now - last_led_toggle >= LED_BLINK_FREQ_MS) {
-		led_toggle("blink_led");
-		last_led_toggle = now;
-	}
 
 	if (pdata->upload_size == pdata->payload_size) {
 #if defined(CONFIG_HTTPD_DEBUG)
@@ -667,7 +657,6 @@ static int httpd_recv_payload(struct httpd_instance *inst,
 			print_size(pdata->upload_size / upload_duration * 1000, "/s\n");
 		}
 #endif
-		led_on("blink_led");
 		flush_cache((ulong)pdata->upload_ptr, pdata->payload_size);
 		pdata->upload_ptr[pdata->payload_size] = 0;
 		pdata->status = HTTPD_S_FULL_RCVD;
