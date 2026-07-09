@@ -137,36 +137,36 @@ $(info CONFIG_TARGET_IPQ6018_REDMI_AX5_JDCLOUD = $(CONFIG_TARGET_IPQ6018_REDMI_A
 $(info CONFIG_TARGET_IPQ6018_SY_Y6010          = $(CONFIG_TARGET_IPQ6018_SY_Y6010))
 $(info CONFIG_TARGET_IPQ6018_ZN_M2             = $(CONFIG_TARGET_IPQ6018_ZN_M2))
 
-dtb-$(CONFIG_TARGET_IPQ6018_CMIOT_AX18)        += ipq6018-ax18.dtb
-dtb-$(CONFIG_TARGET_IPQ6018_GLINET_GL_AX1800)  += ipq6018-gl-ax1800.dtb
-dtb-$(CONFIG_TARGET_IPQ6018_JDCLOUD_RE_CS_02)  += ipq6018-re-cs-02.dtb
-dtb-$(CONFIG_TARGET_IPQ6018_JDCLOUD_RE_CS_07)  += ipq6018-re-cs-07.dtb
-dtb-$(CONFIG_TARGET_IPQ6018_JDCLOUD_RE_SS_01)  += ipq6018-re-ss-01.dtb
-dtb-$(CONFIG_TARGET_IPQ6018_LINK_NN6000)       += ipq6018-nn6000.dtb
-dtb-$(CONFIG_TARGET_IPQ6018_PHILIPS_LY1800)    += ipq6018-ly1800.dtb
-dtb-$(CONFIG_TARGET_IPQ6018_QIHOO_360V6)       += ipq6018-360v6.dtb
-dtb-$(CONFIG_TARGET_IPQ6018_REDMI_AX5_JDCLOUD) += ipq6018-ax5-jdcloud.dtb
-dtb-$(CONFIG_TARGET_IPQ6018_SY_Y6010)          += ipq6018-y6010.dtb
-dtb-$(CONFIG_TARGET_IPQ6018_ZN_M2)             += ipq6018-m2.dtb
+dtb-$(CONFIG_TARGET_IPQ6018_CMIOT_AX18)        += ipq6018-cmiot_ax18.dtb
+dtb-$(CONFIG_TARGET_IPQ6018_GLINET_GL_AX1800)  += ipq6018-glinet_gl-ax1800.dtb
+dtb-$(CONFIG_TARGET_IPQ6018_JDCLOUD_RE_CS_02)  += ipq6018-jdcloud_re-cs-02.dtb
+dtb-$(CONFIG_TARGET_IPQ6018_JDCLOUD_RE_CS_07)  += ipq6018-jdcloud_re-cs-07.dtb
+dtb-$(CONFIG_TARGET_IPQ6018_JDCLOUD_RE_SS_01)  += ipq6018-jdcloud_re-ss-01.dtb
+dtb-$(CONFIG_TARGET_IPQ6018_LINK_NN6000)       += ipq6018-link_nn6000.dtb
+dtb-$(CONFIG_TARGET_IPQ6018_PHILIPS_LY1800)    += ipq6018-philips_ly1800.dtb
+dtb-$(CONFIG_TARGET_IPQ6018_QIHOO_360V6)       += ipq6018-qihoo_360v6.dtb
+dtb-$(CONFIG_TARGET_IPQ6018_REDMI_AX5_JDCLOUD) += ipq6018-redmi_ax5-jdcloud.dtb
+dtb-$(CONFIG_TARGET_IPQ6018_SY_Y6010)          += ipq6018-sy_y6010.dtb
+dtb-$(CONFIG_TARGET_IPQ6018_ZN_M2)             += ipq6018-zn_m2.dtb
 
 ifdef CONFIG_ADD_EXTRA_DTB
-dtb-$(CONFIG_TARGET_IPQ6018_JDCLOUD_RE_CS_02)  += ipq6018-re-ss-01.dtb \
-												  ipq6018-ax5-jdcloud.dtb
-dtb-$(CONFIG_TARGET_IPQ6018_JDCLOUD_RE_CS_07)  += ipq6018-re-ss-01.dtb \
-												  ipq6018-ax5-jdcloud.dtb
-dtb-$(CONFIG_TARGET_IPQ6018_JDCLOUD_RE_SS_01)  += ipq6018-re-cs-02.dtb \
-												  ipq6018-re-cs-07.dtb \
-												  ipq6018-ax5-jdcloud.dtb
-dtb-$(CONFIG_TARGET_IPQ6018_LINK_NN6000)       += ipq6018-re-cs-02.dtb \
-												  ipq6018-re-cs-07.dtb \
-												  ipq6018-re-ss-01.dtb
-dtb-$(CONFIG_TARGET_IPQ6018_PHILIPS_LY1800)    += ipq6018-re-cs-02.dtb \
-												  ipq6018-re-cs-07.dtb
-dtb-$(CONFIG_TARGET_IPQ6018_REDMI_AX5_JDCLOUD) += ipq6018-re-cs-02.dtb \
-												  ipq6018-re-cs-07.dtb \
-												  ipq6018-re-ss-01.dtb
-dtb-$(CONFIG_TARGET_IPQ6018_SY_Y6010)          += ipq6018-re-cs-02.dtb \
-												  ipq6018-re-cs-07.dtb
+dtb-$(CONFIG_TARGET_IPQ6018_JDCLOUD_RE_CS_02)  += ipq6018-jdcloud_re-ss-01.dtb \
+												  ipq6018-redmi_ax5-jdcloud.dtb
+dtb-$(CONFIG_TARGET_IPQ6018_JDCLOUD_RE_CS_07)  += ipq6018-jdcloud_re-ss-01.dtb \
+												  ipq6018-redmi_ax5-jdcloud.dtb
+dtb-$(CONFIG_TARGET_IPQ6018_JDCLOUD_RE_SS_01)  += ipq6018-jdcloud_re-cs-02.dtb \
+												  ipq6018-jdcloud_re-cs-07.dtb \
+												  ipq6018-redmi_ax5-jdcloud.dtb
+dtb-$(CONFIG_TARGET_IPQ6018_LINK_NN6000)       += ipq6018-jdcloud_re-cs-02.dtb \
+												  ipq6018-jdcloud_re-cs-07.dtb \
+												  ipq6018-jdcloud_re-ss-01.dtb
+dtb-$(CONFIG_TARGET_IPQ6018_PHILIPS_LY1800)    += ipq6018-jdcloud_re-cs-02.dtb \
+												  ipq6018-jdcloud_re-cs-07.dtb
+dtb-$(CONFIG_TARGET_IPQ6018_REDMI_AX5_JDCLOUD) += ipq6018-jdcloud_re-cs-02.dtb \
+												  ipq6018-jdcloud_re-cs-07.dtb \
+												  ipq6018-jdcloud_re-ss-01.dtb
+dtb-$(CONFIG_TARGET_IPQ6018_SY_Y6010)          += ipq6018-jdcloud_re-cs-02.dtb \
+												  ipq6018-jdcloud_re-cs-07.dtb
 endif
 
 dtb-$(CONFIG_ARCH_IPQ9574) += ipq9574-al01-c1.dtb \
