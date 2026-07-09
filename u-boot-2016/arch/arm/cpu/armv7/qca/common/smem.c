@@ -142,12 +142,14 @@ struct smem_ptable {
 } __attribute__ ((__packed__));
 
 /* partition table from SMEM */
-static struct smem_ptable smem_ptable;
+static struct smem_ptable smem_ptable __attribute__((aligned(4)));
 
 static struct smem *smem = (void *)(CONFIG_QCA_SMEM_BASE);
 
-qca_smem_flash_info_t qca_smem_flash_info;
-qca_smem_bootconfig_info_t qca_smem_bootconfig_info;
+qca_smem_flash_info_t qca_smem_flash_info __attribute__((aligned(4)));
+qca_smem_bootconfig_info_t qca_smem_bootconfig_info __attribute__((aligned(4)));
+
+static bool _is_9008_mode;
 
 #ifdef CONFIG_SMEM_VERSION_C
 
@@ -163,8 +165,6 @@ enum {
 };
 
 u8 smem_enumeration_status = smem_enu_no_init;
-
-static bool _is_9008_mode;
 
 /**
  * struct smem_ptable_entry - one entry in the @smem_ptable list
@@ -404,8 +404,11 @@ unsigned smem_read_alloc_entry(smem_mem_type_t type, void *buf, int len)
 	int ret;
 #endif
 
-	if (((len & 0x3) != 0) || (((unsigned)buf & 0x3) != 0))
-		return 1;
+	if ((len & 0x3) != 0)
+		printf("%s: len = %u, (len & 0x3) = %u\n", __func__, len, (len & 0x3));
+
+	if (((unsigned)buf & 0x3) != 0)
+		printf("%s: buf = 0x%p, ((unsigned)buf & 0x3) = %u\n", __func__, buf, ((unsigned)buf & 0x3));
 
 	if (type < SMEM_FIRST_VALID_TYPE || type > SMEM_LAST_VALID_TYPE)
 	{
