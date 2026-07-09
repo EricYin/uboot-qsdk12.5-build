@@ -44,7 +44,6 @@ extern struct sdhci_host mmc_host;
 #define HEADER_VERSION 4
 
 #define SZ_1M 0x00100000
-#define SZ_4G ((unsigned long long)0x100000000)
 
 struct header {
 	unsigned magic[2];
@@ -759,7 +758,7 @@ static int read_partition(const char *part_name, const ulong load_addr)
 			size_blocks = (ulong)disk_info.size;
 
 			tmp_size_bytes = (unsigned long long)disk_info.size * (unsigned long long)disk_info.blksz;
-			if (tmp_size_bytes > SZ_4G)
+			if (tmp_size_bytes > ULONG_MAX)
 				goto part_too_big;
 
 			size_bytes = (uint32_t)tmp_size_bytes;
