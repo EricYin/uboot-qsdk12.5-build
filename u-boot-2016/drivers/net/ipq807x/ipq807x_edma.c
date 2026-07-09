@@ -27,6 +27,7 @@
 #include <fdtdec.h>
 #include "ipq807x_edma.h"
 #include "ipq_phy.h"
+#include "ipq807x_acl.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 #ifdef DEBUG
@@ -453,7 +454,7 @@ static int ipq807x_eth_snd(struct eth_device *dev, void *packet, int length)
 
 	if (tftp_acl_our_port != tftp_our_port) {
 		/* Allowing tftp packets */
-		ipq807x_ppe_acl_set(3, 0x4, 0x1, tftp_our_port, 0xffff, 0, 0);
+		ipq807x_ppe_acl_set(ACL_RULE_TFTP_TO_US, 0x4, 0x1, tftp_our_port, 0xffff, ACL_ALLOW);
 		tftp_acl_our_port = tftp_our_port;
 	}
 	/*

@@ -27,6 +27,7 @@
 #include <usb.h>
 #include <linux/linkage.h>
 #include <sdhci.h>
+#include <ipq_api.h>
 
 #define MSM_GIC_DIST_BASE	0x0B000000
 #define MSM_GIC_CPU_BASE	0x0B002000
@@ -1366,14 +1367,14 @@ unsigned int get_dts_machid(unsigned int machid)
 {
 	switch (machid)
 	{
-		case MACH_TYPE_IPQ807x_AP_HK01_C3:
-		case MACH_TYPE_IPQ807x_AP_HK01_C6:
-		case MACH_TYPE_IPQ807x_AP_OAK03:
-			return MACH_TYPE_IPQ807x_AP_HK01_C1;
-		case MACH_TYPE_IPQ807x_AP_AC02:
-			return MACH_TYPE_IPQ807x_AP_AC01;
-		case MACH_TYPE_IPQ807x_AP_HK12_C1:
-			return MACH_TYPE_IPQ807x_AP_HK10_C2;
+		// case MACH_TYPE_IPQ807x_AP_HK01_C3:
+		// case MACH_TYPE_IPQ807x_AP_HK01_C6:
+		// case MACH_TYPE_IPQ807x_AP_OAK03:
+		// 	return MACH_TYPE_IPQ807x_AP_HK01_C1;
+		// case MACH_TYPE_IPQ807x_AP_AC02:
+		// 	return MACH_TYPE_IPQ807x_AP_AC01;
+		// case MACH_TYPE_IPQ807x_AP_HK12_C1:
+		// 	return MACH_TYPE_IPQ807x_AP_HK10_C2;
 		default:
 			return machid;
 	}
@@ -1700,7 +1701,22 @@ void fdt_fixup_set_qce_fixed_key(void *blob)
 
 void set_flash_secondary_type(qca_smem_flash_info_t *smem)
 {
-	return;
+	/*
+	 * Both eMMC and NAND share common GPIOs, only one of them shall be
+	 * enabled from device tree, based on board configuration.
+	 *
+	 * flash_secondary_type is set to eMMC/NAND device whichever is
+	 * initialized, as there is no smem entry to differentiate between the
+	 * two.
+	 */
+	const detected_flash_device_t *dfd = &detected_flash_device;
+
+	if (dfd->mmc)
+		smem->flash_secondary_type = SMEM_BOOT_MMC_FLASH;
+	else if (dfd->nand)
+		smem->flash_secondary_type = SMEM_BOOT_NAND_FLASH;
+	else
+		smem->flash_secondary_type = SMEM_BOOT_NO_FLASH;
 };
 
 void enable_caches(void)
