@@ -13,7 +13,7 @@
 #include <net/tcp.h>
 
 #define TCP_MSS			1440
-#define TCP_RCV_WND     65535
+#define TCP_RCV_WND     5120
 
 struct tcp_hdr {
 	__be16 src;
