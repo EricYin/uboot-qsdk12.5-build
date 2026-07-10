@@ -785,16 +785,16 @@ compile_device() {
         return 1
     fi
 
-    local current_size=$(stat -c%s "$output_file" 2>/dev/null || stat -f%z "$output_file" 2>/dev/null)
+    local original_size=$(stat -c%s "$output_file" 2>/dev/null || stat -f%z "$output_file" 2>/dev/null)
     local target_size=$(get_target_file_size "$device_name")
     local exceeded=0
 
-    if [ $current_size -lt $target_size ]; then
-        log_message "填充文件: $current_size -> $target_size 字节"
+    if [ $original_size -lt $target_size ]; then
+        log_message "填充文件: $original_size -> $target_size 字节"
         truncate -s $target_size "$output_file" || dd if=/dev/zero of="$output_file" bs=1 count=0 seek=$target_size
-    elif [ $current_size -gt $target_size ]; then
+    elif [ $original_size -gt $target_size ]; then
         exceeded=1
-        log_message "警告: 文件大小 ($current_size) 超过目标大小 ($target_size)!"
+        log_message "警告: 文件大小 ($original_size) 超过目标大小 ($target_size)!"
     else
         log_message "文件大小等于目标大小，无需填充"
     fi
@@ -807,7 +807,7 @@ compile_device() {
         status="警告"
     fi
 
-    BUILD_RESULTS+=("$device_name:$friendly_name:$output_file:$final_size:$target_size:$exceeded:$status")
+    BUILD_RESULTS+=("$device_name:$friendly_name:$output_file:$original_size:$final_size:$target_size:$exceeded:$status")
 
     log_message "编译完成: $friendly_name ($device_name)"
     log_message "输出目录: $output_dir/"
@@ -841,11 +841,11 @@ show_build_summary() {
 
     log_echo ""
     log_echo "$separator"
-    log_printf "%-33s %-21s %-22s %-10s %-s\n" "设备" "实际大小" "目标大小" "状态" "输出文件"
+    log_printf "%-33s %-21s %-21s %-22s %-10s %-s\n" "设备" "原始大小" "最终大小" "目标大小" "状态" "输出文件"
     log_echo "$separator"
 
     for result in "${BUILD_RESULTS[@]}"; do
-        IFS=':' read -r device_name friendly_name output_file final_size target_size exceeded status <<< "$result"
+        IFS=':' read -r device_name friendly_name output_file original_size final_size target_size exceeded status <<< "$result"
 
         local status_icon="✓"
 
@@ -860,8 +860,9 @@ show_build_summary() {
             failed=$((failed + 1))
         fi
 
-        log_printf "%-30s %-16s %-15s %-13s %-s\n" \
+        log_printf "%-30s %-16s %-16s %-15s %-13s %-s\n" \
             "$friendly_name" \
+            "${original_size} Bytes" \
             "${final_size} Bytes" \
             "${target_size} Bytes" \
             "$status_icon $status" \
@@ -878,7 +879,7 @@ show_build_summary() {
         log_echo ""
         log_echo "失败的设备:"
         for result in "${BUILD_RESULTS[@]}"; do
-            IFS=':' read -r device_name friendly_name output_file final_size target_size exceeded status <<< "$result"
+            IFS=':' read -r device_name friendly_name output_file original_size final_size target_size exceeded status <<< "$result"
             if [ "$status" != "成功" ] && [ "$status" != "警告" ]; then
                 log_echo "  - $friendly_name ($device_name)"
             fi
