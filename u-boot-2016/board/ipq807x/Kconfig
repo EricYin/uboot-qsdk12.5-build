@@ -48,6 +48,12 @@ config TARGET_IPQ807x_ALIYUN_AP8220
     help
 	  Enable support for Aliyun AP8220 board
 
+config TARGET_IPQ807x_INSEEGO_FG2000
+    bool "Inseego FG2000 board support"
+	default n
+    help
+	  Enable support for Inseego FG2000 board
+
 config TARGET_IPQ807x_REDMI_AX6
     bool "Redmi AX6 board support"
 	default n
