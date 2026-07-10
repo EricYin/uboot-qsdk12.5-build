@@ -20,24 +20,24 @@ dtb-$(CONFIG_EXYNOS5) += exynos5250-arndale.dtb \
 	exynos5800-peach-pi.dtb \
 	exynos5422-odroidxu3.dtb
 
-dtb-$(CONFIG_ARCH_IPQ807x) += ipq807x-hk01.dtb \
-	ipq807x-hk02.dtb \
-	ipq807x-hk06.dtb \
-	ipq807x-hk07.dtb \
-	ipq807x-hk08.dtb \
-	ipq807x-hk09.dtb \
-	ipq807x-hk10.dtb \
-	ipq807x-hk14.dtb \
-	ipq807x-hk11-c1.dtb \
-	ipq807x-ac01.dtb \
-	ipq807x-ac03.dtb \
-	ipq807x-ac04.dtb \
-	ipq807x-oak02.dtb \
-	ipq807x-hk01-c2.dtb \
-	ipq807x-hk01-c4.dtb \
-	ipq807x-hk01-c5.dtb \
-	ipq807x-hk10-c2.dtb \
-	ipq807x-db-hk02.dtb
+# dtb-$(CONFIG_ARCH_IPQ807x) += ipq807x-hk01.dtb \
+# 	ipq807x-hk02.dtb \
+# 	ipq807x-hk06.dtb \
+# 	ipq807x-hk07.dtb \
+# 	ipq807x-hk08.dtb \
+# 	ipq807x-hk09.dtb \
+# 	ipq807x-hk10.dtb \
+# 	ipq807x-hk14.dtb \
+# 	ipq807x-hk11-c1.dtb \
+# 	ipq807x-ac01.dtb \
+# 	ipq807x-ac03.dtb \
+# 	ipq807x-ac04.dtb \
+# 	ipq807x-oak02.dtb \
+# 	ipq807x-hk01-c2.dtb \
+# 	ipq807x-hk01-c4.dtb \
+# 	ipq807x-hk01-c5.dtb \
+# 	ipq807x-hk10-c2.dtb \
+# 	ipq807x-db-hk02.dtb
 
 dtb-$(CONFIG_ARCH_IPQ806x) += ipq806x-ap148.dtb \
 	ipq806x-ap160.dtb \
@@ -136,6 +136,7 @@ $(info CONFIG_TARGET_IPQ6018_QIHOO_360V6       = $(CONFIG_TARGET_IPQ6018_QIHOO_3
 $(info CONFIG_TARGET_IPQ6018_REDMI_AX5_JDCLOUD = $(CONFIG_TARGET_IPQ6018_REDMI_AX5_JDCLOUD))
 $(info CONFIG_TARGET_IPQ6018_SY_Y6010          = $(CONFIG_TARGET_IPQ6018_SY_Y6010))
 $(info CONFIG_TARGET_IPQ6018_ZN_M2             = $(CONFIG_TARGET_IPQ6018_ZN_M2))
+$(info CONFIG_TARGET_IPQ807x_ALIYUN_AP8220     = $(CONFIG_TARGET_IPQ807x_ALIYUN_AP8220))
 
 dtb-$(CONFIG_TARGET_IPQ6018_CMIOT_AX18)        += ipq6018-cmiot_ax18.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_GLINET_GL_AX1800)  += ipq6018-glinet_gl-ax1800.dtb
@@ -148,6 +149,7 @@ dtb-$(CONFIG_TARGET_IPQ6018_QIHOO_360V6)       += ipq6018-qihoo_360v6.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_REDMI_AX5_JDCLOUD) += ipq6018-redmi_ax5-jdcloud.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_SY_Y6010)          += ipq6018-sy_y6010.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_ZN_M2)             += ipq6018-zn_m2.dtb
+dtb-$(CONFIG_TARGET_IPQ807x_ALIYUN_AP8220)     += ipq807x-aliyun_ap8220.dtb
 
 ifdef CONFIG_ADD_EXTRA_DTB
 dtb-$(CONFIG_TARGET_IPQ6018_JDCLOUD_RE_CS_02)  += ipq6018-jdcloud_re-ss-01.dtb \
@@ -167,6 +169,24 @@ dtb-$(CONFIG_TARGET_IPQ6018_REDMI_AX5_JDCLOUD) += ipq6018-jdcloud_re-cs-02.dtb \
 												  ipq6018-jdcloud_re-ss-01.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_SY_Y6010)          += ipq6018-jdcloud_re-cs-02.dtb \
 												  ipq6018-jdcloud_re-cs-07.dtb
+dtb-$(CONFIG_TARGET_IPQ807x_ALIYUN_AP8220)     += ipq807x-hk01.dtb \
+											  	  ipq807x-hk02.dtb \
+											  	  ipq807x-hk06.dtb \
+											  	  ipq807x-hk07.dtb \
+											  	  ipq807x-hk08.dtb \
+											  	  ipq807x-hk09.dtb \
+											  	  ipq807x-hk10.dtb \
+											  	  ipq807x-hk14.dtb \
+											  	  ipq807x-hk11-c1.dtb \
+											  	  ipq807x-ac01.dtb \
+											  	  ipq807x-ac03.dtb \
+											  	  ipq807x-ac04.dtb \
+											  	  ipq807x-oak02.dtb \
+											  	  ipq807x-hk01-c2.dtb \
+											  	  ipq807x-hk01-c4.dtb \
+											  	  ipq807x-hk01-c5.dtb \
+											  	  ipq807x-hk10-c2.dtb \
+											  	  ipq807x-db-hk02.dtb
 endif
 
 dtb-$(CONFIG_ARCH_IPQ9574) += ipq9574-al01-c1.dtb \
