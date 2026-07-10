@@ -231,7 +231,7 @@ uint32_t ipq807x_edma_clean_tx(struct ipq807x_edma_hw *ehw,
 
 		if (unlikely(!skb)) {
 			pr_debug("Invalid skb: cons_idx:%u prod_idx:%u status %x\n",
-				cons_idx, prod_idx, txcmpl->status);
+				cons_idx, prod_idx, txcmpl_desc->status);
 		}
 
 		if (++cons_idx == txcmpl_ring->count)
@@ -1594,6 +1594,10 @@ int ipq807x_edma_hw_init(struct ipq807x_edma_hw *ehw)
 	int ret, desc_index;
 	uint32_t i, reg;
 	volatile uint32_t data;
+
+#ifdef DEBUG
+	reg = IPQ807X_EDMA_REG_TXDESC2CMPL_MAP_0;
+#endif
 
 	struct ipq807x_edma_rxdesc_ring *rxdesc_ring = NULL;
 
