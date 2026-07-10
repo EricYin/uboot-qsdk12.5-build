@@ -47,3 +47,15 @@ config TARGET_IPQ807x_ALIYUN_AP8220
 	default n
     help
 	  Enable support for Aliyun AP8220 board
+
+config TARGET_IPQ807x_REDMI_AX6
+    bool "Redmi AX6 board support"
+	default n
+    help
+	  Enable support for Redmi AX6 board
+
+config TARGET_IPQ807x_XIAOMI_AX3600
+    bool "Xiaomi AX3600 board support"
+	default n
+    help
+	  Enable support for Xiaomi AX3600 board
