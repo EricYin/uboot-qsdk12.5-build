@@ -1236,7 +1236,9 @@ void ipq_uboot_fdt_fixup(void)
 	switch (gd->bd->bi_arch_number)
 	{
 #ifdef CONFIG_TARGET_IPQ6018_PHILIPS_LY1800
+		case MACH_TYPE_IPQ6018_JDCLOUD_RE_SS_01:
 		case MACH_TYPE_IPQ6018_PHILIPS_LY1800:
+		case MACH_TYPE_IPQ6018_SY_Y6010:
 			add_config_entry("config@cp01-c1");
 			add_config_entry("config-cp01-c1");
 			add_config_entry("config@cp03-c2");
@@ -1246,6 +1248,8 @@ void ipq_uboot_fdt_fixup(void)
 			break;
 #endif /* CONFIG_TARGET_IPQ6018_PHILIPS_LY1800 */
 #ifdef CONFIG_TARGET_IPQ6018_SY_Y6010
+		case MACH_TYPE_IPQ6018_JDCLOUD_RE_SS_01:
+		case MACH_TYPE_IPQ6018_PHILIPS_LY1800:
 		case MACH_TYPE_IPQ6018_SY_Y6010:
 			add_config_entry("config@cp03-c1");
 			add_config_entry("config-cp03-c1");
