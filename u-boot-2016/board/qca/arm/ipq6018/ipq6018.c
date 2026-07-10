@@ -401,22 +401,7 @@ void board_pci_deinit()
 #endif
 void set_flash_secondary_type(qca_smem_flash_info_t *smem)
 {
-	/*
-	 * Both eMMC and NAND share common GPIOs, only one of them shall be
-	 * enabled from device tree, based on board configuration.
-	 *
-	 * flash_secondary_type is set to eMMC/NAND device whichever is
-	 * initialized, as there is no smem entry to differentiate between the
-	 * two.
-	 */
-	const detected_flash_device_t *dfd = &detected_flash_device;
-
-	if (dfd->mmc)
-		smem->flash_secondary_type = SMEM_BOOT_MMC_FLASH;
-	else if (dfd->nand)
-		smem->flash_secondary_type = SMEM_BOOT_NAND_FLASH;
-	else
-		smem->flash_secondary_type = SMEM_BOOT_NO_FLASH;
+	return;
 }
 
 #ifdef CONFIG_USB_XHCI_IPQ

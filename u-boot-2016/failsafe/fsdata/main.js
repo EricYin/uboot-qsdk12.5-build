@@ -5833,7 +5833,6 @@ const sysinfoManager = (() => {
                 if (smem.flash_type) flashTable.appendChild(createInfoRow("sysinfo.flash_type", smem.flash_type));
                 if (smem.flash_block_size) flashTable.appendChild(createInfoRow("sysinfo.flash_block_size", formatHexBytes(smem.flash_block_size)));
                 if (smem.flash_density) flashTable.appendChild(createInfoRow("sysinfo.flash_density", formatHexBytes(smem.flash_density)));
-                if (smem.flash_secondary_type) flashTable.appendChild(createInfoRow("sysinfo.flash_secondary_type", smem.flash_secondary_type));
             }
 
             // 设备信息
@@ -7245,7 +7244,6 @@ const I18N = (() => {
             "sysinfo.ram_size": "RAM Size",
             "sysinfo.smeminfo": "SMEM INFO",
             "sysinfo.flash_type": "Flash Type",
-            "sysinfo.flash_secondary_type": "2nd Flash Type",
             "sysinfo.flash_block_size": "Block Size",
             "sysinfo.flash_density": "Density",
             "sysinfo.present": "Present",
@@ -7582,7 +7580,6 @@ const I18N = (() => {
             "sysinfo.ram_size": "内存大小",
             "sysinfo.smeminfo": "SMEM 信息",
             "sysinfo.flash_type": "闪存类型",
-            "sysinfo.flash_secondary_type": "次级闪存类型",
             "sysinfo.flash_block_size": "块大小",
             "sysinfo.flash_density": "容量密度",
             "sysinfo.present": "存在",

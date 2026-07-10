@@ -145,10 +145,7 @@ void sysinfo_handler(enum httpd_uri_handler_status status,
         "\"flash_block_size\":%lu,", (ulong)sfi->flash_block_size);
 
     len += snprintf(buf + len, left - len,
-        "\"flash_density\":%lu,", (ulong)sfi->flash_density);
-
-    len += snprintf(buf + len, left - len, "\"flash_secondary_type\":\"%s\"",
-        flash_type_to_string(sfi->flash_secondary_type));
+        "\"flash_density\":%lu", (ulong)sfi->flash_density);
 
 	len += snprintf(buf + len, left - len, "},"); /* smeminfo */
 
