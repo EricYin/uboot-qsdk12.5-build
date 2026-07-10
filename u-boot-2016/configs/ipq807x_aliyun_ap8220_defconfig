@@ -30,6 +30,11 @@ CONFIG_MAC_LABEL="product.mac"
 CONFIG_MAC_COUNT=1
 
 #
+# Failsafe bootconfig
+#
+CONFIG_FAILSAFE_BOOTCONFIG=n
+
+#
 # Commands
 #
 

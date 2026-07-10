@@ -30,6 +30,11 @@ CONFIG_MAC_OFFSET_IN_PART=0x0
 CONFIG_MAC_COUNT=4
 
 #
+# Failsafe bootconfig
+#
+CONFIG_FAILSAFE_BOOTCONFIG=y
+
+#
 # Commands
 #
 

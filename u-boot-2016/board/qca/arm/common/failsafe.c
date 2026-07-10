@@ -626,8 +626,10 @@ static int failsafe_write_firmware(const ulong data_addr, const ulong data_size)
 			"flash rootfs 0x%lx 0x%lx",
 			data_addr + factory_fw_kernel_size,
 			data_size - factory_fw_kernel_size);
+#ifdef CONFIG_FAILSAFE_BOOTCONFIG
 		strlcpy(runcmd.list[runcmd.count++],
 			"bootconfig set firmware 0", MAX_CMD_LEN);
+#endif
 		break;
 	case FW_TYPE_GLINET_V3:
 	case FW_TYPE_GLINET_V4:
@@ -636,8 +638,10 @@ static int failsafe_write_firmware(const ulong data_addr, const ulong data_size)
 		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
 			"xtract_n_flash 0x%lx %s rootfs",
 			data_addr, gl_fw_ubi_name);
+#ifdef CONFIG_FAILSAFE_BOOTCONFIG
 		strlcpy(runcmd.list[runcmd.count++],
 			"bootconfig set firmware 0", MAX_CMD_LEN);
+#endif
 		break;
 	case FW_TYPE_JDCLOUD:
 		RETURN_IF_MMC_FLASH_NOT_FOUND;
@@ -653,8 +657,10 @@ static int failsafe_write_firmware(const ulong data_addr, const ulong data_size)
 			data_addr, jdc_fw.wififw_name);
 		strlcpy(runcmd.list[runcmd.count++],
 			"flasherase rootfs_data", MAX_CMD_LEN);
+#ifdef CONFIG_FAILSAFE_BOOTCONFIG
 		strlcpy(runcmd.list[runcmd.count++],
 			"bootconfig set firmware 0", MAX_CMD_LEN);
+#endif
 		break;
 	case FW_TYPE_SYSUPGRADE:
 	case FW_TYPE_ASUSWRT_EMMC:
@@ -665,15 +671,19 @@ static int failsafe_write_firmware(const ulong data_addr, const ulong data_size)
 			"flash 0:HLOS $kernel_addr $kernel_size", MAX_CMD_LEN);
 		strlcpy(runcmd.list[runcmd.count++],
 			"flash rootfs $rootfs_addr $rootfs_size", MAX_CMD_LEN);
+#ifdef CONFIG_FAILSAFE_BOOTCONFIG
 		strlcpy(runcmd.list[runcmd.count++],
 			"bootconfig set firmware 0", MAX_CMD_LEN);
+#endif
 		break;
 	case FW_TYPE_UBI:
 		RETURN_IF_NAND_FLASH_NOT_FOUND;
 		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
 			"flash rootfs 0x%lx 0x%lx", data_addr, data_size);
+#ifdef CONFIG_FAILSAFE_BOOTCONFIG
 		strlcpy(runcmd.list[runcmd.count++],
 			"bootconfig set firmware 0", MAX_CMD_LEN);
+#endif
 		break;
 	default:
 		handle_wrong_fw_type("FIRMWARE", fw_type);
