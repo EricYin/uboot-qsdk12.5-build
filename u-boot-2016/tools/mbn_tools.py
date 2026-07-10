@@ -1034,6 +1034,7 @@ def pboot_gen_elf(
 	append_xml_hdr=False,
 	cert_chain_size_in=CERT_CHAIN_ONEROOT_MAXSIZE,
 	mbn_version=None,
+	platform=None,
 ):
 
 	global MI_PROG_BOOT_DIGEST_SIZE
@@ -1041,8 +1042,12 @@ def pboot_gen_elf(
 	iarrPhdrFileOff = []
 
 	if mbn_version == 6:
-		sha_algo = 'sha384'
-		MI_PROG_BOOT_DIGEST_SIZE = 48
+		if platform == 'ipq53xx':
+			sha_algo = 'sha256'
+			MI_PROG_BOOT_DIGEST_SIZE = 32
+		else:
+			sha_algo = 'sha384'
+			MI_PROG_BOOT_DIGEST_SIZE = 48
 	elif mbn_version == 0x3:
 		sha_algo = 'sha256'
 		MI_PROG_BOOT_DIGEST_SIZE = 32

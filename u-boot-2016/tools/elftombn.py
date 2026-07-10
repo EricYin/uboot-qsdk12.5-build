@@ -32,6 +32,10 @@ def main():
 					  action="store", type="string", dest="compress_method",
 					  help="Compression method")
 
+	parser.add_option("-p", "--platform",
+					  action="store", type="string", dest="platform",
+					  help="Target platform")
+
 	(options, args) = parser.parse_args()
 	if not options.elf_inp_file1:
 		parser.error('First ELF filename not given')
@@ -53,6 +57,7 @@ def main():
 	elf_inp_file1 = options.elf_inp_file1
 
 	binary_out = options.binary_out
+	platform = options.platform
 
 	mbn_type = 'elf'
 	header_format = 'reg'
@@ -75,7 +80,8 @@ def main():
 								 compress_method,
 								 elf_out_file_name=target_phdr_elf,
 								 secure_type=image_header_secflag,
-								 mbn_version=mbnv)
+								 mbn_version=mbnv,
+								 platform=platform)
 	if rv:
 		raise RuntimeError("Failed to run pboot_gen_elf")
 
@@ -101,4 +107,5 @@ def main():
 	return
 
 
-main()
+if __name__ == "__main__":
+	main()
