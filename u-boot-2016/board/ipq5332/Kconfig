@@ -71,4 +71,10 @@ config IPQ_TINY2
 config LIST_FUSE
 	bool "Enable fuse list command"
 	default y
+
+config TARGET_IPQ5332_JDCLOUD_RE_CS_06
+    bool "JDCloud BE6500 board support"
+	default n
+    help
+	  Enable support for JDCloud BE6500 board
 endif
