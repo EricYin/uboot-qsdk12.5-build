@@ -24,6 +24,7 @@
 #include "ipq5332_uniphy.h"
 #include <fdtdec.h>
 #include "ipq_phy.h"
+#include "ipq5332_acl.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 #ifdef DEBUG
@@ -80,8 +81,8 @@ void ppe_ipo_action_set(union ipo_action_u *hw_act, int rule_id)
 	}
 }
 
-void ipq5332_ppe_acl_set(int rule_id, int rule_type, int field0, int field1,
-				int mask, int permit, int deny)
+void ipq5332_ppe_acl_set(int rule_id, int rule_type, int pkt_type,
+		int l4_port_no, int l4_port_mask, enum acl_action action)
 {
 	union ipo_rule_reg_u hw_reg = {0};
 	union ipo_mask_reg_u hw_mask = {0};
@@ -93,24 +94,29 @@ void ipq5332_ppe_acl_set(int rule_id, int rule_type, int field0, int field1,
 
 	if (rule_id < MAX_RULE) {
 		hw_act.bf.dest_info_change_en = 1;
-		hw_mask.bf.maskfield_0 = mask;
+		hw_mask.bf.maskfield_0 = l4_port_mask;
 		hw_reg.bf.rule_type = rule_type;
 		if (rule_type == ADPT_ACL_HPPE_IPV4_DIP_RULE) {
-			hw_reg.bf.rule_field_0 = field1;
-			hw_reg.bf.rule_field_1 = field0<<17;
+			hw_reg.bf.rule_field_0 = l4_port_no;
+			hw_reg.bf.rule_field_1 = pkt_type<<17;
 			hw_mask.bf.maskfield_1 = 7<<17;
-			if (permit == 0x0) {
-				hw_act.bf.fwd_cmd = 0;/* forward */
-				hw_reg.bf.pri = 0x1;
-			}
-			if (deny == 0x1) {
-				hw_act.bf.fwd_cmd = 1;/* drop */
-				hw_reg.bf.pri = 0x0;
+
+			switch (action) {
+				case ACL_ALLOW:
+					hw_act.bf.fwd_cmd = 0; /* forward */
+					hw_reg.bf.pri = 0x1;
+					break;
+				case ACL_DENY:
+					hw_act.bf.fwd_cmd = 1; /* drop */
+					hw_reg.bf.pri = 0x0;
+					break;
+				default:
+					break;
 			}
 		} else if (rule_type == ADPT_ACL_HPPE_MAC_SA_RULE) {
 			/* src mac AC rule */
-			hw_reg.bf.rule_field_0 = field1;
-			hw_reg.bf.rule_field_1 = field0;
+			hw_reg.bf.rule_field_0 = l4_port_no;
+			hw_reg.bf.rule_field_1 = pkt_type;
 			hw_mask.bf.maskfield_1 = 0xffff;
 			hw_act.bf.fwd_cmd = 1;/* drop */
 			hw_reg.bf.pri = 0x2;
@@ -118,8 +124,8 @@ void ipq5332_ppe_acl_set(int rule_id, int rule_type, int field0, int field1,
 			hw_act.bf.bypass_bitmap_0 = 0x1800;
 		} else if (rule_type == ADPT_ACL_HPPE_MAC_DA_RULE) {
 			/* dest mac AC rule */
-			hw_reg.bf.rule_field_0 = field1;
-			hw_reg.bf.rule_field_1 = field0;
+			hw_reg.bf.rule_field_0 = l4_port_no;
+			hw_reg.bf.rule_field_1 = pkt_type;
 			hw_mask.bf.maskfield_1 = 0xffff;
 			hw_act.bf.fwd_cmd = 1;/* drop */
 			hw_reg.bf.pri = 0x2;
@@ -872,12 +878,17 @@ void ipq5332_ppe_provision_init(void)
 		ppe_port_bridge_txmac_set(i, 1);
 	}
 
-	/* Allowing DHCP packets */
-	ipq5332_ppe_acl_set(0, ADPT_ACL_HPPE_IPV4_DIP_RULE, UDP_PKT, 67,
-				0xffff, 0, 0);
-	ipq5332_ppe_acl_set(1, ADPT_ACL_HPPE_IPV4_DIP_RULE, UDP_PKT, 68,
-				0xffff, 0, 0);
+	/* Allowing DHCP packets (destination port: 67) */
+	ipq5332_ppe_acl_set(ACL_RULE_DHCP_TO_SERVER, ADPT_ACL_HPPE_IPV4_DIP_RULE, UDP_PKT, 67, 0xffff, ACL_ALLOW);
+#ifdef CONFIG_DHCPD
+	/* Dropping DHCP packets (destination port: 68) */
+	ipq5332_ppe_acl_set(ACL_RULE_DHCP_TO_CLIENT, ADPT_ACL_HPPE_IPV4_DIP_RULE, UDP_PKT, 68, 0xffff, ACL_DENY);
+#else
+	/* Allowing DHCP packets (destination port: 68) */
+	ipq5332_ppe_acl_set(ACL_RULE_DHCP_TO_CLIENT, ADPT_ACL_HPPE_IPV4_DIP_RULE, UDP_PKT, 68, 0xffff, ACL_ALLOW);
+#endif /* CONFIG_DHCPD */
+	/* Allowing U-Boot abort packets (37541/37540) */
+	ipq5332_ppe_acl_set(ACL_RULE_NET_ABORT, ADPT_ACL_HPPE_IPV4_DIP_RULE, UDP_PKT, 37541, 0xffff, ACL_ALLOW);
 	/* Dropping all the UDP packets */
-	ipq5332_ppe_acl_set(2, ADPT_ACL_HPPE_IPV4_DIP_RULE, UDP_PKT, 0, 0, 0,
-				1);
+	ipq5332_ppe_acl_set(ACL_RULE_UDP_DENY_ALL, ADPT_ACL_HPPE_IPV4_DIP_RULE, UDP_PKT, 0, 0, ACL_DENY);
 }
