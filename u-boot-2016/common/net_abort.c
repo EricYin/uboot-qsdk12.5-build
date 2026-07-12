@@ -136,4 +136,7 @@ void net_abort_finish(void)
 		run_command("httpd", 0);
 		cli_loop();
 	}
+
+	eth_halt();
+	mdelay(500);
 }
