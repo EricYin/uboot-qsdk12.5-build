@@ -77,4 +77,10 @@ config TARGET_IPQ5332_JDCLOUD_RE_CS_06
 	default n
     help
 	  Enable support for JDCloud BE6500 board
+
+config TARGET_IPQ5332_JDCLOUD_RE_CS_08
+    bool "JDCloud ER2 board support"
+	default n
+    help
+	  Enable support for JDCloud ER2 board
 endif

@@ -126,6 +126,7 @@ endif
 
 $(info === Board Selection ===)
 $(info CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_06  = $(CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_06))
+$(info CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_08  = $(CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_08))
 $(info CONFIG_TARGET_IPQ6018_CMIOT_AX18        = $(CONFIG_TARGET_IPQ6018_CMIOT_AX18))
 $(info CONFIG_TARGET_IPQ6018_GLINET_GL_AX1800  = $(CONFIG_TARGET_IPQ6018_GLINET_GL_AX1800))
 $(info CONFIG_TARGET_IPQ6018_JDCLOUD_RE_CS_02  = $(CONFIG_TARGET_IPQ6018_JDCLOUD_RE_CS_02))
@@ -143,6 +144,7 @@ $(info CONFIG_TARGET_IPQ807x_REDMI_AX6         = $(CONFIG_TARGET_IPQ807x_REDMI_A
 $(info CONFIG_TARGET_IPQ807x_XIAOMI_AX3600     = $(CONFIG_TARGET_IPQ807x_XIAOMI_AX3600))
 
 dtb-$(CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_06)  += ipq5332-jdcloud_re-cs-06.dtb
+dtb-$(CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_08)  += ipq5332-jdcloud_re-cs-08.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_CMIOT_AX18)        += ipq6018-cmiot_ax18.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_GLINET_GL_AX1800)  += ipq6018-glinet_gl-ax1800.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_JDCLOUD_RE_CS_02)  += ipq6018-jdcloud_re-cs-02.dtb
@@ -161,6 +163,22 @@ dtb-$(CONFIG_TARGET_IPQ807x_XIAOMI_AX3600)     += ipq807x-xiaomi_ax3600.dtb
 
 ifdef CONFIG_ADD_EXTRA_DTB
 dtb-$(CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_06)  += ipq5332-emulation.dtb \
+												  ipq5332-mi01.2.dtb \
+												  ipq5332-mi01.2-qcn9160-c1.dtb \
+												  ipq5332-mi01.3.dtb \
+												  ipq5332-mi01.4.dtb \
+												  ipq5332-mi01.9.dtb \
+												  ipq5332-mi01.12.dtb \
+												  ipq5332-mi01.13.dtb \
+												  ipq5332-mi03.1.dtb \
+												  ipq5332-mi04.1.dtb \
+												  ipq5332-mi04.3.dtb \
+												  ipq5332-db-mi01.1.dtb \
+												  ipq5332-db-mi02.1.dtb \
+												  ipq5332-db-mi03.1.dtb \
+												  ipq5332-tb-mi03.1.dtb \
+												  ipq5332-tb-mi05.1.dtb
+dtb-$(CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_08)  += ipq5332-emulation.dtb \
 												  ipq5332-mi01.2.dtb \
 												  ipq5332-mi01.2-qcn9160-c1.dtb \
 												  ipq5332-mi01.3.dtb \
