@@ -3080,6 +3080,8 @@ const backupManager = (() => {
         formData.append("start", String(validation.start));
         formData.append("size", String(validation.size));
 
+        isDownloading = true;
+
         showProgressArea();
         addProgressItem(0, 1, item.display);
         updateOverallStatus(t('backup.status.downloading'));
@@ -3135,6 +3137,8 @@ const backupManager = (() => {
             updateProgressItem(0, 'error', error.message || 'Unknown error', 0, 0);
             updateOverallStatus(t('backup.status.error'));
         }
+
+        isDownloading = false;
     }
 
     /**
