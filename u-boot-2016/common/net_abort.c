@@ -12,6 +12,8 @@
 #include <cli.h>
 #include <ipq_api.h>
 
+#include "../net/arp.h"
+
 #define ABORT_PORT			37541
 #define ABORT_REPLY_PORT	37540
 #define ABORT_MAGIC			"UBOOT:ABORT"
@@ -98,6 +100,7 @@ bool net_abort_prepare(void)
 	}
 
 	net_init();
+	arp_probe();
 	/* Set our UDP handler to detect abort packets */
 	net_set_udp_handler(net_abort_udp_handler);
 	/* Set timeout handler for periodic checking */

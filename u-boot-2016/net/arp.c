@@ -96,6 +96,14 @@ void arp_request(void)
 	arp_raw_request(net_ip, net_null_ethaddr, net_arp_wait_reply_ip);
 }
 
+void arp_probe(void)
+{
+	struct in_addr source_ip;
+
+	memset(&source_ip, 0, sizeof(source_ip));
+    arp_raw_request(source_ip, net_null_ethaddr, net_ip);
+}
+
 int arp_timeout_check(void)
 {
 	ulong t;

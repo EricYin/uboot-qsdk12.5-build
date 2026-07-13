@@ -22,6 +22,7 @@ extern ulong arp_wait_timer_start;
 extern int arp_wait_try;
 
 void arp_init(void);
+void arp_probe(void);
 void arp_request(void);
 void arp_raw_request(struct in_addr source_ip, const uchar *targetEther,
 	struct in_addr target_ip);
