@@ -48,11 +48,25 @@ static struct cmdlist {
 	int count;
 } runcmd;
 
+struct jdc_fw_entry {
+	const char *prefix;
+	char name[256];
+};
+
 static struct {
-	char hlos_name[256];
-	char rootfs_name[256];
-	char wififw_name[256];
-} jdc_fw;
+	struct jdc_fw_entry hlos;
+	struct jdc_fw_entry rootfs;
+	struct jdc_fw_entry wififw;
+} jdc_fw = {
+	.hlos.prefix = "hlos",
+	.rootfs.prefix = "rootfs",
+#ifdef CONFIG_ARCH_IPQ5332
+	.wififw.prefix = "wifi_fw"
+#else
+	.wififw.prefix = "wififw"
+#endif /* CONFIG_ARCH_IPQ5332 */
+};
+
 static char gl_fw_ubi_name[66];
 static ulong factory_fw_kernel_size;
 
@@ -283,35 +297,26 @@ static int get_jdc_fw_node_name(const void *data_addr)
 	int ret;
 	const void *fit = data_addr;
 
-    ret = fit_image_get_node_by_prefix(fit, FIT_IMAGES_PATH, "hlos",
-                            jdc_fw.hlos_name, sizeof(jdc_fw.hlos_name));
+    ret = fit_image_get_node_by_prefix(fit, FIT_IMAGES_PATH, jdc_fw.hlos.prefix,
+                            jdc_fw.hlos.name, sizeof(jdc_fw.hlos.name));
     if (ret) {
-        handle_invalid_qsdk_fw("hlos");
+        handle_invalid_qsdk_fw(jdc_fw.hlos.prefix);
 		return RET_FAILURE;
     }
 
-    ret = fit_image_get_node_by_prefix(fit, FIT_IMAGES_PATH, "rootfs",
-                            jdc_fw.rootfs_name, sizeof(jdc_fw.rootfs_name));
+    ret = fit_image_get_node_by_prefix(fit, FIT_IMAGES_PATH, jdc_fw.rootfs.prefix,
+                            jdc_fw.rootfs.name, sizeof(jdc_fw.rootfs.name));
     if (ret) {
-        handle_invalid_qsdk_fw("rootfs");
+        handle_invalid_qsdk_fw(jdc_fw.rootfs.prefix);
 		return RET_FAILURE;
     }
 
-#ifdef CONFIG_ARCH_IPQ5332
-    ret = fit_image_get_node_by_prefix(fit, FIT_IMAGES_PATH, "wifi_fw",
-                            jdc_fw.wififw_name, sizeof(jdc_fw.wififw_name));
+	ret = fit_image_get_node_by_prefix(fit, FIT_IMAGES_PATH, jdc_fw.wififw.prefix,
+                            jdc_fw.wififw.name, sizeof(jdc_fw.wififw.name));
     if (ret) {
-        handle_invalid_qsdk_fw("wifi_fw");
+        handle_invalid_qsdk_fw(jdc_fw.wififw.prefix);
 		return RET_FAILURE;
     }
-#else
-    ret = fit_image_get_node_by_prefix(fit, FIT_IMAGES_PATH, "wififw",
-                            jdc_fw.wififw_name, sizeof(jdc_fw.wififw_name));
-    if (ret) {
-        handle_invalid_qsdk_fw("wififw");
-		return RET_FAILURE;
-    }
-#endif /* CONFIG_ARCH_IPQ5332 */
 
 	return RET_SUCCESS;
 }
@@ -659,13 +664,13 @@ static int failsafe_write_firmware(const ulong data_addr, const ulong data_size)
 		setenv("verbose", "1"); /* 执行 xtract_n_flash 时输出详细信息 */
 		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
 			"xtract_n_flash 0x%lx %s 0:HLOS",
-			data_addr, jdc_fw.hlos_name);
+			data_addr, jdc_fw.hlos.name);
 		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
 			"xtract_n_flash 0x%lx %s rootfs",
-			data_addr, jdc_fw.rootfs_name);
+			data_addr, jdc_fw.rootfs.name);
 		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
 			"xtract_n_flash 0x%lx %s 0:WIFIFW",
-			data_addr, jdc_fw.wififw_name);
+			data_addr, jdc_fw.wififw.name);
 #ifndef CONFIG_ARCH_IPQ5332
 		strlcpy(runcmd.list[runcmd.count++],
 			"flasherase rootfs_data", MAX_CMD_LEN);
