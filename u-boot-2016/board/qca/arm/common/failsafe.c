@@ -297,12 +297,21 @@ static int get_jdc_fw_node_name(const void *data_addr)
 		return RET_FAILURE;
     }
 
+#ifdef CONFIG_ARCH_IPQ5332
+    ret = fit_image_get_node_by_prefix(fit, FIT_IMAGES_PATH, "wifi_fw",
+                            jdc_fw.wififw_name, sizeof(jdc_fw.wififw_name));
+    if (ret) {
+        handle_invalid_qsdk_fw("wifi_fw");
+		return RET_FAILURE;
+    }
+#else
     ret = fit_image_get_node_by_prefix(fit, FIT_IMAGES_PATH, "wififw",
                             jdc_fw.wififw_name, sizeof(jdc_fw.wififw_name));
     if (ret) {
         handle_invalid_qsdk_fw("wififw");
 		return RET_FAILURE;
     }
+#endif /* CONFIG_ARCH_IPQ5332 */
 
 	return RET_SUCCESS;
 }
@@ -477,9 +486,11 @@ static int failsafe_validate_firmware(const void *data_addr, const ulong data_si
         ret = check_part_exists("0:WIFIFW", 1);
         if (ret)
             break;
+#ifndef CONFIG_ARCH_IPQ5332
         ret = check_part_exists("rootfs_data", 1);
         if (ret)
             break;
+#endif /* CONFIG_ARCH_IPQ5332 */
         ret = get_jdc_fw_node_name(data_addr);
         break;
     case FW_TYPE_UBI:
@@ -655,8 +666,10 @@ static int failsafe_write_firmware(const ulong data_addr, const ulong data_size)
 		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
 			"xtract_n_flash 0x%lx %s 0:WIFIFW",
 			data_addr, jdc_fw.wififw_name);
+#ifndef CONFIG_ARCH_IPQ5332
 		strlcpy(runcmd.list[runcmd.count++],
 			"flasherase rootfs_data", MAX_CMD_LEN);
+#endif /* CONFIG_ARCH_IPQ5332 */
 #ifdef CONFIG_FAILSAFE_BOOTCONFIG
 		strlcpy(runcmd.list[runcmd.count++],
 			"bootconfig set firmware 0", MAX_CMD_LEN);
