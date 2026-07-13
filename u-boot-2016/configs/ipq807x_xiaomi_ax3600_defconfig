@@ -32,7 +32,7 @@ CONFIG_MAC_COUNT=5
 #
 # Failsafe bootconfig
 #
-CONFIG_FAILSAFE_BOOTCONFIG=n
+# CONFIG_FAILSAFE_BOOTCONFIG is not set
 
 #
 # Commands
