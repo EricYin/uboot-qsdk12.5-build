@@ -338,7 +338,8 @@ static void update_block_number(void)
 			(unsigned long long)tftp_tsize;
 		if (progress != last_progress) {
 			last_progress = progress;
-			printf("%lu/%d (%lu%%)\r", tmp_size, tftp_tsize, progress);
+			printf("%lu/%d (%lu%%)%s",
+				tmp_size, tftp_tsize, progress, progress != 100 ? "\r" : "");
 		}
 	}
 #endif /* CONFIG_TFTP_DIGITAL_PROGRESS */
@@ -617,7 +618,8 @@ static void tftp_handler(uchar *pkt, unsigned dest, struct in_addr sip,
 					ulong progress = (unsigned long long)tmp_size * 100 /
 						(unsigned long long)tftp_tsize;
 					last_progress = progress;
-					printf("%lu/%d (%lu%%)\r", tmp_size, tftp_tsize, progress);
+					printf("%lu/%d (%lu%%)%s",
+						tmp_size, tftp_tsize, progress, progress != 100 ? "\r" : "");
 				}
 # endif /* CONFIG_TFTP_DIGITAL_PROGRESS */
 			}
