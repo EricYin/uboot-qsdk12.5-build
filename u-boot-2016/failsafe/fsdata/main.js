@@ -1,17 +1,31 @@
-/* SPDX-License-Identifier: GPL-2.0 */
+// SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (C) 2026 Yuzhii0718
+ * Copyright (C) 2026 chenxin527. All Rights Reserved.
  *
- * All rights reserved.
+ * This file is part of the project uboot-qsdk12.5-build
  *
- * This file is part of the project bl-mt798x-dhcpd
- * You may not use, copy, modify or distribute this file except in compliance with the license agreement.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 /*
- * Modified by: chenxin527
+ * 注：引用的代码已注明出处。
  */
 
+/**
+ * 全局应用状态
+ * 注：该对象来自项目：Yuzhii0718/bl-mt798x-dhcpd
+ */
 const APP_STATE = {
     lang: "en",
     theme: "auto",
@@ -24,6 +38,7 @@ const APP_STATE = {
 
 /**
  * 标准化语言代码
+ * 注：该函数来自项目：Yuzhii0718/bl-mt798x-dhcpd
  */
 function normalizeLang(lang) {
     if (!lang) return "en";
@@ -33,6 +48,7 @@ function normalizeLang(lang) {
 
 /**
  * 检测用户语言偏好
+ * 注：该函数来自项目：Yuzhii0718/bl-mt798x-dhcpd
  */
 function detectLang() {
     // 尝试从 localStorage 读取
@@ -51,6 +67,7 @@ function detectLang() {
 
 /**
  * 检测主题偏好
+ * 注：该函数来自项目：Yuzhii0718/bl-mt798x-dhcpd
  */
 function detectTheme() {
     try {
@@ -64,6 +81,7 @@ function detectTheme() {
 
 /**
  * 翻译函数
+ * 注：该函数来自项目：Yuzhii0718/bl-mt798x-dhcpd
  */
 function t(key) {
     const lang = APP_STATE.lang || "en";
@@ -84,6 +102,7 @@ function t(key) {
 
 /**
  * 应用国际化到指定元素或整个文档
+ * 注：该函数来自项目：Yuzhii0718/bl-mt798x-dhcpd
  */
 function applyI18n(element) {
     const container = element || document;
@@ -117,6 +136,7 @@ function applyI18n(element) {
 
 /**
  * 设置语言
+ * 注：该函数来自项目：Yuzhii0718/bl-mt798x-dhcpd
  */
 function setLang(lang) {
     APP_STATE.lang = normalizeLang(lang);
@@ -144,6 +164,7 @@ function setLang(lang) {
 
 /**
  * 设置主题
+ * 注：该函数来自项目：Yuzhii0718/bl-mt798x-dhcpd
  */
 function setTheme(theme) {
     APP_STATE.theme = theme || "auto";
@@ -171,6 +192,7 @@ function setTheme(theme) {
 
 /**
  * 更新文档标题
+ * 注：该函数来自项目：Yuzhii0718/bl-mt798x-dhcpd
  */
 function updateDocumentTitle() {
     if (!APP_STATE.page) return;
@@ -190,6 +212,7 @@ function updateDocumentTitle() {
 
 /**
  * 将字节转换为可读格式
+ * 注：该函数来自项目：Yuzhii0718/bl-mt798x-dhcpd
  */
 function bytesToHuman(bytes) {
     if (bytes === null || bytes === undefined) return "";
@@ -210,6 +233,7 @@ function bytesToHuman(bytes) {
 
 /**
  * 封装 AJAX 请求
+ * 注：该函数来自项目：Yuzhii0718/bl-mt798x-dhcpd
  */
 function ajax(options) {
     const xhr = window.XMLHttpRequest ?
@@ -1106,6 +1130,7 @@ const pageConfigs = {
 
 /**
  * 应用初始化
+ * 注：该函数修改自项目：Yuzhii0718/bl-mt798x-dhcpd
  */
 function appInit(pageName) {
     // 初始化应用状态
@@ -2168,6 +2193,7 @@ const backupManager = (() => {
      * 解析用户输入的长度（支持十六进制和K/M后缀）
      * @param {string} str - 用户输入的字符串
      * @returns {object|null} { value: 字节数, raw: 原始数值, unit: 单位 }
+     * 注：该函数修改自项目：Yuzhii0718/bl-mt798x-dhcpd
      */
     function parseUserLen(str) {
         if (!str) return null;
@@ -2352,6 +2378,7 @@ const backupManager = (() => {
         }
 
         // 如果两个都有效，显示范围信息
+        // 注：此部分修改自项目：Yuzhii0718/bl-mt798x-dhcpd
         if (startValid && sizeValid) {
             const startVal = startState.value;
             const sizeVal = sizeState.value;
@@ -2408,6 +2435,7 @@ const backupManager = (() => {
 
     /**
      * 解析Content-Disposition中的文件名
+     * 注：该函数来自项目：Yuzhii0718/bl-mt798x-dhcpd
      */
     function parseFilenameFromDisposition(header) {
         if (!header) return "";
@@ -6985,6 +7013,18 @@ const macManager = (() => {
 // 国际化数据
 // ==============================
 
+/**
+ * 以下 key 和对应的 value 来自项目 Yuzhii0718/bl-mt798x-dhcpd:
+ * common.update, common.warnings, backup.hint, backup.label.mode, backup.label.target,
+ * backup.target.placeholder, backup.warn.1, backup.warn.2, backup.warn.3, env.title,
+ * env.hint, env.warn.1, env.warn.2, reboot.confirm, reboot.title.in_progress,
+ * initramfs.title (en), initramfs.hint (en), initramfs.boot_hint, initramfs.warn.1 (en),
+ * flashing.title.in_progress, flashing.hint.in_progress, flashing.title.done,
+ * booting.title.in_progress (en), booting.title.done, booting.hint.done (en), 404.title, 404.hint
+ *
+ * 以下模板函数内容修改自项目 Yuzhii0718/bl-mt798x-dhcpd:
+ * updateHint, warnChoose， warnDanger (en)
+ */
 const I18N = (() => {
     const t = {
         en: {
