@@ -241,11 +241,10 @@ extern loff_t board_env_size;
 #define CONFIG_NET_RETRY_COUNT			5
 #define CONFIG_SYS_RX_ETH_BUFFER		16
 #define CONFIG_CMD_PING
-#define CONFIG_CMD_DHCP
 #define CONFIG_MII
-#define CONFIG_IPADDR				192.168.10.10
+#define CONFIG_IPADDR				192.168.1.1
 #define CONFIG_NETMASK				255.255.255.0
-#define CONFIG_SERVERIP				192.168.10.19
+#define CONFIG_SERVERIP				192.168.1.2
 #define CONFIG_CMD_TFTPPUT
 #define CONFIG_IPQ_MDIO				1
 #define CONFIG_IPQ_ETH_INIT_DEFER
@@ -326,7 +325,7 @@ extern loff_t board_env_size;
 #define CONFIG_BOOTARGS				"console=ttyMSM0,115200n8"
 #define QCA_ROOT_FS_PART_NAME			"rootfs"
 
-#define CONFIG_BOOTDELAY			5
+#define CONFIG_BOOTDELAY			3
 
 #define NUM_ALT_PARTITION			16
 
@@ -383,7 +382,7 @@ extern loff_t board_env_size;
 /*
 * CRASH DUMP ENABLE
 */
-#define CONFIG_QCA_APPSBL_DLOAD
+/* #define CONFIG_QCA_APPSBL_DLOAD */
 #ifdef CONFIG_QCA_APPSBL_DLOAD
 
 #undef CONFIG_NET_RETRY_COUNT
@@ -443,5 +442,59 @@ extern loff_t board_env_size;
 #define CONFIG_NAME_MAX_ENTRIES	2
 #define CONFIG_NAME_MAX_LEN	32
 #endif
+
+/*
+ * Other commands
+ */
+#define CONFIG_IPQ_XTRACT_N_FLASH
+#define CONFIG_IPQ_MIBIB_RELOAD
+#define CONFIG_CMD_BOOTCONFIG
+#define CONFIG_CMD_BOOTFLASH
+#define CONFIG_CMD_IMI
+#define CONFIG_HTTPD
+#define CONFIG_TCP
+#define CONFIG_LIB_RAND
+#define CONFIG_HTTPD_DEBUG
+#define CONFIG_ADD_EXTRA_DTB
+#define CONFIG_CALL_FUNC_CAPTURE
+
+/*
+ * Disable some modules
+ */
+#define CONFIG_CMD_DISABLE_EXECTZT
+#define CONFIG_DISABLE_SIGNED_BOOT
+
+/*
+ * Console record support
+ */
+#define CONFIG_CONSOLE_RECORD
+#define CONFIG_CONSOLE_RECORD_IN_SIZE  0x400
+#define CONFIG_CONSOLE_RECORD_OUT_SIZE 0x3000
+
+/*
+ * Network abort detection for U-Boot autoboot
+ */
+#define CONFIG_NET_ABORT
+
+/*
+ * DHCP Server support
+ */
+#define CONFIG_DHCPD
+
+#ifdef CONFIG_DHCPD
+#define CONFIG_CMD_DISABLE_BOOTP
+#else
+#define CONFIG_CMD_DHCP
+#endif /* CONFIG_DHCPD */
+
+/*
+ * Telnet Server support
+ */
+#define CONFIG_TELNETD
+
+/*
+ * wget support
+ */
+#define CONFIG_WGET
 
 #endif /* _IPQ5018_H */

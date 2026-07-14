@@ -1049,7 +1049,7 @@ show_help() {
     echo "  <设备名>                编译指定的单个设备"
     echo ""
     echo "支持的平台:"
-    echo "  ipq53xx, ipq60xx, ipq807x"
+    echo "  ipq50xx, ipq53xx, ipq60xx, ipq807x"
     echo ""
 
     print_device_list
