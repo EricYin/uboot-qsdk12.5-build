@@ -68,6 +68,12 @@ config TARGET_IPQ6018_LINK_NN6000
     help
       Enable support for Link NN6000 (V1 & V2) board
 
+config TARGET_IPQ6018_OCEANBLUE_S200_H
+    bool "OceanBlue Cloud S200-H board support"
+	default n
+    help
+      Enable support for OceanBlue Cloud S200-H board
+
 config TARGET_IPQ6018_PHILIPS_LY1800
     bool "Philips LY1800 board support"
 	default n

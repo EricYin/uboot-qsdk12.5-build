@@ -64,6 +64,7 @@ DEVICE_LIST=(
     "ipq60xx:jdcloud_re-cs-07:ipq6018_jdcloud_re_cs_07:JDCloud ER1"
     "ipq60xx:jdcloud_re-ss-01:ipq6018_jdcloud_re_ss_01:JDCloud AX1800 Pro (Arthur)"
     "ipq60xx:link_nn6000:ipq6018_link_nn6000:Link NN6000"
+    "ipq60xx:oceanblue_s200-h:ipq6018_oceanblue_s200_h:OceanBlue Cloud S200-H"
     "ipq60xx:philips_ly1800:ipq6018_philips_ly1800:Philips LY1800"
     "ipq60xx:qihoo_360v6:ipq6018_qihoo_360v6:Qihoo 360V6"
     "ipq60xx:redmi_ax5-jdcloud:ipq6018_redmi_ax5_jdcloud:Redmi AX5 JDCloud"
