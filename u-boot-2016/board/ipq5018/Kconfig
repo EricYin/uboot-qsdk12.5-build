@@ -61,4 +61,10 @@ config LIST_OF_CONFIG_NAMES_SUPPORT
 config LIST_FUSE
 	bool "Enable fuse list command"
 	default n
+
+config TARGET_IPQ5018_CUCC_VS010
+    bool "CUCC VS010 board support"
+	default n
+    help
+	  Enable support for CUCC VS010 board
 endif

@@ -61,35 +61,35 @@ dtb-$(CONFIG_ARCH_IPQ40xx) += ipq40xx-dk01-c1.dtb \
 		ipq40xx-dk01-s1.dtb \
 		ipq40xx-dk06-c1.dtb
 
-ifneq ($(CONFIG_IPQ_TINY),y)
-dtb-$(CONFIG_ARCH_IPQ5018) += ipq5018-emulation.dtb \
-			ipq5018-mp02.1.dtb \
-			ipq5018-mp03.1-c2.dtb \
-			ipq5018-mp03.1-c3.dtb \
-			ipq5018-mp03.3.dtb \
-			ipq5018-mp03.3-c2.dtb \
-			ipq5018-mp03.3-c3.dtb \
-			ipq5018-mp03.3-c4.dtb \
-			ipq5018-mp03.3-c5.dtb \
-			ipq5018-mp03.4-c1.dtb \
-			ipq5018-mp03.4-c2.dtb \
-			ipq5018-mp03.6-c1.dtb \
-			ipq5018-mp03.6-c2.dtb \
-			ipq5018-mp03.5-c1.dtb \
-			ipq5018-mp03.5-c2.dtb \
-			ipq5018-db-mp02.1.dtb \
-			ipq5018-db-mp03.1.dtb \
-			ipq5018-db-mp03.1-c2.dtb \
-			ipq5018-db-mp03.3.dtb \
-			ipq5018-db-mp03.3-c2.dtb \
-			ipq5018-tb-mp04.dtb \
-			ipq5018-mp03.1.dtb
-else
-dtb-$(CONFIG_ARCH_IPQ5018) += ipq5018-db-mp02.1.dtb \
-				ipq5018-mp02.1.dtb \
-				ipq5018-mp03.1.dtb \
-				ipq5018-db-mp03.1.dtb
-endif
+# ifneq ($(CONFIG_IPQ_TINY),y)
+# dtb-$(CONFIG_ARCH_IPQ5018) += ipq5018-emulation.dtb \
+# 			ipq5018-mp02.1.dtb \
+# 			ipq5018-mp03.1-c2.dtb \
+# 			ipq5018-mp03.1-c3.dtb \
+# 			ipq5018-mp03.3.dtb \
+# 			ipq5018-mp03.3-c2.dtb \
+# 			ipq5018-mp03.3-c3.dtb \
+# 			ipq5018-mp03.3-c4.dtb \
+# 			ipq5018-mp03.3-c5.dtb \
+# 			ipq5018-mp03.4-c1.dtb \
+# 			ipq5018-mp03.4-c2.dtb \
+# 			ipq5018-mp03.6-c1.dtb \
+# 			ipq5018-mp03.6-c2.dtb \
+# 			ipq5018-mp03.5-c1.dtb \
+# 			ipq5018-mp03.5-c2.dtb \
+# 			ipq5018-db-mp02.1.dtb \
+# 			ipq5018-db-mp03.1.dtb \
+# 			ipq5018-db-mp03.1-c2.dtb \
+# 			ipq5018-db-mp03.3.dtb \
+# 			ipq5018-db-mp03.3-c2.dtb \
+# 			ipq5018-tb-mp04.dtb \
+# 			ipq5018-mp03.1.dtb
+# else
+# dtb-$(CONFIG_ARCH_IPQ5018) += ipq5018-db-mp02.1.dtb \
+# 				ipq5018-mp02.1.dtb \
+# 				ipq5018-mp03.1.dtb \
+# 				ipq5018-db-mp03.1.dtb
+# endif
 
 # ifneq ($(CONFIG_IPQ_TINY),y)
 # dtb-$(CONFIG_ARCH_IPQ5332) += ipq5332-emulation.dtb \
@@ -125,6 +125,7 @@ endif
 # endif
 
 $(info === Board Selection ===)
+$(info CONFIG_TARGET_IPQ5018_CUCC_VS010        = $(CONFIG_TARGET_IPQ5018_CUCC_VS010))
 $(info CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_06  = $(CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_06))
 $(info CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_08  = $(CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_08))
 $(info CONFIG_TARGET_IPQ6018_CMIOT_AX18        = $(CONFIG_TARGET_IPQ6018_CMIOT_AX18))
@@ -144,6 +145,7 @@ $(info CONFIG_TARGET_IPQ807x_INSEEGO_FG2000    = $(CONFIG_TARGET_IPQ807x_INSEEGO
 $(info CONFIG_TARGET_IPQ807x_REDMI_AX6         = $(CONFIG_TARGET_IPQ807x_REDMI_AX6))
 $(info CONFIG_TARGET_IPQ807x_XIAOMI_AX3600     = $(CONFIG_TARGET_IPQ807x_XIAOMI_AX3600))
 
+dtb-$(CONFIG_TARGET_IPQ5018_CUCC_VS010)        += ipq5018-cucc_vs010.dtb
 dtb-$(CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_06)  += ipq5332-jdcloud_re-cs-06.dtb
 dtb-$(CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_08)  += ipq5332-jdcloud_re-cs-08.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_CMIOT_AX18)        += ipq6018-cmiot_ax18.dtb
@@ -164,6 +166,27 @@ dtb-$(CONFIG_TARGET_IPQ807x_REDMI_AX6)         += ipq807x-redmi_ax6.dtb
 dtb-$(CONFIG_TARGET_IPQ807x_XIAOMI_AX3600)     += ipq807x-xiaomi_ax3600.dtb
 
 ifdef CONFIG_ADD_EXTRA_DTB
+dtb-$(CONFIG_TARGET_IPQ5018_CUCC_VS010)        += ipq5018-emulation.dtb \
+												  ipq5018-mp03.1-c2.dtb \
+												  ipq5018-mp03.1-c3.dtb \
+												  ipq5018-mp03.3.dtb \
+												  ipq5018-mp03.3-c2.dtb \
+												  ipq5018-mp03.3-c3.dtb \
+												  ipq5018-mp03.3-c4.dtb \
+												  ipq5018-mp03.3-c5.dtb \
+												  ipq5018-mp03.4-c1.dtb \
+												  ipq5018-mp03.4-c2.dtb \
+												  ipq5018-mp03.6-c1.dtb \
+												  ipq5018-mp03.6-c2.dtb \
+												  ipq5018-mp03.5-c1.dtb \
+												  ipq5018-mp03.5-c2.dtb \
+												  ipq5018-db-mp02.1.dtb \
+												  ipq5018-db-mp03.1.dtb \
+												  ipq5018-db-mp03.1-c2.dtb \
+												  ipq5018-db-mp03.3.dtb \
+												  ipq5018-db-mp03.3-c2.dtb \
+												  ipq5018-tb-mp04.dtb \
+												  ipq5018-mp03.1.dtb
 dtb-$(CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_06)  += ipq5332-emulation.dtb \
 												  ipq5332-mi01.2.dtb \
 												  ipq5332-mi01.2-qcn9160-c1.dtb \

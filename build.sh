@@ -56,6 +56,7 @@ get_platform_config() {
 # 设备配置:
 # 格式: "平台:设备名:配置名:友好名"
 DEVICE_LIST=(
+    "ipq50xx:cucc_vs010:ipq5018_cucc_vs010:CUCC VS010"
     "ipq53xx:jdcloud_re-cs-06:ipq5332_jdcloud_re_cs_06:JDCloud BE6500"
     "ipq53xx:jdcloud_re-cs-08:ipq5332_jdcloud_re_cs_08:JDCloud ER2"
     "ipq60xx:cmiot_ax18:ipq6018_cmiot_ax18:CMIOT AX18"
