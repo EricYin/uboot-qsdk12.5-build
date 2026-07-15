@@ -68,6 +68,12 @@ config TARGET_IPQ5018_CMCC_MR3000D_CI
     help
 	  Enable support for CMCC MR3000D-CI board
 
+config TARGET_IPQ5018_CMCC_PZ_L8
+    bool "CMCC PZ-L8 board support"
+	default n
+    help
+	  Enable support for CMCC PZ-L8 board
+
 config TARGET_IPQ5018_CUCC_VS010
     bool "CUCC VS010 board support"
 	default n
