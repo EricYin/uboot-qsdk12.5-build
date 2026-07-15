@@ -127,6 +127,7 @@ dtb-$(CONFIG_ARCH_IPQ40xx) += ipq40xx-dk01-c1.dtb \
 $(info === Board Selection ===)
 $(info CONFIG_TARGET_IPQ5018_CMCC_MR3000D_CI   = $(CONFIG_TARGET_IPQ5018_CMCC_MR3000D_CI))
 $(info CONFIG_TARGET_IPQ5018_CMCC_PZ_L8        = $(CONFIG_TARGET_IPQ5018_CMCC_PZ_L8))
+$(info CONFIG_TARGET_IPQ5018_CMCC_RAX3000Q     = $(CONFIG_TARGET_IPQ5018_CMCC_RAX3000Q))
 $(info CONFIG_TARGET_IPQ5018_CUCC_VS010        = $(CONFIG_TARGET_IPQ5018_CUCC_VS010))
 $(info CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_06  = $(CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_06))
 $(info CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_08  = $(CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_08))
@@ -149,6 +150,7 @@ $(info CONFIG_TARGET_IPQ807x_XIAOMI_AX3600     = $(CONFIG_TARGET_IPQ807x_XIAOMI_
 
 dtb-$(CONFIG_TARGET_IPQ5018_CMCC_MR3000D_CI)   += ipq5018-cmcc_mr3000d-ci.dtb
 dtb-$(CONFIG_TARGET_IPQ5018_CMCC_PZ_L8)        += ipq5018-cmcc_pz-l8.dtb
+dtb-$(CONFIG_TARGET_IPQ5018_CMCC_RAX3000Q)     += ipq5018-cmcc_rax3000q.dtb
 dtb-$(CONFIG_TARGET_IPQ5018_CUCC_VS010)        += ipq5018-cucc_vs010.dtb
 dtb-$(CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_06)  += ipq5332-jdcloud_re-cs-06.dtb
 dtb-$(CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_08)  += ipq5332-jdcloud_re-cs-08.dtb
@@ -193,6 +195,27 @@ dtb-$(CONFIG_TARGET_IPQ5018_CMCC_MR3000D_CI)   += ipq5018-emulation.dtb \
 												  ipq5018-tb-mp04.dtb \
 												  ipq5018-mp03.1.dtb
 dtb-$(CONFIG_TARGET_IPQ5018_CMCC_PZ_L8)        += ipq5018-emulation.dtb \
+												  ipq5018-mp03.1-c2.dtb \
+												  ipq5018-mp03.1-c3.dtb \
+												  ipq5018-mp03.3.dtb \
+												  ipq5018-mp03.3-c2.dtb \
+												  ipq5018-mp03.3-c3.dtb \
+												  ipq5018-mp03.3-c4.dtb \
+												  ipq5018-mp03.3-c5.dtb \
+												  ipq5018-mp03.4-c1.dtb \
+												  ipq5018-mp03.4-c2.dtb \
+												  ipq5018-mp03.6-c1.dtb \
+												  ipq5018-mp03.6-c2.dtb \
+												  ipq5018-mp03.5-c1.dtb \
+												  ipq5018-mp03.5-c2.dtb \
+												  ipq5018-db-mp02.1.dtb \
+												  ipq5018-db-mp03.1.dtb \
+												  ipq5018-db-mp03.1-c2.dtb \
+												  ipq5018-db-mp03.3.dtb \
+												  ipq5018-db-mp03.3-c2.dtb \
+												  ipq5018-tb-mp04.dtb \
+												  ipq5018-mp03.1.dtb
+dtb-$(CONFIG_TARGET_IPQ5018_CMCC_RAX3000Q)     += ipq5018-emulation.dtb \
 												  ipq5018-mp03.1-c2.dtb \
 												  ipq5018-mp03.1-c3.dtb \
 												  ipq5018-mp03.3.dtb \

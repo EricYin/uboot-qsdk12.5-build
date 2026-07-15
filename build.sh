@@ -58,6 +58,7 @@ get_platform_config() {
 DEVICE_LIST=(
     "ipq50xx:cmcc_mr3000d-ci:ipq5018_cmcc_mr3000d_ci:CMCC MR3000D-CI"
     "ipq50xx:cmcc_pz-l8:ipq5018_cmcc_pz_l8:CMCC PZ-L8"
+    "ipq50xx:cmcc_rax3000q:ipq5018_cmcc_rax3000q:CMCC RAX3000Q(Y)"
     "ipq50xx:cucc_vs010:ipq5018_cucc_vs010:CUCC VS010"
     "ipq53xx:jdcloud_re-cs-06:ipq5332_jdcloud_re_cs_06:JDCloud BE6500"
     "ipq53xx:jdcloud_re-cs-08:ipq5332_jdcloud_re_cs_08:JDCloud ER2"
