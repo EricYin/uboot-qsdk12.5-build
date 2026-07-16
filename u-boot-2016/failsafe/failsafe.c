@@ -43,7 +43,7 @@ static u32 upload_data_id;
 static const void *upload_data;
 static size_t upload_size;
 static bool httpd_done;
-static int upgrade_type;
+static upgrade_type_t upgrade_type;
 
 struct reboot_session {
 	int dummy;

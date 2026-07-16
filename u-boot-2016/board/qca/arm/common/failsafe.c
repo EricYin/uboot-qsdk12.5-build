@@ -106,7 +106,7 @@ extern int config_select(unsigned int addr, char *rcmd, int rcmd_size);
         }   \
     } while (0)
 
-static void handle_wrong_fw_type(const char *expected_file_type_str, const fw_type_t fw_type)
+static void handle_wrong_fw_type(const char *expected_file_type_str)
 {
 	char *actual_file_type_str = fw_type_to_string(fw_type);
 
@@ -295,28 +295,16 @@ static int get_gl_fw_node_name(const void *data_addr)
 static int get_jdc_fw_node_name(const void *data_addr)
 {
 	int ret;
-	const void *fit = data_addr;
+	struct jdc_fw_entry *entries[] = {&jdc_fw.hlos, &jdc_fw.rootfs, &jdc_fw.wififw};
 
-    ret = fit_image_get_node_by_prefix(fit, FIT_IMAGES_PATH, jdc_fw.hlos.prefix,
-                            jdc_fw.hlos.name, sizeof(jdc_fw.hlos.name));
-    if (ret) {
-        handle_invalid_qsdk_fw(jdc_fw.hlos.prefix);
-		return RET_FAILURE;
-    }
-
-    ret = fit_image_get_node_by_prefix(fit, FIT_IMAGES_PATH, jdc_fw.rootfs.prefix,
-                            jdc_fw.rootfs.name, sizeof(jdc_fw.rootfs.name));
-    if (ret) {
-        handle_invalid_qsdk_fw(jdc_fw.rootfs.prefix);
-		return RET_FAILURE;
-    }
-
-	ret = fit_image_get_node_by_prefix(fit, FIT_IMAGES_PATH, jdc_fw.wififw.prefix,
-                            jdc_fw.wififw.name, sizeof(jdc_fw.wififw.name));
-    if (ret) {
-        handle_invalid_qsdk_fw(jdc_fw.wififw.prefix);
-		return RET_FAILURE;
-    }
+	for (int i = 0; i < ARRAY_SIZE(entries); i++) {
+		ret = fit_image_get_node_by_prefix(data_addr, FIT_IMAGES_PATH,
+				entries[i]->prefix, entries[i]->name, sizeof(entries[i]->name));
+		if (ret) {
+			handle_invalid_qsdk_fw(entries[i]->prefix);
+			return RET_FAILURE;
+		}
+	}
 
 	return RET_SUCCESS;
 }
@@ -367,7 +355,7 @@ static void handle_gpt_write_cmd(const ulong data_addr, const ulong data_size)
     ulong data_size_blocks;
 
     mmc_dev = mmc_get_dev(mmc_host.dev_num);
-    if (mmc_dev == NULL)
+    if (mmc_dev == NULL || mmc_dev->blksz == 0)
         data_size_blocks = 0;
     else
         data_size_blocks = data_size / mmc_dev->blksz
@@ -503,7 +491,7 @@ static int failsafe_validate_firmware(const void *data_addr, const ulong data_si
         ret = check_file_size_is_valid("firmware", "rootfs", data_size);
         break;
     default:
-        handle_wrong_fw_type("FIRMWARE", fw_type);
+        handle_wrong_fw_type("FIRMWARE");
         ret = RET_WRONG_FW_TYPE;
     }
 
@@ -513,7 +501,7 @@ static int failsafe_validate_firmware(const void *data_addr, const ulong data_si
 static int failsafe_validate_uboot(const void *data_addr, const ulong data_size)
 {
     if (fw_type != FW_TYPE_ELF) {
-        handle_wrong_fw_type("U-BOOT ELF", fw_type);
+        handle_wrong_fw_type("U-BOOT ELF");
         return RET_WRONG_FW_TYPE;
     }
 
@@ -542,7 +530,7 @@ static int failsafe_validate_art(const void *data_addr, const ulong data_size)
     case FW_TYPE_SIMG_NOR:
     case FW_TYPE_SYSUPGRADE:
     case FW_TYPE_UBI:
-        handle_wrong_fw_type("ART", fw_type);
+        handle_wrong_fw_type("ART");
         return RET_WRONG_FW_TYPE;
     default:
         return check_file_size_is_valid("ART", "0:ART", data_size);
@@ -552,7 +540,7 @@ static int failsafe_validate_art(const void *data_addr, const ulong data_size)
 static int failsafe_validate_cdt(const void *data_addr, const ulong data_size)
 {
     if (fw_type != FW_TYPE_CDT) {
-        handle_wrong_fw_type("CDT", fw_type);
+        handle_wrong_fw_type("CDT");
         return RET_WRONG_FW_TYPE;
     }
 
@@ -572,7 +560,7 @@ static int failsafe_validate_ptable(const void *data_addr, const ulong data_size
         RETURN_IF_NOR_FLASH_NOT_FOUND;
         return check_file_size_is_valid("MIBIB", "0:MIBIB", data_size);
     default:
-        handle_wrong_fw_type("Partition Table (GPT or MIBIB)", fw_type);
+        handle_wrong_fw_type("Partition Table (GPT or MIBIB)");
         return RET_WRONG_FW_TYPE;
     }
 }
@@ -602,7 +590,7 @@ static int failsafe_validate_simg(const void *data_addr, const ulong data_size)
 		flash_device_size = spi->size;
 		break;
     default:
-        handle_wrong_fw_type("Single Image", fw_type);
+        handle_wrong_fw_type("Single Image");
         return RET_WRONG_FW_TYPE;
     }
 
@@ -617,7 +605,7 @@ static int failsafe_validate_simg(const void *data_addr, const ulong data_size)
 static int failsafe_validate_initramfs(const void *data_addr, const ulong data_size)
 {
     if (fw_type != FW_TYPE_FIT) {
-        handle_wrong_fw_type("FIT INITRAMFS UIMAGE", fw_type);
+        handle_wrong_fw_type("FIT INITRAMFS UIMAGE");
         return RET_WRONG_FW_TYPE;
     }
 
@@ -642,10 +630,6 @@ static int failsafe_write_firmware(const ulong data_addr, const ulong data_size)
 			"flash rootfs 0x%lx 0x%lx",
 			data_addr + factory_fw_kernel_size,
 			data_size - factory_fw_kernel_size);
-#ifdef CONFIG_FAILSAFE_BOOTCONFIG
-		strlcpy(runcmd.list[runcmd.count++],
-			"bootconfig set firmware 0", MAX_CMD_LEN);
-#endif
 		break;
 	case FW_TYPE_GLINET_V3:
 	case FW_TYPE_GLINET_V4:
@@ -654,10 +638,6 @@ static int failsafe_write_firmware(const ulong data_addr, const ulong data_size)
 		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
 			"xtract_n_flash 0x%lx %s rootfs",
 			data_addr, gl_fw_ubi_name);
-#ifdef CONFIG_FAILSAFE_BOOTCONFIG
-		strlcpy(runcmd.list[runcmd.count++],
-			"bootconfig set firmware 0", MAX_CMD_LEN);
-#endif
 		break;
 	case FW_TYPE_JDCLOUD:
 		RETURN_IF_MMC_FLASH_NOT_FOUND;
@@ -675,10 +655,6 @@ static int failsafe_write_firmware(const ulong data_addr, const ulong data_size)
 		strlcpy(runcmd.list[runcmd.count++],
 			"flasherase rootfs_data", MAX_CMD_LEN);
 #endif /* CONFIG_ARCH_IPQ5332 */
-#ifdef CONFIG_FAILSAFE_BOOTCONFIG
-		strlcpy(runcmd.list[runcmd.count++],
-			"bootconfig set firmware 0", MAX_CMD_LEN);
-#endif
 		break;
 	case FW_TYPE_SYSUPGRADE:
 	case FW_TYPE_ASUSWRT_EMMC:
@@ -689,24 +665,21 @@ static int failsafe_write_firmware(const ulong data_addr, const ulong data_size)
 			"flash 0:HLOS $kernel_addr $kernel_size", MAX_CMD_LEN);
 		strlcpy(runcmd.list[runcmd.count++],
 			"flash rootfs $rootfs_addr $rootfs_size", MAX_CMD_LEN);
-#ifdef CONFIG_FAILSAFE_BOOTCONFIG
-		strlcpy(runcmd.list[runcmd.count++],
-			"bootconfig set firmware 0", MAX_CMD_LEN);
-#endif
 		break;
 	case FW_TYPE_UBI:
 		RETURN_IF_NAND_FLASH_NOT_FOUND;
 		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
 			"flash rootfs 0x%lx 0x%lx", data_addr, data_size);
-#ifdef CONFIG_FAILSAFE_BOOTCONFIG
-		strlcpy(runcmd.list[runcmd.count++],
-			"bootconfig set firmware 0", MAX_CMD_LEN);
-#endif
 		break;
 	default:
-		handle_wrong_fw_type("FIRMWARE", fw_type);
+		handle_wrong_fw_type("FIRMWARE");
 		return RET_WRONG_FW_TYPE;
 	}
+
+#ifdef CONFIG_FAILSAFE_BOOTCONFIG
+	strlcpy(runcmd.list[runcmd.count++],
+		"bootconfig set firmware 0", MAX_CMD_LEN);
+#endif
 
 	return failsafe_run_command_list();
 }
@@ -716,7 +689,7 @@ static int failsafe_write_uboot(const ulong data_addr, const ulong data_size)
     print_upgrade_hint("U-BOOT");
 
     if (fw_type != FW_TYPE_ELF) {
-		handle_wrong_fw_type("U-BOOT ELF", fw_type);
+		handle_wrong_fw_type("U-BOOT ELF");
         return RET_WRONG_FW_TYPE;
 	}
 
@@ -745,7 +718,7 @@ static int failsafe_write_cdt(const ulong data_addr, const ulong data_size)
     print_upgrade_hint("CDT");
 
     if (fw_type != FW_TYPE_CDT) {
-		handle_wrong_fw_type("CDT", fw_type);
+		handle_wrong_fw_type("CDT");
         return RET_WRONG_FW_TYPE;
 	}
 
@@ -779,7 +752,7 @@ static int failsafe_write_ptable(const ulong data_addr, const ulong data_size)
 			"flash 0:MIBIB 0x%lx 0x%lx", data_addr, data_size);
         break;
     default:
-        handle_wrong_fw_type("Partition Table (GPT or MIBIB)", fw_type);
+        handle_wrong_fw_type("Partition Table (GPT or MIBIB)");
         return RET_WRONG_FW_TYPE;
     }
 
@@ -813,7 +786,7 @@ static int failsafe_write_simg(const ulong data_addr, const ulong data_size)
 			data_addr, data_size);
 		break;
 	default:
-		handle_wrong_fw_type("Single Image", fw_type);
+		handle_wrong_fw_type("Single Image");
 		return RET_WRONG_FW_TYPE;
 	}
 
@@ -847,7 +820,7 @@ int boot_from_mem(const ulong data_addr)
 	return run_command(rcmd, 0);
 }
 
-int failsafe_validate_image(const int upgrade_type, const char *filename,
+int failsafe_validate_image(const upgrade_type_t upgrade_type, const char *filename,
 		const void *data_addr, const ulong data_size, struct httpd_response *response)
 {
 	int ret;
@@ -917,7 +890,7 @@ int failsafe_validate_image(const int upgrade_type, const char *filename,
 	return ret;
 }
 
-int failsafe_write_image(const int upgrade_type, const ulong data_addr,
+int failsafe_write_image(const upgrade_type_t upgrade_type, const ulong data_addr,
 		const ulong data_size, struct httpd_response *response)
 {
     int ret;

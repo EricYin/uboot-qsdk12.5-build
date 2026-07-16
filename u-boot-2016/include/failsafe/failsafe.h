@@ -76,9 +76,9 @@ static inline void handle_success_led_state(void)
 }
 
 int boot_from_mem(const ulong data_addr);
-int failsafe_validate_image(const int upgrade_type, const char *filename,
+int failsafe_validate_image(const upgrade_type_t upgrade_type, const char *filename,
         const void *data_addr, const ulong data_size, struct httpd_response *response);
-int failsafe_write_image(const int upgrade_type, const ulong data_addr,
+int failsafe_write_image(const upgrade_type_t upgrade_type, const ulong data_addr,
         const ulong data_size, struct httpd_response *response);
 
 #endif /* __FAILSAFE_H__ */
