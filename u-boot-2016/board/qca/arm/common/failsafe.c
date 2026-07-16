@@ -57,11 +57,17 @@ static struct {
 	struct jdc_fw_entry hlos;
 	struct jdc_fw_entry rootfs;
 	struct jdc_fw_entry wififw;
+#ifdef CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000
+	struct jdc_fw_entry btfw;
+#endif
 } jdc_fw = {
 	.hlos.prefix = "hlos",
 	.rootfs.prefix = "rootfs",
-#ifdef CONFIG_ARCH_IPQ5332
+#if defined(CONFIG_ARCH_IPQ5332)
 	.wififw.prefix = "wifi_fw"
+#elif defined(CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000)
+	.wififw.prefix = "wifi_fw_ipq5018_qcn6122cs",
+	.btfw.prefix = "btfw"
 #else
 	.wififw.prefix = "wififw"
 #endif /* CONFIG_ARCH_IPQ5332 */
@@ -295,7 +301,12 @@ static int get_gl_fw_node_name(const void *data_addr)
 static int get_jdc_fw_node_name(const void *data_addr)
 {
 	int ret;
-	struct jdc_fw_entry *entries[] = {&jdc_fw.hlos, &jdc_fw.rootfs, &jdc_fw.wififw};
+	struct jdc_fw_entry *entries[] = {
+		&jdc_fw.hlos, &jdc_fw.rootfs, &jdc_fw.wififw
+#ifdef CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000
+		, &jdc_fw.btfw
+#endif
+	};
 
 	for (int i = 0; i < ARRAY_SIZE(entries); i++) {
 		ret = fit_image_get_node_by_prefix(data_addr, FIT_IMAGES_PATH,
@@ -479,6 +490,11 @@ static int failsafe_validate_firmware(const void *data_addr, const ulong data_si
         ret = check_part_exists("0:WIFIFW", 1);
         if (ret)
             break;
+#ifdef CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000
+        ret = check_part_exists("0:BTFW", 1);
+        if (ret)
+            break;
+#endif /* CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000 */
 #ifndef CONFIG_ARCH_IPQ5332
         ret = check_part_exists("rootfs_data", 1);
         if (ret)
@@ -651,6 +667,11 @@ static int failsafe_write_firmware(const ulong data_addr, const ulong data_size)
 		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
 			"xtract_n_flash 0x%lx %s 0:WIFIFW",
 			data_addr, jdc_fw.wififw.name);
+#ifdef CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000
+		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
+			"xtract_n_flash 0x%lx %s 0:BTFW",
+			data_addr, jdc_fw.btfw.name);
+#endif /* CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000 */
 #ifndef CONFIG_ARCH_IPQ5332
 		strlcpy(runcmd.list[runcmd.count++],
 			"flasherase rootfs_data", MAX_CMD_LEN);
