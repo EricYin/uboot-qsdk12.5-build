@@ -85,4 +85,10 @@ config TARGET_IPQ5018_CUCC_VS010
 	default n
     help
 	  Enable support for CUCC VS010 board
+
+config TARGET_IPQ5018_JDCLOUD_AX3000
+    bool "JDCloud AX3000 board support"
+	default n
+    help
+	  Enable support for JDCloud AX3000 board
 endif

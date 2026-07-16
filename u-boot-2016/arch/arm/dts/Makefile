@@ -129,6 +129,7 @@ $(info CONFIG_TARGET_IPQ5018_CMCC_MR3000D_CI   = $(CONFIG_TARGET_IPQ5018_CMCC_MR
 $(info CONFIG_TARGET_IPQ5018_CMCC_PZ_L8        = $(CONFIG_TARGET_IPQ5018_CMCC_PZ_L8))
 $(info CONFIG_TARGET_IPQ5018_CMCC_RAX3000Q     = $(CONFIG_TARGET_IPQ5018_CMCC_RAX3000Q))
 $(info CONFIG_TARGET_IPQ5018_CUCC_VS010        = $(CONFIG_TARGET_IPQ5018_CUCC_VS010))
+$(info CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000    = $(CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000))
 $(info CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_06  = $(CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_06))
 $(info CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_08  = $(CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_08))
 $(info CONFIG_TARGET_IPQ6018_CMIOT_AX18        = $(CONFIG_TARGET_IPQ6018_CMIOT_AX18))
@@ -152,6 +153,7 @@ dtb-$(CONFIG_TARGET_IPQ5018_CMCC_MR3000D_CI)   += ipq5018-cmcc_mr3000d-ci.dtb
 dtb-$(CONFIG_TARGET_IPQ5018_CMCC_PZ_L8)        += ipq5018-cmcc_pz-l8.dtb
 dtb-$(CONFIG_TARGET_IPQ5018_CMCC_RAX3000Q)     += ipq5018-cmcc_rax3000q.dtb
 dtb-$(CONFIG_TARGET_IPQ5018_CUCC_VS010)        += ipq5018-cucc_vs010.dtb
+dtb-$(CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000)    += ipq5018-jdcloud_ax3000.dtb
 dtb-$(CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_06)  += ipq5332-jdcloud_re-cs-06.dtb
 dtb-$(CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_08)  += ipq5332-jdcloud_re-cs-08.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_CMIOT_AX18)        += ipq6018-cmiot_ax18.dtb
@@ -250,6 +252,27 @@ dtb-$(CONFIG_TARGET_IPQ5018_CUCC_VS010)        += ipq5018-emulation.dtb \
 												  ipq5018-mp03.6-c2.dtb \
 												  ipq5018-mp03.5-c1.dtb \
 												  ipq5018-mp03.5-c2.dtb \
+												  ipq5018-db-mp02.1.dtb \
+												  ipq5018-db-mp03.1.dtb \
+												  ipq5018-db-mp03.1-c2.dtb \
+												  ipq5018-db-mp03.3.dtb \
+												  ipq5018-db-mp03.3-c2.dtb \
+												  ipq5018-tb-mp04.dtb \
+												  ipq5018-mp03.1.dtb
+dtb-$(CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000)    += ipq5018-emulation.dtb \
+												  ipq5018-mp02.1.dtb \
+												  ipq5018-mp03.1-c2.dtb \
+												  ipq5018-mp03.1-c3.dtb \
+												  ipq5018-mp03.3.dtb \
+												  ipq5018-mp03.3-c2.dtb \
+												  ipq5018-mp03.3-c3.dtb \
+												  ipq5018-mp03.3-c4.dtb \
+												  ipq5018-mp03.3-c5.dtb \
+												  ipq5018-mp03.4-c1.dtb \
+												  ipq5018-mp03.4-c2.dtb \
+												  ipq5018-mp03.6-c1.dtb \
+												  ipq5018-mp03.6-c2.dtb \
+												  ipq5018-mp03.5-c1.dtb \
 												  ipq5018-db-mp02.1.dtb \
 												  ipq5018-db-mp03.1.dtb \
 												  ipq5018-db-mp03.1-c2.dtb \
