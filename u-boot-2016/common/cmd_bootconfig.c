@@ -385,7 +385,12 @@ static int do_bootconfig_set(const char *part_name, uint32_t value)
 			printf("All partitions already have value %u, no change\n", value);
 	} else if (strcmp(part_name, "firmware") == 0) {
 		/* Handle firmware partitions */
-		const char *fw_parts[] = {"0:HLOS", "rootfs", "0:WIFIFW"};
+		const char *fw_parts[] = {
+			"0:HLOS", "rootfs", "0:WIFIFW"
+#ifdef CONFIG_ARCH_IPQ5018
+			, "0:BTFW"
+#endif
+		};
 		for (idx = 0; idx < bootcfg.info.numaltpart && idx < NUM_ALT_PARTITION; idx++) {
 			for (int j = 0; j < ARRAY_SIZE(fw_parts); j++) {
 				if (strncmp(bootcfg.info.per_part_entry[idx].name, fw_parts[j],
