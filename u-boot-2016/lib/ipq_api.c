@@ -65,9 +65,15 @@ void ipq_gpio_init(void)
 	}
 }
 
-static inline bool is_button_pressed(unsigned int button_gpio, unsigned int active_level)
+static bool is_button_pressed(unsigned int button_gpio, unsigned int active_level)
 {
 	unsigned int button_pressed = (active_level == GPIO_ACTIVE_LOW) ? GPIO_OUT_LOW : GPIO_OUT_HIGH;
+
+	if (gpio_get_value(button_gpio) != button_pressed)
+		return false;
+
+	udelay(10000);
+
 	return (gpio_get_value(button_gpio) == button_pressed) ? true : false;
 }
 
