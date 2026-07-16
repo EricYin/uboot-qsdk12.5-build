@@ -430,6 +430,38 @@ static struct qpic_serial_nand_params qpic_serial_nand_tbl[] = {
 		.check_quad_config = true,
 		.name = "MX35UF1G24AD",
 	},
+	{
+		.id = { 0xa1, 0xa5 },
+		.page_size = 2048,
+		.erase_blk_size = 0x00020000,
+		.pgs_per_blk = 64,
+		.no_of_blocks = 1024,
+		.spare_size = 128,
+		.density = 0x08000000,
+		.otp_region = 0xD480,
+		.no_of_addr_cycle = 0x3,
+		.num_bits_ecc_correctability = 1,
+		.timing_mode_support = 0,
+		.quad_mode = true,
+		.check_quad_config = true,
+		.name = "FM25LS01",
+	},
+	{
+		.id = { 0xa1, 0xb6 },
+		.page_size = 2048,
+		.erase_blk_size = 0x00020000,
+		.pgs_per_blk = 64,
+		.no_of_blocks = 2048,
+		.spare_size = 128,
+		.density = 0x10000000,
+		.otp_region = 0xD480,
+		.no_of_addr_cycle = 0x3,
+		.num_bits_ecc_correctability = 8,
+		.timing_mode_support = 0,
+		.quad_mode = true,
+		.check_quad_config = true,
+		.name = "FM25LS02BI3",
+	},
 };
 struct qpic_serial_nand_params *serial_params;
 #define MICRON_DEVICE_ID	0x152c152c
@@ -1102,8 +1134,8 @@ static void qpic_serial_update_dev_params(struct mtd_info *mtd)
 		mtd->ecc_strength = 8;
 	else
 		mtd->ecc_strength = 4;
-	printf("Serial NAND device Manufacturer:%s\n",serial_params->name);
-	printf("Device Size:%d MiB, Page size:%d, Spare Size:%d, ECC:%d-bit\n",
+	printf("Serial NAND device Manufacturer: %s\n",serial_params->name);
+	printf("Device Size: %d MiB, Page size: %d, Spare Size: %d, ECC: %d-bit\n",
 		(int)(dev->density >> 20), dev->page_size, mtd->oobsize, mtd->ecc_strength);
 }
 #endif
@@ -1447,7 +1479,7 @@ static int qpic_nand_read_id_serial(struct mtd_info *mtd)
 					(serial_params->id[1] == serial_dev_id[1]));
 
 			if (is_idfound) {
-				printf("Serial Nand Device Found With ID : 0x%02x 0x%02x\n",
+				printf("Serial Nand Device Found With ID: 0x%02x 0x%02x\n",
 						serial_dev_id[0],serial_dev_id[1]);
 
 				/* Upadate device paramter as per device table */
