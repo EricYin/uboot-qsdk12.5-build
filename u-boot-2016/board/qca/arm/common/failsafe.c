@@ -43,34 +43,31 @@ extern struct sdhci_host mmc_host;
 #define MAX_CMD_COUNT  10
 #define MAX_CMD_LEN    256
 
-static struct cmdlist {
+static struct cmd_list {
 	char list[MAX_CMD_COUNT][MAX_CMD_LEN];
 	int count;
-} runcmd;
+} *runcmd;
 
-struct jdc_fw_entry {
-	const char *prefix;
-	char name[256];
-};
-
-static struct {
-	struct jdc_fw_entry hlos;
-	struct jdc_fw_entry rootfs;
-	struct jdc_fw_entry wififw;
-#ifdef CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000
-	struct jdc_fw_entry btfw;
-#endif
-} jdc_fw = {
-	.hlos.prefix = "hlos",
-	.rootfs.prefix = "rootfs",
+static struct jdc_fw_entry {
+	const char *part_name;
+	const char *node_prefix;
+	char node_name[256];
+} jdc_fw_entries[] = {
+	{ .part_name = "0:HLOS", .node_prefix = "hlos" },
+	{ .part_name = "rootfs", .node_prefix = "rootfs" },
+	{
+		.part_name = "0:WIFIFW",
 #if defined(CONFIG_ARCH_IPQ5332)
-	.wififw.prefix = "wifi_fw"
+		.node_prefix = "wifi_fw"
 #elif defined(CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000)
-	.wififw.prefix = "wifi_fw_ipq5018_qcn6122cs",
-	.btfw.prefix = "btfw"
+		.node_prefix = "wifi_fw_ipq5018_qcn6122cs",
 #else
-	.wififw.prefix = "wififw"
+		.node_prefix = "wififw"
 #endif /* CONFIG_ARCH_IPQ5332 */
+	},
+#ifdef CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000
+	{ .part_name = "0:BTFW", .node_prefix = "btfw" }
+#endif
 };
 
 static char gl_fw_ubi_name[66];
@@ -91,7 +88,7 @@ extern int config_select(unsigned int addr, char *rcmd, int rcmd_size);
 #define RETURN_IF_NOR_FLASH_NOT_FOUND \
     do {    \
         if (!dfd->spi) {    \
-            handle_flash_not_found(fw_type, "SPI-NOR");   \
+            handle_flash_not_found("SPI-NOR");   \
             return RET_FLASH_NOT_FOUND; \
         }   \
     } while (0)
@@ -99,7 +96,7 @@ extern int config_select(unsigned int addr, char *rcmd, int rcmd_size);
 #define RETURN_IF_NAND_FLASH_NOT_FOUND \
     do {    \
         if (!dfd->nand) {    \
-            handle_flash_not_found(fw_type, "NAND");   \
+            handle_flash_not_found("NAND");   \
             return RET_FLASH_NOT_FOUND; \
         }   \
     } while (0)
@@ -107,7 +104,7 @@ extern int config_select(unsigned int addr, char *rcmd, int rcmd_size);
 #define RETURN_IF_MMC_FLASH_NOT_FOUND \
     do {    \
         if (!dfd->mmc) {    \
-            handle_flash_not_found(fw_type, "EMMC");   \
+            handle_flash_not_found("EMMC");   \
             return RET_FLASH_NOT_FOUND; \
         }   \
     } while (0)
@@ -130,8 +127,8 @@ static void handle_wrong_upgrade_type(void)
 	puts("Error: not supported upgrade type\n");
 }
 
-static void handle_file_too_big(const char *file_name, const ulong file_size,
-		const char *part_name, const unsigned long long part_size)
+static void handle_file_too_big(const char *file_name, ulong file_size,
+		const char *part_name, unsigned long long part_size)
 {
 	snprintf(info, sizeof(info),
 		"{\"type\":\"file_too_big\","
@@ -143,7 +140,7 @@ static void handle_file_too_big(const char *file_name, const ulong file_size,
 		file_name, file_size, part_name, part_size);
 }
 
-static void handle_flash_not_found(const fw_type_t fw_type, const char *flash_type_str)
+static void handle_flash_not_found(const char *flash_type_str)
 {
 	const char *fw_type_str = fw_type_to_string(fw_type);
 
@@ -184,6 +181,14 @@ static void handle_invalid_qsdk_fw(const char *node_prefix)
 		"{\"type\":\"fit_node_not_found\",\"node_prefix\":\"%s\"}", node_prefix);
 }
 
+static void handle_too_many_commands(void)
+{
+	snprintf(info, sizeof(info),
+		"{\"type\":\"too_many_commands\",\"max\":\"%d\"}", MAX_CMD_COUNT);
+	printf("\nError: too many commands (max: %d), "
+		"please increase MAX_CMD_COUNT\n", MAX_CMD_COUNT);
+}
+
 static void handle_run_command_failed(const char *cmd, const char *output)
 {
 	char esc_cmd[MAX_CMD_LEN * 2];
@@ -203,16 +208,7 @@ static void handle_run_command_failed(const char *cmd, const char *output)
 // 帮助函数（验证相关）
 // =============================================================================
 
-/**
- * check_part_exists - 检查指定分区是否存在
- * @part_name: 分区名
- * @flag: 是否返回和打印错误信息的标志
- *
- * 若找到指定分区则返回 RET_SUCCESS，否则返回 RET_PART_NOT_FOUND。
- *
- * NOTE: 目前不支持查找 NAND FLASH 中的 UBI 卷。
- */
-static int check_part_exists(const char *part_name, int flag)
+static int part_exists(const char *part_name, int flag)
 {
 	if (smem_part_exists(part_name) || mmc_part_exists(part_name))
 		return RET_SUCCESS;
@@ -223,18 +219,7 @@ static int check_part_exists(const char *part_name, int flag)
 	return RET_PART_NOT_FOUND;
 }
 
-/**
- * check_file_size_is_valid - 检查文件大小是否合法
- * @file_name: 文件名
- * @part_name: 分区名（该文件将要被刷写到的分区）
- * @file_size_bytes: 文件大小字节数
- *
- * 如果文件大小超过相应分区大小，返回 RET_FILE_TOO_BIG；
- * 如果未找到相应分区，返回 RET_PART_NOT_FOUND；
- * 否则，返回 RET_SUCCESS。
- */
-static int check_file_size_is_valid(char *file_name, char *part_name,
-							const ulong file_size_bytes)
+static int validate_file_size(char *file_name, char *part_name, ulong file_size_bytes)
 {
 	int ret;
     block_dev_desc_t *mmc_dev;
@@ -286,7 +271,7 @@ part_not_found:
 	return RET_PART_NOT_FOUND;
 }
 
-static int get_gl_fw_node_name(const void *data_addr)
+static int parse_glinet_firmware(const void *data_addr)
 {
 	int ret;
 
@@ -298,21 +283,17 @@ static int get_gl_fw_node_name(const void *data_addr)
 	return ret ? RET_FAILURE : RET_SUCCESS;
 }
 
-static int get_jdc_fw_node_name(const void *data_addr)
+static int parse_jdcloud_firmware(const void *data_addr)
 {
 	int ret;
-	struct jdc_fw_entry *entries[] = {
-		&jdc_fw.hlos, &jdc_fw.rootfs, &jdc_fw.wififw
-#ifdef CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000
-		, &jdc_fw.btfw
-#endif
-	};
+	struct jdc_fw_entry *entry;
 
-	for (int i = 0; i < ARRAY_SIZE(entries); i++) {
+	for (int i = 0; i < ARRAY_SIZE(jdc_fw_entries); i++) {
+		entry = &jdc_fw_entries[i];
 		ret = fit_image_get_node_by_prefix(data_addr, FIT_IMAGES_PATH,
-				entries[i]->prefix, entries[i]->name, sizeof(entries[i]->name));
+				entry->node_prefix, entry->node_name, sizeof(entry->node_name));
 		if (ret) {
-			handle_invalid_qsdk_fw(entries[i]->prefix);
+			handle_invalid_qsdk_fw(entry->node_prefix);
 			return RET_FAILURE;
 		}
 	}
@@ -320,7 +301,7 @@ static int get_jdc_fw_node_name(const void *data_addr)
 	return RET_SUCCESS;
 }
 
-static int get_factory_fw_kernel_size(const void *data_addr, const ulong data_size)
+static int parse_factory_firmware(const void *data_addr, ulong data_size)
 {
 	const void *p = data_addr;
 	const u32 magic = HEADER_MAGIC_SQUASHFS;
@@ -351,6 +332,16 @@ static int get_factory_fw_kernel_size(const void *data_addr, const ulong data_si
 // 帮助函数（刷写相关）
 // =============================================================================
 
+#define ADD_CMD_TO_LIST(fmt, args...)   \
+    do {    \
+		if (runcmd->count < MAX_CMD_COUNT) {	\
+			snprintf(runcmd->list[runcmd->count++], MAX_CMD_LEN, fmt, ##args);	\
+		} else {	\
+			handle_too_many_commands();	\
+			return RET_TOO_MANY_COMMANDS;	\
+		}	\
+    } while (0)
+
 static void print_upgrade_hint(const char *upgrade_type_str)
 {
 	printf("\n"
@@ -360,7 +351,7 @@ static void print_upgrade_hint(const char *upgrade_type_str)
 		"********************************\n", upgrade_type_str);
 }
 
-static void handle_gpt_write_cmd(const ulong data_addr, const ulong data_size)
+static int make_gpt_write_cmd(ulong data_addr, ulong data_size)
 {
 	block_dev_desc_t *mmc_dev;
     ulong data_size_blocks;
@@ -372,14 +363,13 @@ static void handle_gpt_write_cmd(const ulong data_addr, const ulong data_size)
         data_size_blocks = data_size / mmc_dev->blksz
                              + (data_size % mmc_dev->blksz != 0);
 
-	snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
-		"mmc erase 0x0 0x%lx && "
-		"mmc write 0x%lx 0x0 0x%lx",
-		data_size_blocks,
-		data_addr, data_size_blocks);
+	ADD_CMD_TO_LIST("mmc erase 0x0 0x%lx && mmc write 0x%lx 0x0 0x%lx",
+		data_size_blocks, data_addr, data_size_blocks);
+
+	return RET_SUCCESS;
 }
 
-static ulong get_nand_writable_data_size(const uint32_t data_size)
+static ulong get_nand_writable_data_size(uint32_t data_size)
 {
 	uint32_t adj_size, writable_size = data_size;
 	nand_info_t *nand = &nand_info[CONFIG_NAND_FLASH_INFO_IDX];
@@ -416,16 +406,8 @@ static int failsafe_run_command_capture(const char *cmd)
 
 static int failsafe_run_command_list(void)
 {
-    struct cmdlist *p = &runcmd;
-
-    if (p->count > MAX_CMD_COUNT) {
-        printf("\nError: too many commands (current: %d, max: %d), "
-			"please increase MAX_CMD_COUNT\n", p->count, MAX_CMD_COUNT);
-        return RET_FAILURE;
-    }
-
-    for (int i = 0; i < p->count; i++)
-        if (failsafe_run_command_capture(p->list[i]))
+    for (int i = 0; i < runcmd->count; i++)
+        if (failsafe_run_command_capture(runcmd->list[i]))
             return RET_FAILURE;
 
     return RET_SUCCESS;
@@ -435,21 +417,21 @@ static int failsafe_run_command_list(void)
 // 文件验证函数
 // =============================================================================
 
-static int failsafe_validate_firmware(const void *data_addr, const ulong data_size)
+static int failsafe_validate_firmware(const void *data_addr, ulong data_size)
 {
-    int ret;
+    int ret = RET_SUCCESS;
 	size_t kernel_size, rootfs_size;
 
     switch (fw_type) {
     case FW_TYPE_FIT:
 		RETURN_IF_MMC_FLASH_NOT_FOUND;
-        ret = get_factory_fw_kernel_size(data_addr, data_size);
+        ret = parse_factory_firmware(data_addr, data_size);
 		if (ret)
 			break;
-        ret = check_file_size_is_valid("firmware kernel", "0:HLOS", factory_fw_kernel_size);
+        ret = validate_file_size("firmware kernel", "0:HLOS", factory_fw_kernel_size);
         if (ret)
             break;
-        ret = check_file_size_is_valid("firmware rootfs", "rootfs", data_size - factory_fw_kernel_size);
+        ret = validate_file_size("firmware rootfs", "rootfs", data_size - factory_fw_kernel_size);
         break;
     case FW_TYPE_SYSUPGRADE:
 		RETURN_IF_MMC_FLASH_NOT_FOUND;
@@ -459,52 +441,45 @@ static int failsafe_validate_firmware(const void *data_addr, const ulong data_si
             handle_invalid_sysupgrade_fw();
             return RET_WRONG_FW_TYPE;
         }
-        ret = check_file_size_is_valid("firmware kernel", "0:HLOS", (ulong)kernel_size);
+        ret = validate_file_size("firmware kernel", "0:HLOS", (ulong)kernel_size);
         if (ret)
             break;
-        ret = check_file_size_is_valid("firmware rootfs", "rootfs", (ulong)rootfs_size);
+        ret = validate_file_size("firmware rootfs", "rootfs", (ulong)rootfs_size);
         break;
     case FW_TYPE_ASUSWRT_EMMC:
 		RETURN_IF_MMC_FLASH_NOT_FOUND;
-        ret = check_part_exists("0:HLOS", 1);
+        ret = part_exists("0:HLOS", 1);
         if (ret)
             break;
-        ret = check_part_exists("rootfs", 1);
+        ret = part_exists("rootfs", 1);
         break;
 	case FW_TYPE_GLINET_V3:
 	case FW_TYPE_GLINET_V4:
 		RETURN_IF_NAND_FLASH_NOT_FOUND;
-		ret = check_part_exists("rootfs", 1);
+		ret = part_exists("rootfs", 1);
         if (ret)
             break;
-		ret = get_gl_fw_node_name(data_addr);
+		ret = parse_glinet_firmware(data_addr);
 		break;
     case FW_TYPE_JDCLOUD:
 		RETURN_IF_MMC_FLASH_NOT_FOUND;
-        ret = check_part_exists("0:HLOS", 1);
+		for (int i = 0; i < ARRAY_SIZE(jdc_fw_entries); i++) {
+			ret = part_exists(jdc_fw_entries[i].part_name, 1);
+			if (ret)
+				break;
+		}
         if (ret)
             break;
-        ret = check_part_exists("rootfs", 1);
-        if (ret)
-            break;
-        ret = check_part_exists("0:WIFIFW", 1);
-        if (ret)
-            break;
-#ifdef CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000
-        ret = check_part_exists("0:BTFW", 1);
-        if (ret)
-            break;
-#endif /* CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000 */
 #ifndef CONFIG_ARCH_IPQ5332
-        ret = check_part_exists("rootfs_data", 1);
+        ret = part_exists("rootfs_data", 1);
         if (ret)
             break;
 #endif /* CONFIG_ARCH_IPQ5332 */
-        ret = get_jdc_fw_node_name(data_addr);
+        ret = parse_jdcloud_firmware(data_addr);
         break;
     case FW_TYPE_UBI:
         RETURN_IF_NAND_FLASH_NOT_FOUND;
-        ret = check_file_size_is_valid("firmware", "rootfs", data_size);
+        ret = validate_file_size("firmware", "rootfs", data_size);
         break;
     default:
         handle_wrong_fw_type("FIRMWARE");
@@ -514,17 +489,17 @@ static int failsafe_validate_firmware(const void *data_addr, const ulong data_si
     return ret;
 }
 
-static int failsafe_validate_uboot(const void *data_addr, const ulong data_size)
+static int failsafe_validate_uboot(const void *data_addr, ulong data_size)
 {
     if (fw_type != FW_TYPE_ELF) {
         handle_wrong_fw_type("U-BOOT ELF");
         return RET_WRONG_FW_TYPE;
     }
 
-    return check_file_size_is_valid("U-BOOT", "0:APPSBL", data_size);
+    return validate_file_size("U-BOOT", "0:APPSBL", data_size);
 }
 
-static int failsafe_validate_art(const void *data_addr, const ulong data_size)
+static int failsafe_validate_art(const void *data_addr, ulong data_size)
 {
     /*
      * ART 没有固定的魔数，所以无法识别一个文件是否为 ART。
@@ -549,21 +524,21 @@ static int failsafe_validate_art(const void *data_addr, const ulong data_size)
         handle_wrong_fw_type("ART");
         return RET_WRONG_FW_TYPE;
     default:
-        return check_file_size_is_valid("ART", "0:ART", data_size);
+        return validate_file_size("ART", "0:ART", data_size);
     }
 }
 
-static int failsafe_validate_cdt(const void *data_addr, const ulong data_size)
+static int failsafe_validate_cdt(const void *data_addr, ulong data_size)
 {
     if (fw_type != FW_TYPE_CDT) {
         handle_wrong_fw_type("CDT");
         return RET_WRONG_FW_TYPE;
     }
 
-    return check_file_size_is_valid("CDT", "0:CDT", data_size);
+    return validate_file_size("CDT", "0:CDT", data_size);
 }
 
-static int failsafe_validate_ptable(const void *data_addr, const ulong data_size)
+static int failsafe_validate_ptable(const void *data_addr, ulong data_size)
 {
 	switch(fw_type) {
 	case FW_TYPE_GPT:
@@ -571,17 +546,17 @@ static int failsafe_validate_ptable(const void *data_addr, const ulong data_size
 		return RET_SUCCESS;
     case FW_TYPE_MIBIB_NAND:
         RETURN_IF_NAND_FLASH_NOT_FOUND;
-        return check_file_size_is_valid("MIBIB", "0:MIBIB", data_size);
+        return validate_file_size("MIBIB", "0:MIBIB", data_size);
     case FW_TYPE_MIBIB_NOR:
         RETURN_IF_NOR_FLASH_NOT_FOUND;
-        return check_file_size_is_valid("MIBIB", "0:MIBIB", data_size);
+        return validate_file_size("MIBIB", "0:MIBIB", data_size);
     default:
         handle_wrong_fw_type("Partition Table (GPT or MIBIB)");
         return RET_WRONG_FW_TYPE;
     }
 }
 
-static int failsafe_validate_simg(const void *data_addr, const ulong data_size)
+static int failsafe_validate_simg(const void *data_addr, ulong data_size)
 {
 	struct mmc *mmc;
 	struct spi_flash *spi;
@@ -618,7 +593,7 @@ static int failsafe_validate_simg(const void *data_addr, const ulong data_size)
 	return RET_SUCCESS;
 }
 
-static int failsafe_validate_initramfs(const void *data_addr, const ulong data_size)
+static int failsafe_validate_initramfs(const void *data_addr, ulong data_size)
 {
     if (fw_type != FW_TYPE_FIT) {
         handle_wrong_fw_type("FIT INITRAMFS UIMAGE");
@@ -632,65 +607,46 @@ static int failsafe_validate_initramfs(const void *data_addr, const ulong data_s
 // 文件刷写函数
 // =============================================================================
 
-static int failsafe_write_firmware(const ulong data_addr, const ulong data_size)
+static int failsafe_write_firmware(ulong data_addr, ulong data_size)
 {
 	print_upgrade_hint("FIRMWARE");
 
 	switch (fw_type) {
 	case FW_TYPE_FIT:
 		RETURN_IF_MMC_FLASH_NOT_FOUND;
-		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
-			"flash 0:HLOS 0x%lx 0x%lx",
+		ADD_CMD_TO_LIST( "flash 0:HLOS 0x%lx 0x%lx",
 			data_addr, factory_fw_kernel_size);
-		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
-			"flash rootfs 0x%lx 0x%lx",
+		ADD_CMD_TO_LIST("flash rootfs 0x%lx 0x%lx",
 			data_addr + factory_fw_kernel_size,
 			data_size - factory_fw_kernel_size);
 		break;
 	case FW_TYPE_GLINET_V3:
 	case FW_TYPE_GLINET_V4:
 		RETURN_IF_NAND_FLASH_NOT_FOUND;
-		setenv("verbose", "1"); /* 执行 xtract_n_flash 时输出详细信息 */
-		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
-			"xtract_n_flash 0x%lx %s rootfs",
+		ADD_CMD_TO_LIST("xtract_n_flash 0x%lx %s rootfs",
 			data_addr, gl_fw_ubi_name);
 		break;
 	case FW_TYPE_JDCLOUD:
 		RETURN_IF_MMC_FLASH_NOT_FOUND;
-		setenv("verbose", "1"); /* 执行 xtract_n_flash 时输出详细信息 */
-		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
-			"xtract_n_flash 0x%lx %s 0:HLOS",
-			data_addr, jdc_fw.hlos.name);
-		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
-			"xtract_n_flash 0x%lx %s rootfs",
-			data_addr, jdc_fw.rootfs.name);
-		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
-			"xtract_n_flash 0x%lx %s 0:WIFIFW",
-			data_addr, jdc_fw.wififw.name);
-#ifdef CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000
-		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
-			"xtract_n_flash 0x%lx %s 0:BTFW",
-			data_addr, jdc_fw.btfw.name);
-#endif /* CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000 */
+		for (int i = 0; i < ARRAY_SIZE(jdc_fw_entries); i++) {
+			struct jdc_fw_entry *entry = &jdc_fw_entries[i];
+			ADD_CMD_TO_LIST("xtract_n_flash 0x%lx %s %s",
+				data_addr, entry->node_name, entry->part_name);
+		}
 #ifndef CONFIG_ARCH_IPQ5332
-		strlcpy(runcmd.list[runcmd.count++],
-			"flasherase rootfs_data", MAX_CMD_LEN);
+		ADD_CMD_TO_LIST("flasherase rootfs_data");
 #endif /* CONFIG_ARCH_IPQ5332 */
 		break;
 	case FW_TYPE_SYSUPGRADE:
 	case FW_TYPE_ASUSWRT_EMMC:
 		RETURN_IF_MMC_FLASH_NOT_FOUND;
-		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
-			"untar 0x%lx 0x%lx", data_addr, data_size);
-		strlcpy(runcmd.list[runcmd.count++],
-			"flash 0:HLOS $kernel_addr $kernel_size", MAX_CMD_LEN);
-		strlcpy(runcmd.list[runcmd.count++],
-			"flash rootfs $rootfs_addr $rootfs_size", MAX_CMD_LEN);
+		ADD_CMD_TO_LIST("untar 0x%lx 0x%lx", data_addr, data_size);
+		ADD_CMD_TO_LIST("flash 0:HLOS $kernel_addr $kernel_size");
+		ADD_CMD_TO_LIST("flash rootfs $rootfs_addr $rootfs_size");
 		break;
 	case FW_TYPE_UBI:
 		RETURN_IF_NAND_FLASH_NOT_FOUND;
-		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
-			"flash rootfs 0x%lx 0x%lx", data_addr, data_size);
+		ADD_CMD_TO_LIST("flash rootfs 0x%lx 0x%lx", data_addr, data_size);
 		break;
 	default:
 		handle_wrong_fw_type("FIRMWARE");
@@ -698,14 +654,13 @@ static int failsafe_write_firmware(const ulong data_addr, const ulong data_size)
 	}
 
 #ifdef CONFIG_FAILSAFE_BOOTCONFIG
-	strlcpy(runcmd.list[runcmd.count++],
-		"bootconfig set firmware 0", MAX_CMD_LEN);
+	ADD_CMD_TO_LIST("bootconfig set firmware 0");
 #endif
 
 	return failsafe_run_command_list();
 }
 
-static int failsafe_write_uboot(const ulong data_addr, const ulong data_size)
+static int failsafe_write_uboot(ulong data_addr, ulong data_size)
 {
     print_upgrade_hint("U-BOOT");
 
@@ -714,27 +669,24 @@ static int failsafe_write_uboot(const ulong data_addr, const ulong data_size)
         return RET_WRONG_FW_TYPE;
 	}
 
-	snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
-		"flash 0:APPSBL 0x%lx 0x%lx", data_addr, data_size);
+	ADD_CMD_TO_LIST("flash 0:APPSBL 0x%lx 0x%lx", data_addr, data_size);
 
-	if (!check_part_exists("0:APPSBL_1", 0))
-		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
-			"flash 0:APPSBL_1 0x%lx 0x%lx", data_addr, data_size);
+	if (!part_exists("0:APPSBL_1", 0))
+		ADD_CMD_TO_LIST("flash 0:APPSBL_1 0x%lx 0x%lx", data_addr, data_size);
 
 	return failsafe_run_command_list();
 }
 
-static int failsafe_write_art(const ulong data_addr, const ulong data_size)
+static int failsafe_write_art(ulong data_addr, ulong data_size)
 {
     print_upgrade_hint("ART");
 
-	snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
-		"flash 0:ART 0x%lx 0x%lx", data_addr, data_size);
+	ADD_CMD_TO_LIST("flash 0:ART 0x%lx 0x%lx", data_addr, data_size);
 
 	return failsafe_run_command_list();
 }
 
-static int failsafe_write_cdt(const ulong data_addr, const ulong data_size)
+static int failsafe_write_cdt(ulong data_addr, ulong data_size)
 {
     print_upgrade_hint("CDT");
 
@@ -743,34 +695,34 @@ static int failsafe_write_cdt(const ulong data_addr, const ulong data_size)
         return RET_WRONG_FW_TYPE;
 	}
 
-	snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
-		"flash 0:CDT 0x%lx 0x%lx", data_addr, data_size);
+	ADD_CMD_TO_LIST("flash 0:CDT 0x%lx 0x%lx", data_addr, data_size);
 
-	if (!check_part_exists("0:CDT_1", 0))
-		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
-			"flash 0:CDT_1 0x%lx 0x%lx", data_addr, data_size);
+	if (!part_exists("0:CDT_1", 0))
+		ADD_CMD_TO_LIST("flash 0:CDT_1 0x%lx 0x%lx", data_addr, data_size);
 
 	return failsafe_run_command_list();
 }
 
-static int failsafe_write_ptable(const ulong data_addr, const ulong data_size)
+static int failsafe_write_ptable(ulong data_addr, ulong data_size)
 {
+	int ret;
+
 	print_upgrade_hint("PTABLE");
 
 	switch(fw_type) {
 	case FW_TYPE_GPT:
 		RETURN_IF_MMC_FLASH_NOT_FOUND;
-		handle_gpt_write_cmd(data_addr, data_size);
+		ret = make_gpt_write_cmd(data_addr, data_size);
+		if (ret)
+			return ret;
 		break;
     case FW_TYPE_MIBIB_NAND:
         RETURN_IF_NAND_FLASH_NOT_FOUND;
-		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
-			"flash 0:MIBIB 0x%lx 0x%lx", data_addr, data_size);
+		ADD_CMD_TO_LIST("flash 0:MIBIB 0x%lx 0x%lx", data_addr, data_size);
         break;
     case FW_TYPE_MIBIB_NOR:
         RETURN_IF_NOR_FLASH_NOT_FOUND;
-		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
-			"flash 0:MIBIB 0x%lx 0x%lx", data_addr, data_size);
+		ADD_CMD_TO_LIST("flash 0:MIBIB 0x%lx 0x%lx", data_addr, data_size);
         break;
     default:
         handle_wrong_fw_type("Partition Table (GPT or MIBIB)");
@@ -780,8 +732,9 @@ static int failsafe_write_ptable(const ulong data_addr, const ulong data_size)
 	return failsafe_run_command_list();
 }
 
-static int failsafe_write_simg(const ulong data_addr, const ulong data_size)
+static int failsafe_write_simg(ulong data_addr, ulong data_size)
 {
+	int ret;
 	ulong writable_size;
 
 	print_upgrade_hint("SIMG");
@@ -789,22 +742,19 @@ static int failsafe_write_simg(const ulong data_addr, const ulong data_size)
 	switch (fw_type) {
 	case FW_TYPE_SIMG_EMMC:
 		RETURN_IF_MMC_FLASH_NOT_FOUND;
-		handle_gpt_write_cmd(data_addr, data_size);
+		ret = make_gpt_write_cmd(data_addr, data_size);
+		if (ret)
+			return ret;
 		break;
 	case FW_TYPE_SIMG_NAND:
 		RETURN_IF_NAND_FLASH_NOT_FOUND;
-		writable_size = get_nand_writable_data_size((const uint32_t)data_size);
-		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
-			"nand erase 0x0 0x%lx && "
-			"nand write 0x%lx 0x0 0x%lx",
-			writable_size,
-			data_addr, writable_size);
+		writable_size = get_nand_writable_data_size(data_size);
+		ADD_CMD_TO_LIST("nand erase 0x0 0x%lx && nand write 0x%lx 0x0 0x%lx",
+			writable_size, data_addr, writable_size);
 		break;
 	case FW_TYPE_SIMG_NOR:
 		RETURN_IF_NOR_FLASH_NOT_FOUND;
-		snprintf(runcmd.list[runcmd.count++], MAX_CMD_LEN,
-			"sf probe && sf update 0x%lx 0x0 0x%lx",
-			data_addr, data_size);
+		ADD_CMD_TO_LIST("sf probe && sf update 0x%lx 0x0 0x%lx", data_addr, data_size);
 		break;
 	default:
 		handle_wrong_fw_type("Single Image");
@@ -818,7 +768,7 @@ static int failsafe_write_simg(const ulong data_addr, const ulong data_size)
 // 暴露给外部的 API
 // =============================================================================
 
-int boot_from_mem(const ulong data_addr)
+int boot_from_mem(ulong data_addr)
 {
     int ret;
 	char rcmd[99], bootm_arg[66];
@@ -841,8 +791,8 @@ int boot_from_mem(const ulong data_addr)
 	return run_command(rcmd, 0);
 }
 
-int failsafe_validate_image(const upgrade_type_t upgrade_type, const char *filename,
-		const void *data_addr, const ulong data_size, struct httpd_response *response)
+int failsafe_validate_image(upgrade_type_t upgrade_type, const char *filename,
+		const void *data_addr, ulong data_size, struct httpd_response *response)
 {
 	int ret;
 
@@ -911,12 +861,14 @@ int failsafe_validate_image(const upgrade_type_t upgrade_type, const char *filen
 	return ret;
 }
 
-int failsafe_write_image(const upgrade_type_t upgrade_type, const ulong data_addr,
-		const ulong data_size, struct httpd_response *response)
+int failsafe_write_image(upgrade_type_t upgrade_type, ulong data_addr,
+		ulong data_size, struct httpd_response *response)
 {
     int ret;
+	struct cmd_list cmdlist;
 
-	runcmd.count = 0;
+	runcmd = &cmdlist;
+	runcmd->count = 0;
 	fw_type = check_fw_type((uintptr_t)data_addr, data_size);
 
 	memset(info, 0, sizeof(info));

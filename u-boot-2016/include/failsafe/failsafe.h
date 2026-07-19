@@ -52,6 +52,7 @@ enum {
     RET_FILE_TOO_BIG,
     RET_FLASH_NOT_FOUND,
     RET_PART_NOT_FOUND,
+    RET_TOO_MANY_COMMANDS,
     RET_UPLOAD_ID_MISMATCH,
     RET_WRONG_FW_TYPE,
     RET_WRONG_UPGRADE_TYPE,
@@ -75,10 +76,10 @@ static inline void handle_success_led_state(void)
 	led_on("system_led");
 }
 
-int boot_from_mem(const ulong data_addr);
-int failsafe_validate_image(const upgrade_type_t upgrade_type, const char *filename,
-        const void *data_addr, const ulong data_size, struct httpd_response *response);
-int failsafe_write_image(const upgrade_type_t upgrade_type, const ulong data_addr,
-        const ulong data_size, struct httpd_response *response);
+int boot_from_mem(ulong data_addr);
+int failsafe_validate_image(upgrade_type_t upgrade_type, const char *filename,
+        const void *data_addr, ulong data_size, struct httpd_response *response);
+int failsafe_write_image(upgrade_type_t upgrade_type, ulong data_addr,
+        ulong data_size, struct httpd_response *response);
 
 #endif /* __FAILSAFE_H__ */
