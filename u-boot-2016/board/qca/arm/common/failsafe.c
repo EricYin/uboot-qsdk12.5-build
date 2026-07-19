@@ -181,6 +181,15 @@ static void handle_invalid_qsdk_fw(const char *node_prefix)
 		"{\"type\":\"fit_node_not_found\",\"node_prefix\":\"%s\"}", node_prefix);
 }
 
+static void handle_command_too_long(int idx, int len)
+{
+	snprintf(info, sizeof(info),
+		"{\"type\":\"command_too_long\",\"idx\":\"%d\",\"len\":\"%d\",\"maxlen\":\"%d\"}",
+		idx, len, MAX_CMD_LEN);
+	printf("\nError: command too long (idx: %d, len: %d, maxlen: %d), "
+		"please increase MAX_CMD_LEN\n", idx, len, MAX_CMD_LEN);
+}
+
 static void handle_too_many_commands(void)
 {
 	snprintf(info, sizeof(info),
@@ -335,7 +344,12 @@ static int parse_factory_firmware(const void *data_addr, ulong data_size)
 #define ADD_CMD_TO_LIST(fmt, args...)   \
     do {    \
 		if (runcmd->count < MAX_CMD_COUNT) {	\
-			snprintf(runcmd->list[runcmd->count++], MAX_CMD_LEN, fmt, ##args);	\
+			int len = snprintf(runcmd->list[runcmd->count++],	\
+				MAX_CMD_LEN, fmt, ##args);	\
+			if (len >= MAX_CMD_LEN)	{	\
+				handle_command_too_long(runcmd->count - 1, len);	\
+				return RET_COMMAND_TOO_LONG;	\
+			}	\
 		} else {	\
 			handle_too_many_commands();	\
 			return RET_TOO_MANY_COMMANDS;	\
