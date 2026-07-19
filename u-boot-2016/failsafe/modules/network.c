@@ -21,7 +21,7 @@
 #include <common.h>
 #include <net/httpd.h>
 
-#include "network.h"
+#include "modules.h"
 
 # if defined(CONFIG_IPADDR)
 static const char *default_ipaddr = __stringify(CONFIG_IPADDR);

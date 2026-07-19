@@ -26,7 +26,7 @@
 #include <net/httpd.h>
 #include <ipq_api.h>
 
-#include "syslog.h"
+#include "modules.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 

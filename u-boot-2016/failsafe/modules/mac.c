@@ -21,7 +21,7 @@
 #include <ipq_api.h>
 #include <flashrw.h>
 
-#include "mac.h"
+#include "modules.h"
 
 #ifndef CONFIG_SDHCI_SUPPORT
 extern qca_mmc mmc_host;
@@ -45,6 +45,7 @@ struct mac_entry {
 
 typedef struct mac_entry mac_entry_t;
 
+// TODO: 支持修改 WiFi MAC（赵云）
 struct mac_info {
 	mac_entry_t macs[CONFIG_MAC_COUNT];
 } __attribute__ ((__packed__));

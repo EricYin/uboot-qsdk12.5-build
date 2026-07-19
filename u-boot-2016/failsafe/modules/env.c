@@ -20,7 +20,7 @@
 #include <malloc.h>
 #include <net/httpd.h>
 
-#include "env.h"
+#include "modules.h"
 
 #define ENV_NAME_MAX_LEN 128
 

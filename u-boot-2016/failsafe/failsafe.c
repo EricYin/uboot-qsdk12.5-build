@@ -21,14 +21,7 @@
 #include <net/telnetd.h>
 #endif
 #include "fs.h"
-#include "modules/backup.h"
-#include "modules/env.h"
-#include "modules/mac.h"
-#include "modules/mibib.h"
-#include "modules/network.h"
-#include "modules/sysinfo.h"
-#include "modules/syslog.h"
-#include "modules/webterm.h"
+#include "modules/modules.h"
 
 #if defined(CONFIG_HTTPD_DEBUG)
 bool httpd_debug_on;

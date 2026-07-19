@@ -35,6 +35,8 @@
 #include <net/httpd.h>
 #include <ipq_api.h>
 
+#include "modules.h"
+
 #ifndef CONFIG_SDHCI_SUPPORT
 extern qca_mmc mmc_host;
 #else

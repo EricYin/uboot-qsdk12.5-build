@@ -28,7 +28,7 @@
 #include <failsafe/fw_dec.h>
 #include <ipq_api.h>
 
-#include "mibib.h"
+#include "modules.h"
 
 void mibib_reload_handler(enum httpd_uri_handler_status status,
         struct httpd_request *request,

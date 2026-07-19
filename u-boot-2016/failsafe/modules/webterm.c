@@ -30,7 +30,7 @@
 #include <failsafe/fw_dec.h>
 #include <capture.h>
 
-#include "webterm.h"
+#include "modules.h"
 
 #ifndef CONFIG_SDHCI_SUPPORT
 extern qca_mmc mmc_host;
