@@ -7150,8 +7150,11 @@ const macManager = (() => {
  * backup.target.placeholder, backup.warn.1, backup.warn.2, backup.warn.3, env.title,
  * env.hint, env.warn.1, env.warn.2, reboot.confirm, reboot.title.in_progress,
  * initramfs.title (en), initramfs.hint (en), initramfs.boot_hint, initramfs.warn.1 (en),
- * flashing.title.in_progress, flashing.hint.in_progress, flashing.title.done,
+ * flashing.title.in_progress, flashing.title.done,
  * booting.title.in_progress (en), booting.title.done, booting.hint.done (en), 404.title, 404.hint
+ *
+ * 以下 key 和对应的 value 修改自项目 Yuzhii0718/bl-mt798x-dhcpd:
+ * flashing.hint.in_progress
  *
  * 以下模板函数内容修改自项目 Yuzhii0718/bl-mt798x-dhcpd:
  * updateHint, warnChoose， warnDanger (en)
@@ -7467,7 +7470,7 @@ const I18N = (() => {
             "initramfs.warn.1": "If everything goes well, the device will boot into the Initramfs.",
             "initramfs.warn.2": t.en.warnChoose("Initramfs image"),
             "flashing.title.in_progress": "UPDATE IN PROGRESS",
-            "flashing.hint.in_progress": "Your file was successfully uploaded! Update is in progress and you should wait for automatic reset of the device.<br>Update time depends on image size and may take up to a few minutes.",
+            "flashing.hint.in_progress": "File uploaded successfully! Update is in progress, please wait patiently.<br>Update time depends on image size and may take up to a few minutes.",
             "flashing.title.done": "UPDATE COMPLETED",
             "flashing.hint.done": "Your device was successfully updated! Now rebooting...",
             "flashing.hint.continue": "Your device was successfully updated!",
@@ -7803,7 +7806,7 @@ const I18N = (() => {
             "initramfs.warn.1": "如果一切顺利，设备将启动至内存固件。",
             "initramfs.warn.2": t["zh-cn"].warnChoose("内存固件"),
             "flashing.title.in_progress": "正在刷写",
-            "flashing.hint.in_progress": "文件上传成功！正在执行刷写，请等待设备自动重启。<br>刷写时间取决于镜像大小，可能需要几分钟。",
+            "flashing.hint.in_progress": "文件上传成功！正在执行刷写，请耐心等待。<br>刷写时间取决于镜像大小，可能需要几分钟。",
             "flashing.title.done": "刷写完成",
             "flashing.hint.done": "设备已成功更新！正在重启…",
             "flashing.hint.continue": "设备已成功更新！",
