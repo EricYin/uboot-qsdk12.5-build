@@ -6569,6 +6569,109 @@ const macManager = (() => {
     }
 
     /**
+     * 获取所有 MAC 输入组的引用
+     * @returns {NodeList} MAC 输入组元素列表
+     */
+    function getAllMacGroups() {
+        return document.querySelectorAll(".mac-input-group");
+    }
+
+    /**
+     * 获取当前聚焦的输入框所在的组和字节索引
+     * @param {HTMLInputElement} currentInput - 当前输入框
+     * @returns {Object|null} { group: HTMLElement, groupIndex: number, byteIndex: number }
+     */
+    function getInputContext(currentInput) {
+        if (!currentInput) return null;
+
+        const group = currentInput.closest(".mac-input-group");
+        if (!group) return null;
+
+        const groups = getAllMacGroups();
+        let groupIndex = -1;
+        for (let i = 0; i < groups.length; i++) {
+            if (groups[i] === group) {
+                groupIndex = i;
+                break;
+            }
+        }
+        if (groupIndex === -1) return null;
+
+        const byteIndex = parseInt(currentInput.dataset.byteIndex);
+        if (isNaN(byteIndex)) return null;
+
+        return { group, groupIndex, byteIndex };
+    }
+
+    /**
+     * 跳转到当前 MAC 内的相邻字节
+     * @param {HTMLInputElement} currentInput - 当前输入框
+     * @param {Array<HTMLInputElement>} allInputs - 当前 MAC 的所有输入框
+     * @param {number} byteIndex - 当前字节索引
+     * @param {number} direction - 方向：-1 表示上一个，1 表示下一个
+     * @returns {boolean} 是否成功跳转
+     */
+    function navigateWithinMac(currentInput, allInputs, byteIndex, direction) {
+        const targetIndex = byteIndex + direction;
+        if (targetIndex < 0 || targetIndex > 5) return false;
+
+        const targetInput = allInputs[targetIndex];
+        if (targetInput && !targetInput.disabled) {
+            targetInput.focus();
+            targetInput.select();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 跳转到相邻 MAC 的指定字节
+     * @param {HTMLInputElement} currentInput - 当前输入框
+     * @param {number} groupOffset - 组偏移：-1 表示上一个 MAC，1 表示下一个 MAC
+     * @param {number} targetByteIndex - 目标字节索引
+     * @returns {boolean} 是否成功跳转
+     */
+    function navigateToAdjacentMac(currentInput, groupOffset, targetByteIndex) {
+        const context = getInputContext(currentInput);
+        if (!context) return false;
+
+        const groups = getAllMacGroups();
+        const targetGroupIndex = context.groupIndex + groupOffset;
+
+        if (targetGroupIndex < 0 || targetGroupIndex >= groups.length) return false;
+
+        const targetGroup = groups[targetGroupIndex];
+        if (!targetGroup || !targetGroup.inputs) return false;
+
+        const targetInput = targetGroup.inputs[targetByteIndex];
+        if (targetInput && !targetInput.disabled) {
+            targetInput.focus();
+            targetInput.select();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 跳转到当前 MAC 的指定边界字节
+     * @param {HTMLInputElement} currentInput - 当前输入框
+     * @param {number} boundaryByteIndex - 边界字节索引：0 表示第一个，5 表示最后一个
+     * @returns {boolean} 是否成功跳转
+     */
+    function navigateToMacBoundary(currentInput, boundaryByteIndex) {
+        const context = getInputContext(currentInput);
+        if (!context) return false;
+
+        const targetInput = context.group.inputs[boundaryByteIndex];
+        if (targetInput && !targetInput.disabled) {
+            targetInput.focus();
+            targetInput.select();
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * 创建 MAC 输入框组（6个小框）
      * @param {string} mac - MAC 地址字符串
      * @param {number} index - MAC 索引
@@ -6647,13 +6750,12 @@ const macManager = (() => {
 
         currentInput.value = value;
 
-        // 如果输入了2个字符且不是最后一个输入框，自动跳转到下一个
         if (value.length === 2 && byteIndex < 5) {
-            const nextInput = allInputs[byteIndex + 1];
-            if (nextInput) {
-                nextInput.focus();
-                nextInput.select();
-            }
+            // 如果输入了2个字符且不是最后一个字节，自动跳转到下一个字节
+            navigateWithinMac(currentInput, allInputs, byteIndex, 1)
+        } else if (value.length === 2 && byteIndex === 5) {
+            // 如果输入了2个字符且是最后一个字节，自动跳转到下一个 MAC 的开头
+            navigateToAdjacentMac(currentInput, 1, 0);
         }
 
         // 验证当前输入框的MAC组
@@ -6666,32 +6768,61 @@ const macManager = (() => {
     function handleByteKeydown(e, currentInput, allInputs, byteIndex) {
         // 处理删除键：如果当前输入框为空且按下了 Backspace，跳转到上一个输入框
         if (e.key === "Backspace" && currentInput.value === "" && byteIndex > 0) {
-            const prevInput = allInputs[byteIndex - 1];
-            if (prevInput) {
-                prevInput.focus();
-                prevInput.select();
-            }
             e.preventDefault();
+            navigateWithinMac(currentInput, allInputs, byteIndex, -1)
+            return;
         }
 
         // 处理左箭头键
-        if (e.key === "ArrowLeft" && byteIndex > 0) {
-            const prevInput = allInputs[byteIndex - 1];
-            if (prevInput) {
-                prevInput.focus();
-                prevInput.select();
-            }
+        if (e.key === "ArrowLeft") {
             e.preventDefault();
+            // 尝试在当前 MAC 内向左移动
+            if (navigateWithinMac(currentInput, allInputs, byteIndex, -1)) {
+                return;
+            }
+            // 如果已在第一个字节，跳转到上一个 MAC 的最后一个字节
+            navigateToAdjacentMac(currentInput, -1, 5);
+            return;
         }
 
         // 处理右箭头键
-        if (e.key === "ArrowRight" && byteIndex < 5) {
-            const nextInput = allInputs[byteIndex + 1];
-            if (nextInput) {
-                nextInput.focus();
-                nextInput.select();
-            }
+        if (e.key === "ArrowRight") {
             e.preventDefault();
+            // 尝试在当前 MAC 内向右移动
+            if (navigateWithinMac(currentInput, allInputs, byteIndex, 1)) {
+                return;
+            }
+            // 如果已在最后一个字节，跳转到下一个 MAC 的第一个字节
+            navigateToAdjacentMac(currentInput, 1, 0);
+            return;
+        }
+
+        // 处理上箭头键：切换到上一个 MAC 的相同字节
+        if (e.key === "ArrowUp") {
+            e.preventDefault();
+            navigateToAdjacentMac(currentInput, -1, byteIndex);
+            return;
+        }
+
+        // 处理下箭头键：切换到下一个 MAC 的相同字节
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            navigateToAdjacentMac(currentInput, 1, byteIndex);
+            return;
+        }
+
+        // 处理 Home 键：跳转到当前 MAC 的第一个字节
+        if (e.key === "Home") {
+            e.preventDefault();
+            navigateToMacBoundary(currentInput, 0);
+            return;
+        }
+
+        // 处理 End 键：跳转到当前 MAC 的最后一个字节
+        if (e.key === "End") {
+            e.preventDefault();
+            navigateToMacBoundary(currentInput, 5);
+            return;
         }
     }
 
