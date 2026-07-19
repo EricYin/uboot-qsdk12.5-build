@@ -567,7 +567,11 @@ char * const argv[])
 	if (argc < 4)
 		return CMD_RET_USAGE;
 
+#ifdef CONFIG_HTTPD
+	verbose = 1;
+#else
 	verbose = getenv_ulong("verbose", 10, 0);
+#endif
 	load_addr = simple_strtoul(argv[1], NULL, 16);
 	file_name = argv[2];
 	part_name = argv[3];
