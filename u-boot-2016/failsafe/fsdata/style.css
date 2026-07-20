@@ -2467,25 +2467,8 @@ html[data-theme="dark"] .bar-circle-mini::before {
     border: 1px solid var(--border);
 }
 
-.backup-range-info {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.5rem 1rem;
-    padding: 0.6rem 0.75rem;
-    margin-bottom: 0.75rem;
+.backup-range-field-control {
     background: var(--panel);
-    border: 1px solid var(--primary);
-    border-radius: var(--radius-sm);
-    border-left: 3px solid var(--primary);
-}
-
-.backup-range-info-name {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--primary);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    word-break: break-word;
 }
 
 /* 范围提示信息 */
@@ -2513,29 +2496,12 @@ html[data-theme="dark"] .backup-range {
     background: rgba(17, 28, 51, 0.8);
 }
 
-html[data-theme="dark"] .backup-range-info {
-    background: rgba(17, 28, 51, 0.8);
-    border-color: var(--primary-2);
-    border-left-color: var(--primary-2);
-}
-
 html[data-theme="dark"] .backup-range-hint {
     background: rgba(15, 23, 42, 0.8);
 }
 
 /* 移动端适配 */
 @media (max-width: 768px) {
-    .backup-range-info {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.25rem;
-        padding: 0.5rem 0.65rem;
-    }
-
-    .backup-range-info-name {
-        font-size: 0.8rem;
-    }
-
     .backup-range-hint {
         font-size: 0.7rem;
         padding: 0.4rem 0.6rem;

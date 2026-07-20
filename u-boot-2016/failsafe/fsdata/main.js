@@ -2083,8 +2083,10 @@ const backupManager = (() => {
     let rawDevicesData = {};     // 存储原始设备数据
     let smemPartsData = [];      // 存储 SMEM 分区数据
     let mmcPartsData = [];       // 存储 MMC 分区数据
-    let itemsData = [];          // 当前显示的条目列表
-    let selectedItems = new Set(); // 选中的条目索引
+    let itemsData = [];          // 当前显示的条目列表（full 模式）
+    let selectedItems = new Set(); // 选中的条目索引（full 模式）
+    let rangeItemsData = [];     // range 模式下拉选择器的条目列表
+    let rangeSelectedValue = ""; // range 模式选中的值
     let isDownloading = false;
     let totalDownloadSize = 0;
     let downloadedSize = 0;
@@ -2107,8 +2109,7 @@ const backupManager = (() => {
             mode: document.getElementById("backup_mode"),
             target: document.getElementById("backup_target_category"),
             range: document.getElementById("backup_range"),
-            rangeInfo: document.getElementById("backup_range_info"),
-            rangeInfoName: document.getElementById("backup_range_info_name"),
+            rangeSelect: document.getElementById("backup_range_select"),
             start: document.getElementById("backup_start"),
             size: document.getElementById("backup_size"),
             rangeHint: document.getElementById("backup_range_hint"),
@@ -2164,14 +2165,11 @@ const backupManager = (() => {
     }
 
     /**
-     * 获取当前选中的条目（range 模式下应该只有一个）
+     * 获取当前选中的条目（range 模式下从下拉选择器获取）
      */
-    function getSelectedItem() {
-        const selectedIndices = Array.from(selectedItems);
-        if (selectedIndices.length === 1) {
-            return itemsData[selectedIndices[0]];
-        }
-        return null;
+    function getSelectedRangeItem() {
+        if (!rangeSelectedValue) return null;
+        return rangeItemsData.find(item => item.id === rangeSelectedValue) || null;
     }
 
     /**
@@ -2247,8 +2245,8 @@ const backupManager = (() => {
         let startValue = null;
         let sizeValue = null;
 
-        // 获取当前选中的条目
-        const selectedItem = getSelectedItem();
+        // 获取当前选中的条目（从下拉选择器）
+        const selectedItem = getSelectedRangeItem();
         const itemSize = selectedItem ? getItemSize(selectedItem) : 0;
 
         // 解析起始地址
@@ -2416,27 +2414,6 @@ const backupManager = (() => {
     }
 
     /**
-     * 更新 range 模式下的条目信息显示
-     */
-    function updateRangeInfo() {
-        const els = getElements();
-        const selectedItem = getSelectedItem();
-
-        if (selectedItem && els.rangeInfo) {
-            els.rangeInfo.style.display = 'block';
-            if (els.rangeInfoName) {
-                els.rangeInfoName.textContent = selectedItem.display;
-            }
-            // 当条目信息更新时，重新验证输入
-            validateRangeInput();
-        } else {
-            if (els.rangeInfo) {
-                els.rangeInfo.style.display = 'none';
-            }
-        }
-    }
-
-    /**
      * 解析Content-Disposition中的文件名
      * 注：该函数来自项目：Yuzhii0718/bl-mt798x-dhcpd
      */
@@ -2569,18 +2546,24 @@ const backupManager = (() => {
 
         if (!selectedOption || !selectedOption.value) {
             els.itemsContainer.style.display = "none";
+            els.range.style.display = "none";
             itemsData = [];
+            rangeItemsData = [];
             selectedItems.clear();
+            rangeSelectedValue = "";
             renderItems();
+            renderRangeSelect();
             updateModeUI();
-            updateRangeInfo();
             resetValidation();
+            validateRangeInput();
             return;
         }
 
         const category = selectedOption.dataset.category;
         itemsData = [];
+        rangeItemsData = [];
         selectedItems.clear();
+        rangeSelectedValue = "";
 
         if (category === 'raw') {
             const typeLabels = {
@@ -2594,60 +2577,78 @@ const backupManager = (() => {
                 if (device) {
                     const label = '[RAW] ' + (typeLabels[key] || key.toUpperCase()) +
                                     ': ' + (device.name || device.product || '');
-                    itemsData.push({
+                    const item = {
                         id: 'raw:' + key,
                         type: 'raw',
                         name: label,
                         device: key,
                         size: device.size || null,
                         display: label + (device.size ? ' (' + bytesToHuman(device.size) + ')' : '')
-                    });
+                    };
+                    itemsData.push(item);
+                    rangeItemsData.push(item);
                 }
             });
         } else if (category === 'smem') {
             smemPartsData.forEach(function(part) {
                 if (part && part.name) {
-                    itemsData.push({
+                    const item = {
                         id: 'smem:' + part.name,
                         type: 'smem',
                         name: part.name,
                         size: part.size || 0,
                         display: '[SMEM] ' + part.name +
                                 (part.size ? ' (' + bytesToHuman(part.size) + ')' : '')
-                    });
+                    };
+                    itemsData.push(item);
+                    rangeItemsData.push(item);
                 }
             });
         } else if (category === 'mmc') {
             mmcPartsData.forEach(function(part) {
                 if (part && part.name) {
-                    itemsData.push({
+                    const item = {
                         id: 'mmc:' + part.name,
                         type: 'mmc',
                         name: part.name,
                         size: part.size || 0,
                         display: '[MMC] ' + part.name +
                                 (part.size ? ' (' + bytesToHuman(part.size) + ')' : '')
-                    });
+                    };
+                    itemsData.push(item);
+                    rangeItemsData.push(item);
                 }
             });
         }
 
+        // 如果 range 有数据，默认选中第一个
+        if (rangeItemsData.length > 0) {
+            rangeSelectedValue = rangeItemsData[0].id;
+        }
+
         initSelection();
         renderItems();
+        renderRangeSelect();
         updateItemsCount();
         updateModeUI();
-        updateRangeInfo();
         resetValidation();
+        validateRangeInput();
 
         if (els.mode.value === 'full' && itemsData.length > 0) {
             els.itemsContainer.style.display = "block";
         } else {
             els.itemsContainer.style.display = "none";
         }
+
+        if (els.mode.value === 'range' && rangeItemsData.length > 0) {
+            els.range.style.display = "block";
+        } else {
+            els.range.style.display = "none";
+        }
     }
 
     /**
-     * 渲染条目列表
+     * 渲染条目列表（full 模式）
      */
     function renderItems() {
         const els = getElements();
@@ -2689,9 +2690,44 @@ const backupManager = (() => {
                 }
                 updateItemsCount();
                 updateModeUI();
-                updateRangeInfo();
-                validateRangeInput();
             });
+        });
+    }
+
+    /**
+     * 渲染 range 模式下拉选择器
+     */
+    function renderRangeSelect() {
+        const els = getElements();
+        const select = els.rangeSelect;
+        if (!select) return;
+
+        // 清空选择器
+        select.innerHTML = '';
+
+        if (rangeItemsData.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = '-- ' + t('backup.items.empty') + ' --';
+            select.appendChild(opt);
+            return;
+        }
+
+        // 添加选项
+        rangeItemsData.forEach(function(item) {
+            const opt = document.createElement('option');
+            opt.value = item.id;
+            opt.textContent = item.display;
+            if (item.id === rangeSelectedValue) {
+                opt.selected = true;
+            }
+            select.appendChild(opt);
+        });
+
+        // 绑定 change 事件
+        select.addEventListener('change', function() {
+            rangeSelectedValue = this.value;
+            validateRangeInput();
         });
     }
 
@@ -2725,8 +2761,6 @@ const backupManager = (() => {
         renderItems();
         updateItemsCount();
         updateModeUI();
-        updateRangeInfo();
-        validateRangeInput();
     }
 
     /**
@@ -2740,8 +2774,6 @@ const backupManager = (() => {
         renderItems();
         updateItemsCount();
         updateModeUI();
-        updateRangeInfo();
-        validateRangeInput();
     }
 
     /**
@@ -2752,8 +2784,6 @@ const backupManager = (() => {
         renderItems();
         updateItemsCount();
         updateModeUI();
-        updateRangeInfo();
-        validateRangeInput();
     }
 
     /**
@@ -2944,30 +2974,19 @@ const backupManager = (() => {
         const els = getElements();
         const rangeEl = els.range;
         const itemsContainer = els.itemsContainer;
-        const selectedCount = selectedItems.size;
         const currentMode = els.mode?.value;
 
-        if (currentMode === 'range' && selectedCount !== 1) {
-            els.mode.value = 'full';
-            if (rangeEl) {
-                rangeEl.style.display = 'none';
-            }
-            if (itemsContainer && itemsData.length > 0) {
-                itemsContainer.style.display = 'block';
-            }
-            return;
-        }
-
+        // 处理 range 模式显示
         if (rangeEl) {
-            if (currentMode === 'range' && selectedCount === 1) {
+            if (currentMode === 'range' && rangeItemsData.length > 0) {
                 rangeEl.style.display = 'block';
-                updateRangeInfo();
                 validateRangeInput();
             } else {
                 rangeEl.style.display = 'none';
             }
         }
 
+        // 处理 full 模式显示
         if (itemsContainer) {
             if (currentMode === 'full' && itemsData.length > 0) {
                 itemsContainer.style.display = 'block';
@@ -2982,20 +3001,15 @@ const backupManager = (() => {
      */
     function onModeChange() {
         const els = getElements();
-        const selectedCount = selectedItems.size;
         const newMode = els.mode?.value;
 
-        if (newMode === 'range' && selectedCount !== 1) {
-            alert(t('backup.error.range_require_one'));
-            els.mode.value = 'full';
-        } else if (newMode === 'range') {
-            // 切换到 range 模式时，重置验证状态并重新验证
+        // 如果切换到 range 模式，重新验证
+        if (newMode === 'range') {
             resetValidation();
             validateRangeInput();
         }
 
         updateModeUI();
-        updateRangeInfo();
     }
 
     /**
@@ -3139,13 +3153,11 @@ const backupManager = (() => {
             return;
         }
 
-        const selectedIndices = Array.from(selectedItems);
-        if (selectedIndices.length !== 1) {
-            alert(t('backup.error.range_require_one'));
+        const selectedItem = getSelectedRangeItem();
+        if (!selectedItem) {
+            alert(t('backup.error.range_no_selection'));
             return;
         }
-
-        const item = itemsData[selectedIndices[0]];
 
         totalDownloadSize = 0;
         downloadedSize = 0;
@@ -3153,14 +3165,14 @@ const backupManager = (() => {
 
         const formData = new FormData();
         formData.append("mode", "range");
-        formData.append("target", item.id);
+        formData.append("target", selectedItem.id);
         formData.append("start", String(validation.start));
         formData.append("size", String(validation.size));
 
         isDownloading = true;
 
         showProgressArea();
-        addProgressItem(0, 1, item.display, validation.size);
+        addProgressItem(0, 1, selectedItem.display, validation.size);
         updateOverallStatus(t('backup.status.downloading'));
 
         try {
@@ -3348,10 +3360,12 @@ const backupManager = (() => {
 
         hideProgressArea();
         itemsData = [];
+        rangeItemsData = [];
         selectedItems.clear();
+        rangeSelectedValue = "";
         renderItems();
+        renderRangeSelect();
         updateModeUI();
-        updateRangeInfo();
         resetValidation();
     }
 
@@ -7299,6 +7313,7 @@ const I18N = (() => {
             "backup.hint": "Download a backup from device storage as a <strong>binary file</strong>.<br>The backup data will be streamed to your browser and saved on your computer.",
             "backup.label.mode": "Mode:",
             "backup.label.target": "Target:",
+            "backup.label.item": "Item:",
             "backup.label.start": "Start:",
             "backup.label.size": "Size:",
             "backup.mode.full": "Full backup",
@@ -7329,7 +7344,7 @@ const I18N = (() => {
             "backup.error.invalid_input": "Invalid input",
             "backup.error.no_selection": "Please select at least one item",
             "backup.error.downloading": "Download in progress, please wait...",
-            "backup.error.range_require_one": "Custom range backup mode requires selecting one and only one item.\n\nPlease select one item or uncheck any extra items and try again.",
+            "backup.error.range_no_selection": "Please select an item",
             "backup.error.no_target": "Please select a target",
             "backup.error.bad_range": "Invalid range",
             "backup.error.exception": "Error:",
@@ -7635,6 +7650,7 @@ const I18N = (() => {
             "backup.hint": "从设备存储下载备份为 <strong>二进制文件</strong>。<br>备份数据将流式传输到浏览器并保存到您的计算机。",
             "backup.label.mode": "模式:",
             "backup.label.target": "目标:",
+            "backup.label.item": "条目:",
             "backup.label.start": "起始偏移:",
             "backup.label.size": "大小:",
             "backup.mode.full": "完整备份",
@@ -7665,7 +7681,7 @@ const I18N = (() => {
             "backup.error.invalid_input": "输入无效",
             "backup.error.no_selection": "请至少选择一个条目",
             "backup.error.downloading": "正在下载中，请稍候...",
-            "backup.error.range_require_one": "自定义范围备份模式需选择一个且只能选择一个条目。\n\n请选择一个条目或取消勾选多余条目后再试。",
+            "backup.error.range_no_selection": "请选择一个条目",
             "backup.error.no_target": "请选择目标",
             "backup.error.bad_range": "无效的范围",
             "backup.error.exception": "错误:",
