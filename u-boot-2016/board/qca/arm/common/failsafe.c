@@ -40,11 +40,12 @@ extern struct sdhci_host mmc_host;
 
 #define FAILSAFE_CAPTURE_OUTPUT_SIZE 0x400
 
-#define MAX_CMD_COUNT  10
-#define MAX_CMD_LEN    256
+#define MAX_CMD_COUNT       10
+#define MAX_CMD_LEN         255
+#define MAX_CMD_BUF_SIZE    (MAX_CMD_LEN + 1)
 
 static struct cmd_list {
-	char list[MAX_CMD_COUNT][MAX_CMD_LEN];
+	char list[MAX_CMD_COUNT][MAX_CMD_BUF_SIZE];
 	int count;
 } *runcmd;
 
@@ -181,21 +182,26 @@ static void handle_invalid_qsdk_fw(const char *node_prefix)
 		"{\"type\":\"fit_node_not_found\",\"node_prefix\":\"%s\"}", node_prefix);
 }
 
-static void handle_command_too_long(int idx, int len)
+static void handle_command_too_long(const char *file, const char *func, int line, int len)
 {
 	snprintf(info, sizeof(info),
-		"{\"type\":\"command_too_long\",\"idx\":\"%d\",\"len\":\"%d\",\"maxlen\":\"%d\"}",
-		idx, len, MAX_CMD_LEN);
-	printf("\nError: command too long (idx: %d, len: %d, maxlen: %d), "
-		"please increase MAX_CMD_LEN\n", idx, len, MAX_CMD_LEN);
+		"{\"type\":\"command_too_long\",\"len\":\"%d\",\"maxlen\":\"%d\","
+		"\"file\":\"%s\",\"func\":\"%s\",\"line\":\"%d\"}",
+		len, MAX_CMD_LEN, file, func, line);
+
+	printf("\nError at %s:%d/%s()\nCommand too long (len: %d, maxlen: %d), "
+		"please increase MAX_CMD_LEN\n", file, line, func, len, MAX_CMD_LEN);
 }
 
-static void handle_too_many_commands(void)
+static void handle_too_many_commands(const char *file, const char *func, int line)
 {
 	snprintf(info, sizeof(info),
-		"{\"type\":\"too_many_commands\",\"max\":\"%d\"}", MAX_CMD_COUNT);
-	printf("\nError: too many commands (max: %d), "
-		"please increase MAX_CMD_COUNT\n", MAX_CMD_COUNT);
+		"{\"type\":\"too_many_commands\",\"max\":\"%d\","
+		"\"file\":\"%s\",\"func\":\"%s\",\"line\":\"%d\"}",
+		MAX_CMD_COUNT, file, func, line);
+
+	printf("\nError at %s:%d/%s()\nToo many commands (max: %d), "
+		"please increase MAX_CMD_COUNT\n", file, line, func, MAX_CMD_COUNT);
 }
 
 static void handle_run_command_failed(const char *cmd, const char *output)
@@ -343,18 +349,31 @@ static int parse_factory_firmware(const void *data_addr, ulong data_size)
 
 #define ADD_CMD_TO_LIST(fmt, args...)   \
     do {    \
-		if (runcmd->count < MAX_CMD_COUNT) {	\
-			int len = snprintf(runcmd->list[runcmd->count++],	\
-				MAX_CMD_LEN, fmt, ##args);	\
-			if (len >= MAX_CMD_LEN)	{	\
-				handle_command_too_long(runcmd->count - 1, len);	\
-				return RET_COMMAND_TOO_LONG;	\
-			}	\
-		} else {	\
-			handle_too_many_commands();	\
-			return RET_TOO_MANY_COMMANDS;	\
-		}	\
+		int ret = _add_cmd_to_list(__FILE__, __func__, __LINE__, fmt, ##args);	\
+		if (ret)	\
+			return ret;	\
     } while (0)
+
+static int _add_cmd_to_list(const char *file, const char *func, int line, const char *fmt, ...)
+{
+	va_list args;
+	int len;
+
+	if (runcmd->count < MAX_CMD_COUNT) {
+		va_start(args, fmt);
+		len = vsnprintf(runcmd->list[runcmd->count++], MAX_CMD_BUF_SIZE, fmt, args);
+		va_end(args);
+		if (len >= MAX_CMD_BUF_SIZE)	{
+			handle_command_too_long(file, func, line, len);
+			return RET_COMMAND_TOO_LONG;
+		}
+	} else {
+		handle_too_many_commands(file, func, line);
+		return RET_TOO_MANY_COMMANDS;
+	}
+
+	return RET_SUCCESS;
+}
 
 static void print_upgrade_hint(const char *upgrade_type_str)
 {
