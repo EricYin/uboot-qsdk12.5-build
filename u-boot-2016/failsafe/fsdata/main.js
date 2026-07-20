@@ -2086,6 +2086,9 @@ const backupManager = (() => {
     let itemsData = [];          // 当前显示的条目列表
     let selectedItems = new Set(); // 选中的条目索引
     let isDownloading = false;
+    let totalDownloadSize = 0;
+    let downloadedSize = 0;
+    let progressItemsMap = new Map();
     const MAX_AUTO_SELECT_SIZE = 256 * 1024 * 1024; // 256 MiB
 
     // 输入验证状态
@@ -2756,10 +2759,19 @@ const backupManager = (() => {
     /**
      * 添加进度条目（不自动滚动到底部）
      */
-    function addProgressItem(index, total, name) {
+    function addProgressItem(index, total, name, itemSize) {
         const els = getElements();
         const list = els.progressList;
         if (!list) return;
+
+        progressItemsMap.set(index, {
+            total: itemSize || 0,
+            downloaded: 0
+        });
+
+        if (itemSize && itemSize > 0) {
+            totalDownloadSize += itemSize;
+        }
 
         const div = document.createElement('div');
         div.className = 'backup-progress-item';
@@ -2790,6 +2802,19 @@ const backupManager = (() => {
         const sizeEl = item.querySelector('.backup-progress-item-size');
         const percentEl = item.querySelector('.backup-progress-item-percent');
 
+        const itemData = progressItemsMap.get(index);
+        if (itemData) {
+            if (size !== undefined && size > 0) {
+                const newDownloaded = size;
+                const delta = newDownloaded - itemData.downloaded;
+                itemData.downloaded = newDownloaded;
+
+                if (itemData.total > 0 && delta > 0) {
+                    downloadedSize += delta;
+                }
+            }
+        }
+
         if (statusEl) {
             statusEl.dataset.status = status;
             statusEl.textContent = t('backup.status.' + status);
@@ -2805,6 +2830,14 @@ const backupManager = (() => {
 
         if (status === 'done') {
             item.classList.add('done');
+            const itemData2 = progressItemsMap.get(index);
+            if (itemData2 && itemData2.total > 0) {
+                if (itemData2.downloaded < itemData2.total) {
+                    const delta = itemData2.total - itemData2.downloaded;
+                    downloadedSize += delta;
+                    itemData2.downloaded = itemData2.total;
+                }
+            }
         } else if (status === 'error') {
             item.classList.add('error');
         }
@@ -2831,7 +2864,13 @@ const backupManager = (() => {
             }
         });
 
-        const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+        let percent = 0;
+        if (totalDownloadSize > 0) {
+            percent = Math.round((downloadedSize / totalDownloadSize) * 100);
+            if (percent > 100) percent = 100;
+        } else {
+            percent = total > 0 ? Math.round((done / total) * 100) : 0;
+        }
 
         if (els.progressPercent) {
             els.progressPercent.textContent = percent + '%';
@@ -2842,7 +2881,13 @@ const backupManager = (() => {
         }
 
         if (els.progressBarText) {
-            els.progressBarText.textContent = done + ' / ' + total;
+            if (totalDownloadSize > 0 && downloadedSize > 0) {
+                const downloadedStr = bytesToHuman(downloadedSize);
+                const totalStr = bytesToHuman(totalDownloadSize);
+                els.progressBarText.textContent = downloadedStr + ' / ' + totalStr;
+            } else {
+                els.progressBarText.textContent = done + ' / ' + total;
+            }
         }
     }
 
@@ -3102,6 +3147,10 @@ const backupManager = (() => {
 
         const item = itemsData[selectedIndices[0]];
 
+        totalDownloadSize = 0;
+        downloadedSize = 0;
+        progressItemsMap.clear();
+
         const formData = new FormData();
         formData.append("mode", "range");
         formData.append("target", item.id);
@@ -3111,7 +3160,7 @@ const backupManager = (() => {
         isDownloading = true;
 
         showProgressArea();
-        addProgressItem(0, 1, item.display);
+        addProgressItem(0, 1, item.display, validation.size);
         updateOverallStatus(t('backup.status.downloading'));
 
         try {
@@ -3139,6 +3188,7 @@ const backupManager = (() => {
                 if (done) break;
                 chunks.push(value);
                 received += value.length;
+                downloadedSize = received;
                 if (totalSize) {
                     const percent = (received / totalSize) * 100;
                     updateProgressItem(0, 'downloading', '', received, percent);
@@ -3148,6 +3198,7 @@ const backupManager = (() => {
                     bytesToHuman(received) +
                     (totalSize ? " / " + bytesToHuman(totalSize) : "")
                 );
+                updateOverallProgress();
             }
 
             const blob = new Blob(chunks, { type: "application/octet-stream" });
@@ -3187,6 +3238,10 @@ const backupManager = (() => {
             return;
         }
 
+        totalDownloadSize = 0;
+        downloadedSize = 0;
+        progressItemsMap.clear();
+
         isDownloading = true;
         showProgressArea();
         updateOverallStatus(useChinese
@@ -3196,7 +3251,8 @@ const backupManager = (() => {
 
         selectedIndices.forEach(function(idx, order) {
             const item = itemsData[idx];
-            addProgressItem(order, selectedIndices.length, item.display);
+            const itemSize = getItemSize(item);
+            addProgressItem(order, selectedIndices.length, item.display, itemSize);
         });
 
         let successCount = 0;
