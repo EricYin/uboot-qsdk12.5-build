@@ -1,0 +1,87 @@
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2026 chenxin527
+
+name: 构建并发布
+
+on:
+  workflow_dispatch:
+    inputs:
+      BUILD_TARGET:
+        description: '设备选择'
+        required: true
+        type: choice
+        options:
+          - all
+          - ipq50xx
+          - ipq53xx
+          - ipq60xx
+          - ipq807x
+          - aliyun_ap8220
+          - cmcc_mr3000d-ci
+          - cmcc_pz-l8
+          - cmcc_rax3000q
+          - cmiot_ax18
+          - cucc_vs010
+          - glinet_gl-ax1800
+          - inseego_fg2000
+          - jdcloud_ax3000
+          - jdcloud_re-cs-02
+          - jdcloud_re-cs-06
+          - jdcloud_re-cs-07
+          - jdcloud_re-cs-08
+          - jdcloud_re-ss-01
+          - link_nn6000
+          - oceanblue_s200-h
+          - philips_ly1800
+          - qihoo_360v6
+          - redmi_ax5-jdcloud
+          - redmi_ax6
+          - sy_y6010
+          - xiaomi_ax3600
+          - zn_m2
+        default: 'all'
+      PRERELEASE:
+        description: '作为预发布版本'
+        required: true
+        type: boolean
+        default: false
+
+env:
+  BUILD_TARGET: ${{ inputs.BUILD_TARGET }}
+  PRERELEASE: ${{ inputs.PRERELEASE }}
+
+permissions: write-all
+
+jobs:
+  core:
+    name: 构建并发布
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@main
+
+      - name: 安装编译依赖
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo ./build.sh install_deps
+          sudo -E systemctl daemon-reload
+          sudo -E timedatectl set-timezone "Asia/Shanghai"
+
+      - name: 检查编译依赖
+        run: |
+          ./build.sh check_deps
+
+      - name: 编译 U-Boot
+        run: |
+          . ./build.sh build $BUILD_TARGET
+
+          echo "RELEASE_VERSION=$_RELEASE_VERSION_" >> $GITHUB_ENV
+
+      - name: 发布 U-Boot
+        uses: softprops/action-gh-release@master
+        with:
+          tag_name: ${{ env.RELEASE_VERSION }}
+          files: ./bin/${{ env.RELEASE_VERSION }}/*
+          body_path: ./bin/${{ env.RELEASE_VERSION }}/发布信息-${{ env.RELEASE_VERSION }}.md
+          prerelease: ${{ env.PRERELEASE == 'true' }}
