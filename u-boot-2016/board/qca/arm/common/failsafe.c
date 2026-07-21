@@ -323,10 +323,8 @@ static int parse_factory_firmware(const void *data_addr, ulong data_size)
 	const size_t magic_len = sizeof(u32);
 	ulong size_remain = data_size;
 
-	if (!p) {
-		handle_invalid_factory_fw();
-		return RET_FAILURE;
-	}
+	if (!p)
+		goto fail;
 
 	while (size_remain >= magic_len) {
 		size_remain--;
@@ -339,6 +337,7 @@ static int parse_factory_firmware(const void *data_addr, ulong data_size)
 		p++;
 	}
 
+fail:
 	handle_invalid_factory_fw();
 	return RET_FAILURE;
 }
@@ -647,7 +646,7 @@ static int failsafe_write_firmware(ulong data_addr, ulong data_size)
 	switch (fw_type) {
 	case FW_TYPE_FIT:
 		RETURN_IF_MMC_FLASH_NOT_FOUND;
-		ADD_CMD_TO_LIST( "flash 0:HLOS 0x%lx 0x%lx",
+		ADD_CMD_TO_LIST("flash 0:HLOS 0x%lx 0x%lx",
 			data_addr, factory_fw_kernel_size);
 		ADD_CMD_TO_LIST("flash rootfs 0x%lx 0x%lx",
 			data_addr + factory_fw_kernel_size,
