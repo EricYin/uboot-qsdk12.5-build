@@ -5,6 +5,14 @@
 # 支持平台: ipq50xx, ipq53xx, ipq60xx, ipq807x, ipq95xx
 # ============================================
 
+# 检查是否在 GitHub Actions 环境中运行
+is_github_actions() {
+    if [ -n "$GITHUB_ACTIONS" ] && [ "$GITHUB_ACTIONS" = "true" ]; then
+        return 0
+    fi
+    return 1
+}
+
 # 获取脚本所在目录的绝对路径
 get_script_dir() {
     if [ -n "$GITHUB_WORKSPACE" ]; then
@@ -361,6 +369,8 @@ check_dependencies() {
         "mkdir"
         "cp"
         "mv"
+        "zip"
+        "tar"
     )
 
     # 可选工具（用于网页文件压缩）
@@ -421,6 +431,12 @@ check_dependencies() {
             "rm"|"mkdir"|"cp"|"mv")
                 version=$($tool --version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1)
                 [ -z "$version" ] && version=$(coreutils --version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1)
+                ;;
+            "zip")
+                version=$(zip --version 2>/dev/null | head -n2 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1)
+                ;;
+            "tar")
+                version=$(tar --version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1)
                 ;;
             "html-minifier-terser")
                 version=$(html-minifier-terser --version 2>/dev/null)
@@ -580,6 +596,8 @@ install_dependencies() {
             $install_cmd coreutils
             $install_cmd nodejs npm
             $install_cmd git
+            $install_cmd zip
+            $install_cmd tar
             ;;
         yum|dnf)
             $install_cmd gcc gcc-c++ make
@@ -589,6 +607,8 @@ install_dependencies() {
             $install_cmd coreutils
             $install_cmd nodejs npm
             $install_cmd git
+            $install_cmd zip
+            $install_cmd tar
             ;;
         pacman)
             $install_cmd base-devel
@@ -598,6 +618,8 @@ install_dependencies() {
             $install_cmd coreutils
             $install_cmd nodejs npm
             $install_cmd git
+            $install_cmd zip
+            $install_cmd tar
             ;;
         apk)
             $install_cmd build-base
@@ -607,6 +629,8 @@ install_dependencies() {
             $install_cmd coreutils
             $install_cmd nodejs npm
             $install_cmd git
+            $install_cmd zip
+            $install_cmd tar
             ;;
     esac
 
@@ -818,7 +842,7 @@ compile_device() {
         status="警告"
     fi
 
-    BUILD_RESULTS+=("$device_name:$friendly_name:$output_file:$original_size:$final_size:$target_size:$exceeded:$status")
+    BUILD_RESULTS+=("$platform:$device_name:$friendly_name:$output_file:$original_size:$final_size:$target_size:$exceeded:$status")
 
     log_message "编译完成: $friendly_name ($device_name)"
     log_message "输出目录: $output_dir/"
@@ -826,6 +850,150 @@ compile_device() {
     log_message "文件大小: $final_size 字节"
 
     cd "$SCRIPT_DIR"
+    return 0
+}
+
+# ============================================
+# 校验和计算
+# ============================================
+
+# 计算输出目录下所有 .bin 文件的 MD5 和 SHA256 校验和
+calculate_checksums() {
+    local output_dir=$1
+    local release_version=$2
+
+    log_message "计算校验和"
+
+    # 检查输出目录是否存在
+    if [ ! -d "$output_dir" ]; then
+        log_message "错误: 输出目录不存在: $output_dir"
+        return 1
+    fi
+
+    # 切换到输出目录
+    cd "$output_dir" || {
+        log_message "错误: 无法进入输出目录: $output_dir"
+        return 1
+    }
+
+    # 检查是否有 .bin 文件
+    local bin_files=($(find . -maxdepth 1 -type f -name "*.bin" 2>/dev/null | sed 's/^\.\///' | sort))
+    if [ ${#bin_files[@]} -eq 0 ]; then
+        log_message "警告: 输出目录中没有找到 .bin 文件"
+        cd "$SCRIPT_DIR" || return 1
+        return 0
+    fi
+
+    # 生成 MD5 校验和文件
+    local md5_file="${output_dir}/md5-${release_version}.txt"
+    log_message "MD5 校验和文件: $(basename "$md5_file")"
+
+    # 清空或创建文件
+    > "$md5_file"
+
+    # 计算每个文件的 MD5
+    for bin_file in "${bin_files[@]}"; do
+        local file_name=$(basename "$bin_file")
+        if command -v md5sum >/dev/null 2>&1; then
+            md5sum "$bin_file" 2>/dev/null >> "$md5_file"
+        else
+            log_message "警告: 未找到 md5sum 命令，跳过 MD5 计算"
+            echo "ERROR: md5 command not found" >> "$md5_file"
+            break
+        fi
+    done
+
+    # 生成 SHA256 校验和文件
+    local sha256_file="${output_dir}/sha256-${release_version}.txt"
+    log_message "SHA256 校验和文件: $(basename "$sha256_file")"
+
+    # 清空或创建文件
+    > "$sha256_file"
+
+    # 计算每个文件的 SHA256
+    for bin_file in "${bin_files[@]}"; do
+        local file_name=$(basename "$bin_file")
+        if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum "$bin_file" 2>/dev/null >> "$sha256_file"
+        else
+            log_message "警告: 未找到 sha256sum 命令，跳过 SHA256 计算"
+            echo "ERROR: sha256sum command not found" >> "$sha256_file"
+            break
+        fi
+    done
+
+    cd "$SCRIPT_DIR" || return 1
+
+    return 0
+}
+
+# ============================================
+# Release Notes 生成
+# ============================================
+
+# 生成 Release Notes
+generate_release_notes() {
+    local output_dir=$1
+    local release_version=$2
+
+    # 检查是否在 GitHub Actions 环境中
+    if ! is_github_actions; then
+        return 0
+    fi
+
+    log_message "生成 Release Notes"
+
+    # 文件路径
+    local source_file="${SCRIPT_DIR}/doc/RELEASE.md"
+    local target_file="${output_dir}/发布信息-${release_version}.md"
+
+    # 复制源文件内容到目标文件
+    if [ -f "$source_file" ]; then
+        cat "$source_file" > "$target_file"
+    fi
+
+    # 检查 BUILD_RESULTS 是否有数据
+    if [ ${#BUILD_RESULTS[@]} -eq 0 ]; then
+        log_message "警告: 没有编译结果可添加到 Release Notes"
+        return 0
+    fi
+
+    # 获取 GitHub 仓库信息
+    local github_repo="${GITHUB_REPOSITORY:-unknown/unknown}"
+    local github_tag="${release_version}"
+
+    # 表格标题
+    cat >> "$target_file" << 'EOF'
+
+## 文件下载
+
+| 平台名称 | 设备名称 | 设备型号 | 下载链接 |
+|---------|---------|---------|---------|
+EOF
+
+    # 添加表格行
+    for result in "${BUILD_RESULTS[@]}"; do
+        IFS=':' read -r platform device_name friendly_name output_file original_size final_size target_size exceeded status <<< "$result"
+
+        # 构建下载链接
+        local file_name=$(basename "$output_file")
+        local download_url="https://github.com/${github_repo}/releases/download/${github_tag}/${file_name}"
+        local download_link="[点击下载](${download_url})"
+
+        # 转义表格中的特殊字符（如管道符）
+        local platform_safe=$(echo "$platform" | sed 's/|/\\|/g')
+        local friendly_name_safe=$(echo "$friendly_name" | sed 's/|/\\|/g')
+        local device_name_safe=$(echo "$device_name" | sed 's/|/\\|/g')
+
+        # 添加到表格
+        printf "| %s | %s | %s | %s |\n" \
+            "$platform_safe" \
+            "$friendly_name_safe" \
+            "$device_name_safe" \
+            "$download_link" >> "$target_file"
+    done
+
+    log_message "Release Notes 文件: $(basename "$target_file")"
     return 0
 }
 
@@ -856,7 +1024,7 @@ show_build_summary() {
     log_echo "$separator"
 
     for result in "${BUILD_RESULTS[@]}"; do
-        IFS=':' read -r device_name friendly_name output_file original_size final_size target_size exceeded status <<< "$result"
+        IFS=':' read -r platform device_name friendly_name output_file original_size final_size target_size exceeded status <<< "$result"
 
         local status_icon="✓"
 
@@ -890,7 +1058,7 @@ show_build_summary() {
         log_echo ""
         log_echo "失败的设备:"
         for result in "${BUILD_RESULTS[@]}"; do
-            IFS=':' read -r device_name friendly_name output_file original_size final_size target_size exceeded status <<< "$result"
+            IFS=':' read -r platform device_name friendly_name output_file original_size final_size target_size exceeded status <<< "$result"
             if [ "$status" != "成功" ] && [ "$status" != "警告" ]; then
                 log_echo "  - $friendly_name ($device_name)"
             fi
@@ -901,6 +1069,112 @@ show_build_summary() {
     echo "==========================================" >> "$LOG_FILE"
     echo "编译结束时间: $(TZ=UTC-8 date '+%Y-%m-%d %H:%M:%S')" >> "$LOG_FILE"
     echo "==========================================" >> "$LOG_FILE"
+}
+
+# ============================================
+# 压缩输出目录
+# ============================================
+
+# 在 GitHub Actions 环境下压缩输出目录
+compress_output_directory() {
+    local output_dir=$1
+    local release_version=$2
+
+    # 检查是否在 GitHub Actions 环境中
+    if ! is_github_actions; then
+        return 0
+    fi
+
+    echo ""
+    echo "压缩输出目录"
+
+    # 检查输出目录是否存在
+    if [ ! -d "$output_dir" ]; then
+        echo "错误: 输出目录不存在: $output_dir"
+        return 1
+    fi
+
+    # 进入输出目录的父目录
+    local parent_dir=$(dirname "$output_dir")
+    local dir_name=$(basename "$output_dir")
+
+    if command -v zip >/dev/null 2>&1; then
+        # 使用 zip 命令压缩（保留目录结构）
+        echo "使用 zip 压缩: ${dir_name}/"
+        local temp_zip="${parent_dir}/打包下载-${release_version}.zip.tmp"
+        local final_zip="${output_dir}/打包下载-${release_version}.zip"
+
+        cd "$parent_dir" || {
+            echo "错误: 无法进入目录: $parent_dir"
+            return 1
+        }
+
+        # 在父目录生成压缩文件，排除已存在的压缩文件
+        local zip_output
+        zip_output=$(zip -r "$temp_zip" "$dir_name" -x "*.zip" "*.tar.gz" 2>&1)
+        local zip_exit_code=$?
+
+        if [ $zip_exit_code -eq 0 ] && [ -f "$temp_zip" ]; then
+            # 移动压缩文件到输出目录
+            if mv "$temp_zip" "$final_zip" 2>/dev/null; then
+                local zip_size=$(stat -c%s "$final_zip" 2>/dev/null || stat -f%z "$final_zip" 2>/dev/null)
+                echo "压缩完成: $(basename "$final_zip") ($(numfmt --to=iec $zip_size 2>/dev/null || echo "$zip_size bytes"))"
+                cd "$SCRIPT_DIR" || return 1
+                return 0
+            else
+                echo "错误: 无法移动压缩文件到输出目录"
+                rm -f "$temp_zip" 2>/dev/null
+                cd "$SCRIPT_DIR" || return 1
+                return 1
+            fi
+        else
+            echo "错误: zip 压缩失败 (退出码: $zip_exit_code)"
+            if [ -n "$zip_output" ]; then
+                echo "zip 错误信息: $zip_output"
+            fi
+            rm -f "$temp_zip" 2>/dev/null
+            cd "$SCRIPT_DIR" || return 1
+            return 1
+        fi
+    else
+        # 如果 zip 命令不可用，尝试使用 tar
+        echo "使用 tar 压缩: ${dir_name}/"
+        local temp_tar="${parent_dir}/打包下载-${release_version}.tar.gz.tmp"
+        local final_tar="${output_dir}/打包下载-${release_version}.tar.gz"
+
+        cd "$parent_dir" || {
+            echo "错误: 无法进入目录: $parent_dir"
+            return 1
+        }
+
+        # 在父目录生成压缩文件，排除已存在的压缩文件
+        local tar_output
+        tar_output=$(tar -czf "$temp_tar" --exclude="*.tar.gz" --exclude="*.zip" "$dir_name" 2>&1)
+        local tar_exit_code=$?
+
+        if [ $tar_exit_code -eq 0 ] && [ -f "$temp_tar" ]; then
+            # 移动压缩文件到输出目录
+            if mv "$temp_tar" "$final_tar" 2>/dev/null; then
+                local tar_size=$(stat -c%s "$final_tar" 2>/dev/null || stat -f%z "$final_tar" 2>/dev/null)
+                echo "压缩完成: $(basename "$final_tar") ($(numfmt --to=iec $tar_size 2>/dev/null || echo "$tar_size bytes"))"
+                cd "$SCRIPT_DIR" || return 1
+                return 0
+            else
+                echo "错误: 无法移动压缩文件到输出目录"
+                rm -f "$temp_tar" 2>/dev/null
+                cd "$SCRIPT_DIR" || return 1
+                return 1
+            fi
+        else
+            echo "错误: tar 压缩失败 (退出码: $tar_exit_code)"
+            if [ -n "$tar_output" ]; then
+                echo "tar 错误信息: $tar_output"
+            fi
+            rm -f "$temp_tar" 2>/dev/null
+            cd "$SCRIPT_DIR" || return 1
+            return 1
+        fi
+    fi
 }
 
 # ============================================
@@ -980,8 +1254,17 @@ build_targets() {
         log_message ""
     done
 
+    # 计算校验和
+    calculate_checksums "$output_dir" "$release_version"
+
+    # 生成 Release Notes（仅在 GitHub Actions 环境下）
+    generate_release_notes "$output_dir" "$release_version"
+
     # 显示总结
     show_build_summary "$output_dir"
+
+    # 压缩输出目录（仅在 GitHub Actions 环境下）
+    compress_output_directory "$output_dir" "$release_version"
 
     return 0
 }
