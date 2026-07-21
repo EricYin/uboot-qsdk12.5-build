@@ -189,7 +189,7 @@ init_logging() {
         mkdir -p "$log_dir"
     fi
 
-    LOG_FILE="${log_dir}/编译日志-${release_version}.txt"
+    LOG_FILE="${log_dir}/log-${release_version}.txt"
 
     echo "==========================================" > "$LOG_FILE"
     echo "编译开始时间: $(TZ=UTC-8 date '+%Y-%m-%d %H:%M:%S')" >> "$LOG_FILE"
@@ -945,7 +945,7 @@ generate_release_notes() {
 
     # 文件路径
     local source_file="${SCRIPT_DIR}/doc/RELEASE.md"
-    local target_file="${output_dir}/发布信息-${release_version}.md"
+    local target_file="${output_dir}/release-${release_version}.md"
 
     # 复制源文件内容到目标文件
     if [ -f "$source_file" ]; then
@@ -1101,8 +1101,8 @@ compress_output_directory() {
     if command -v zip >/dev/null 2>&1; then
         # 使用 zip 命令压缩（保留目录结构）
         echo "使用 zip 压缩: ${dir_name}/"
-        local temp_zip="${parent_dir}/打包下载-${release_version}.zip.tmp"
-        local final_zip="${output_dir}/打包下载-${release_version}.zip"
+        local temp_zip="${parent_dir}/uboot-all-${release_version}.zip.tmp"
+        local final_zip="${output_dir}/uboot-all-${release_version}.zip"
 
         cd "$parent_dir" || {
             echo "错误: 无法进入目录: $parent_dir"
@@ -1139,8 +1139,8 @@ compress_output_directory() {
     else
         # 如果 zip 命令不可用，尝试使用 tar
         echo "使用 tar 压缩: ${dir_name}/"
-        local temp_tar="${parent_dir}/打包下载-${release_version}.tar.gz.tmp"
-        local final_tar="${output_dir}/打包下载-${release_version}.tar.gz"
+        local temp_tar="${parent_dir}/uboot-all-${release_version}.tar.gz.tmp"
+        local final_tar="${output_dir}/uboot-all-${release_version}.tar.gz"
 
         cd "$parent_dir" || {
             echo "错误: 无法进入目录: $parent_dir"

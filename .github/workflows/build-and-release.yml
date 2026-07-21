@@ -83,5 +83,5 @@ jobs:
         with:
           tag_name: ${{ env.RELEASE_VERSION }}
           files: ./bin/${{ env.RELEASE_VERSION }}/*
-          body_path: ./bin/${{ env.RELEASE_VERSION }}/发布信息-${{ env.RELEASE_VERSION }}.md
+          body_path: ./bin/${{ env.RELEASE_VERSION }}/release-${{ env.RELEASE_VERSION }}.md
           prerelease: ${{ env.PRERELEASE == 'true' }}
