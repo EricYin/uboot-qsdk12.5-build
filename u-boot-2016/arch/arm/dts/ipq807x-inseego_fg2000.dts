@@ -17,7 +17,7 @@
 / {
 	host_name = "Inseego FG2000";
 	model = "ipq807x-inseego_fg2000";
-	compatible = "qca,ipq807x-ac04", "qca,ipq807x";
+	compatible = "qca,ipq807x-hk09", "qca,ipq807x";
 	machid = <0x08010008>;
 	config_name = "config@hk09", "config-hk09";
 
