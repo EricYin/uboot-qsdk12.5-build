@@ -343,6 +343,13 @@ html[data-theme="dark"] .sidebar-toggle {
     background: var(--primary);
 }
 
+@supports not selector(::-webkit-scrollbar) {
+    .nav {
+        scrollbar-width: thin;
+        scrollbar-color: var(--primary) transparent;
+    }
+}
+
 /* 导航部分 - 可折叠菜单 */
 .nav-section {
     margin-top: 4px;
@@ -507,6 +514,13 @@ html[data-theme="dark"] .sidebar-toggle {
 
 .main::-webkit-scrollbar-thumb:hover {
     background: var(--primary-2);
+}
+
+@supports not selector(::-webkit-scrollbar) {
+    .main {
+        scrollbar-width: thin;
+        scrollbar-color: var(--primary) transparent;
+    }
 }
 
 /* 当侧边栏收起时，主内容区域占满宽度 */
@@ -1588,6 +1602,13 @@ html[data-theme="dark"] .env-name-input {
     background: var(--panel-2);
 }
 
+@supports not selector(::-webkit-scrollbar) {
+    .env-table-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) var(--panel-2);
+    }
+}
+
 /* 表格样式 */
 .env-table {
     width: 100%;
@@ -1752,6 +1773,13 @@ html[data-theme="dark"] .env-table-scroll::-webkit-scrollbar-thumb:hover {
 
 html[data-theme="dark"] .env-table-scroll::-webkit-scrollbar-corner {
     background: #1a1f2e;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+    html[data-theme="dark"] .env-table-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(148, 163, 184, 0.3) #1a1f2e;
+    }
 }
 
 @media (max-width: 768px) {
@@ -1960,6 +1988,13 @@ html[data-theme="dark"] .field-hint-invalid {
 
 .terminal-main::-webkit-scrollbar-corner {
     background: #323232;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+    .terminal-main {
+        scrollbar-width: thin;
+        scrollbar-color: #4a4a4a #1e1e1e;
+    }
 }
 
 /* 终端行样式 */
@@ -2306,6 +2341,13 @@ html[data-theme="dark"] .bar-circle-mini::before {
     background: #6a6a6a;
 }
 
+@supports not selector(::-webkit-scrollbar) {
+    .suggestions-list {
+        scrollbar-width: thin;
+        scrollbar-color: #4a4a4a #1e1e1e;
+    }
+}
+
 /* 提示项样式 */
 .suggestion-item {
     padding: 8px 12px;
@@ -2569,6 +2611,13 @@ html[data-theme="dark"] .backup-range-hint {
     background: var(--muted);
 }
 
+@supports not selector(::-webkit-scrollbar) {
+    .backup-items-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) var(--panel-2);
+    }
+}
+
 /* 单个条目 */
 .backup-item {
     padding: 0.4rem 0.75rem;
@@ -2674,6 +2723,13 @@ html[data-theme="dark"] .backup-range-hint {
 
 .backup-progress-scroll::-webkit-scrollbar-thumb:hover {
     background: var(--muted);
+}
+
+@supports not selector(::-webkit-scrollbar) {
+    .backup-progress-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) var(--panel-2);
+    }
 }
 
 /* 进度条目 */
@@ -3407,6 +3463,13 @@ html[data-theme="dark"] .mac-byte-input.invalid {
 
 .syslog-output::-webkit-scrollbar-corner {
     background: var(--panel-2);
+}
+
+@supports not selector(::-webkit-scrollbar) {
+    .syslog-output {
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) var(--panel-2);
+    }
 }
 
 /* 日志输出区域为空时的占位符 */
