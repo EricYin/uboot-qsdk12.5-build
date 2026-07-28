@@ -13,7 +13,12 @@
 #include <net/tcp.h>
 
 #define TCP_MSS			1440
+
+#if CONFIG_SYS_RX_ETH_BUFFER >= 32
+#define TCP_RCV_WND     65535
+#else
 #define TCP_RCV_WND     5120
+#endif
 
 struct tcp_hdr {
 	__be16 src;
