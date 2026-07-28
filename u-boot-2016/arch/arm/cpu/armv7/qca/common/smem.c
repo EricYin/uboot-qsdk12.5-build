@@ -149,7 +149,7 @@ static struct smem *smem = (void *)(CONFIG_QCA_SMEM_BASE);
 qca_smem_flash_info_t qca_smem_flash_info __attribute__((aligned(4)));
 qca_smem_bootconfig_info_t qca_smem_bootconfig_info __attribute__((aligned(4)));
 
-static bool _is_9008_mode;
+static int _is_9008_mode = 0;
 
 #ifdef CONFIG_SMEM_VERSION_C
 
@@ -736,12 +736,10 @@ int smem_get_boot_flash(uint32_t *flash_type,
 {
 	int ret;
 
-	_is_9008_mode = false;
-
 	ret = smem_read_alloc_entry(SMEM_BOOT_FLASH_TYPE,
 				    flash_type, sizeof(uint32_t));
 	if (ret != 0) {
-		_is_9008_mode = true;
+		_is_9008_mode = 1;
 		printf("smem: read flash type failed\n");
 		*flash_type = SMEM_BOOT_NO_FLASH;
 	}
@@ -778,7 +776,7 @@ int smem_get_boot_flash(uint32_t *flash_type,
 
 bool is_9008_mode(void)
 {
-	return _is_9008_mode;
+	return _is_9008_mode ? true : false;
 }
 
 int ipq_smem_get_boot_version(char *version_name, int buf_size)
