@@ -323,7 +323,6 @@ clean_cache() {
         .u-boot* \
         arch/arm/dts/dtbtable.S \
         dtb_combined* \
-        httpd/fsdata.c \
         include/config \
         include/generated \
         scripts/kconfig/conf \
@@ -1248,6 +1247,9 @@ build_targets() {
         if compile_device "$device" "$uboot_version" "$output_dir"; then
             success_count=$((success_count + 1))
         else
+            local device_config=$(get_device_config "$device" "all")
+            IFS=':' read -r platform device_name config_name friendly_name <<< "$device_config"
+            BUILD_RESULTS+=("$platform:$device_name:$friendly_name:-:-:-:-:-:失败")
             fail_count=$((fail_count + 1))
             log_message "设备 $device 编译失败"
         fi
