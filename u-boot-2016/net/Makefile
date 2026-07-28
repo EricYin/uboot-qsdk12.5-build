@@ -25,3 +25,4 @@ obj-$(CONFIG_HTTPD)    += httpd.o
 obj-$(CONFIG_TCP)      += tcp.o
 obj-$(CONFIG_TELNETD)  += telnetd.o
 obj-$(CONFIG_WGET)     += wget.o
+obj-$(CONFIG_NET_ABORT) += net_abort.o

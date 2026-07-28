@@ -12,7 +12,7 @@
 #include <cli.h>
 #include <ipq_api.h>
 
-#include "../net/arp.h"
+#include "arp.h"
 
 #define ABORT_PORT			37541
 #define ABORT_REPLY_PORT	37540
