@@ -218,6 +218,9 @@
 #define EXT_CSD_BOOT_MULT		226	/* RO */
 #define EXT_CSD_SEC_FEATURE_SUPPORT     231     /* RO */
 #define EXT_CSD_TRIM_MULT		232	/* RO */
+#define EXT_CSD_PRE_EOL_INFO				267 /* RO */
+#define EXT_CSD_DEVICE_LIFE_TIME_EST_TYP_A	268 /* RO */
+#define EXT_CSD_DEVICE_LIFE_TIME_EST_TYP_B	269 /* RO */
 
 #define EXT_CSD_SEC_ER_EN       (1 << 0)
 #define EXT_CSD_SEC_GB_CL_EN    (1 << 4)
@@ -556,5 +559,8 @@ int mmc_write_protect(struct mmc *mmc, unsigned int start_blk,
 #ifndef CONFIG_SYS_MMC_MAX_BLK_COUNT
 #define CONFIG_SYS_MMC_MAX_BLK_COUNT 65535
 #endif
+
+/* read eMMC life time and pre-EOL information */
+int mmc_get_life_info(struct mmc *mmc, u8 *life_a, u8 *life_b, u8 *pre_eol);
 
 #endif /* _MMC_H_ */

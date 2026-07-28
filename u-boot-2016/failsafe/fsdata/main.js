@@ -5625,6 +5625,30 @@ const sysinfoManager = (() => {
     }
 
     /**
+     * 创建表头行
+     * @param {string} colSpan - 该行占用列数
+     * @param {string} value - 显示的值
+     * @returns {HTMLTableRowElement}
+     */
+    function createHeaderRow(colSpan, value) {
+        const tr = document.createElement("tr");
+        tr.className = "tr";
+
+        const td = document.createElement("td");
+        td.className = "td left";
+        td.setAttribute("colspan", colSpan);
+        td.style.fontWeight = "600";
+        td.style.color = "var(--primary)";
+        td.style.backgroundColor = "var(--panel-2)";
+        td.textContent = value !== undefined && value !== null
+            ? String(value)
+            : t("sysinfo.no_data");
+
+        tr.appendChild(td);
+        return tr;
+    }
+
+    /**
      * 创建表格行
      * @param {string} labelKey - 标签的国际化 key
      * @param {string} value - 显示的值
@@ -5695,6 +5719,141 @@ const sysinfoManager = (() => {
     }
 
     /**
+     * 创建 eMMC 寿命信息表格行
+     * @param {string} label - 标签文本
+     * @param {string} value - 显示的值
+     * @returns {HTMLTableRowElement}
+     */
+    function createLifeInfoRow(label, value) {
+        const tr = document.createElement("tr");
+        tr.className = "tr";
+
+        const tdLabel = document.createElement("td");
+        tdLabel.className = "td left";
+        tdLabel.setAttribute("width", "33%");
+        tdLabel.textContent = label || "";
+
+        const tdValue = document.createElement("td");
+        tdValue.className = "td left life-value-cell";
+        tdValue.innerHTML = value !== undefined && value !== null
+            ? String(value)
+            : t("sysinfo.no_data");
+
+        tr.appendChild(tdLabel);
+        tr.appendChild(tdValue);
+        return tr;
+    }
+
+    /**
+     * 解析 eMMC 寿命值
+     * @param {string} value - 原始值 (如 "0x01")
+     * @returns {object} { range: string, percent: number, score: number }
+     */
+    function parseLifeValue(value) {
+        if (!value) return { range: '------', percent: 0, score: 0 };
+
+        const val = value.trim().toLowerCase();
+        const mapping = {
+            '0x00': { range: '------', percent: 0, score: 0 },
+            '0x01': { range: '0-10%', percent: 5, score: 1 },
+            '0x02': { range: '10-20%', percent: 15, score: 2 },
+            '0x03': { range: '20-30%', percent: 25, score: 3 },
+            '0x04': { range: '30-40%', percent: 35, score: 4 },
+            '0x05': { range: '40-50%', percent: 45, score: 5 },
+            '0x06': { range: '50-60%', percent: 55, score: 6 },
+            '0x07': { range: '60-70%', percent: 65, score: 7 },
+            '0x08': { range: '70-80%', percent: 75, score: 8 },
+            '0x09': { range: '80-90%', percent: 85, score: 9 },
+            '0x0a': { range: '90-100%', percent: 95, score: 10 },
+            '0x0b': { range: '100%', percent: 100, score: 11 },
+        };
+
+        return mapping[val] || { range: '------', percent: 0, score: 0 };
+    }
+
+    /**
+     * 获取 PRE_EOL 等级
+     * @param {string} value - 原始值 (如 "0x01")
+     * @returns {string}
+     */
+    function getPreEolLevel(value) {
+        if (!value) return 'unknown';
+
+        const val = value.trim().toLowerCase();
+        const mapping = {
+            '0x01': 'normal',
+            '0x02': 'warning',
+            '0x03': 'urgent',
+        };
+
+        return mapping[val] || 'unknown';
+    }
+
+    /**
+     * 创建寿命进度条 HTML
+     * @param {number} percent - 百分比 (0-100)
+     * @param {number} percentRange - 百分比范围
+     * @returns {string} HTML 字符串
+     */
+    function createLifeProgressBar(percent, percentRange) {
+        const clampedPercent = Math.max(0, Math.min(100, percent));
+        return `
+            <div class="life-progress-container">
+                <div class="life-progress-track">
+                    <div class="life-progress-bar" style="width: ${clampedPercent}%;"></div>
+                </div>
+                <span class="life-progress-percent">${escapeHtml(percentRange)}</span>
+            </div>
+        `;
+    }
+
+    /**
+     * 渲染 eMMC 寿命信息
+     * @param {object} mmcDevice - MMC 设备对象
+     * @param {HTMLTableElement} table - 目标表格
+     */
+    function renderLifeInfo(mmcDevice, table) {
+        if (!mmcDevice || (!mmcDevice.life_a && !mmcDevice.life_b && !mmcDevice.pre_eol)) {
+            return;
+        }
+
+        // 添加分隔行
+        table.appendChild(createHeaderRow(2, t('sysinfo.emmc_life')));
+
+        // Life Time A
+        if (mmcDevice.life_a) {
+            const lifeA = parseLifeValue(mmcDevice.life_a);
+            const lifeAHtml = `
+                ${createLifeProgressBar(lifeA.percent, lifeA.range)}
+                <span class="life-raw-value">${escapeHtml(mmcDevice.life_a)}</span>
+            `;
+            table.appendChild(createLifeInfoRow('Life Time A', lifeAHtml));
+        }
+
+        // Life Time B
+        if (mmcDevice.life_b) {
+            const lifeB = parseLifeValue(mmcDevice.life_b);
+            const lifeBHtml = `
+                ${createLifeProgressBar(lifeB.percent, lifeB.range)}
+                <span class="life-raw-value">${escapeHtml(mmcDevice.life_b)}</span>
+            `;
+            table.appendChild(createLifeInfoRow('Life Time B', lifeBHtml));
+        }
+
+        // Pre-EOL
+        if (mmcDevice.pre_eol) {
+            const preEolLevel = getPreEolLevel(mmcDevice.pre_eol);
+            const statusClass = 'life-status-' + preEolLevel;
+            const statusKey = 'sysinfo.status.' + preEolLevel;
+            const preEolHtml = `
+                <span class="life-status ${statusClass}" data-i18n="${statusKey}">${t(statusKey)}</span>
+                <span class="life-raw-value">${escapeHtml(mmcDevice.pre_eol)}</span>
+            `;
+            table.appendChild(createLifeInfoRow('Pre-EOL Status', preEolHtml));
+        }
+    }
+
+    /**
      * 处理设备信息
      * @param {object} device - 设备对象
      * @param {string} type - 设备类型 (spi/mmc/nand)
@@ -5713,19 +5872,8 @@ const sysinfoManager = (() => {
             deviceName = t("sysinfo.present");
         }
 
-        const headerTr = document.createElement("tr");
-        headerTr.className = "tr";
-
-        const headerTd = document.createElement("td");
-        headerTd.className = "td left";
-        headerTd.setAttribute("colspan", "2");
-        headerTd.style.fontWeight = "600";
-        headerTd.style.color = "var(--primary)";
-        headerTd.style.backgroundColor = "var(--panel-2)";
-        headerTd.textContent = type.toUpperCase() + " (" + deviceName + ")";
-
-        headerTr.appendChild(headerTd);
-        table.appendChild(headerTr);
+        const headerValue = type.toUpperCase() + " (" + deviceName + ")";
+        table.appendChild(createHeaderRow(2, headerValue));
 
         // 大小
         if (device.size !== undefined) {
@@ -5766,6 +5914,10 @@ const sysinfoManager = (() => {
                 table.appendChild(createInfoRow(labelKey, value));
             }
         }
+
+        if (type === 'mmc') {
+            renderLifeInfo(device, table);
+        }
     }
 
     /**
@@ -5784,20 +5936,8 @@ const sysinfoManager = (() => {
                 return;
             }
 
-            // 添加分区类型标题行
-            const headerTr = document.createElement("tr");
-            headerTr.className = "tr";
-
-            const headerTd = document.createElement("td");
-            headerTd.className = "td left";
-            headerTd.setAttribute("colspan", "5");
-            headerTd.style.fontWeight = "600";
-            headerTd.style.color = "var(--primary)";
-            headerTd.style.backgroundColor = "var(--panel-2)";
-            headerTd.textContent = partType.toUpperCase() + " " + t("sysinfo.title.partitions_info");
-
-            headerTr.appendChild(headerTd);
-            table.appendChild(headerTr);
+            const headerValue = partType.toUpperCase() + " " + t("sysinfo.title.partitions_info");
+            table.appendChild(createHeaderRow(5, headerValue));
 
             // 添加表头行
             const theadTr = document.createElement("tr");
@@ -5916,20 +6056,7 @@ const sysinfoManager = (() => {
         if (flashTable) {
             // SMEM 信息
             if (data.smeminfo) {
-                const headerTr = document.createElement("tr");
-                headerTr.className = "tr";
-
-                const headerTd = document.createElement("td");
-                headerTd.className = "td left";
-                headerTd.setAttribute("colspan", "2");
-                headerTd.style.fontWeight = "600";
-                headerTd.style.color = "var(--primary)";
-                headerTd.style.backgroundColor = "var(--panel-2)";
-                headerTd.setAttribute("data-i18n", "sysinfo.smeminfo");
-                headerTd.textContent = t("sysinfo.smeminfo");
-
-                headerTr.appendChild(headerTd);
-                flashTable.appendChild(headerTr);
+                flashTable.appendChild(createHeaderRow(2, t("sysinfo.smeminfo")));
 
                 const smem = data.smeminfo;
                 if (smem.flash_type) flashTable.appendChild(createInfoRow("sysinfo.flash_type", smem.flash_type));
@@ -7509,6 +7636,11 @@ const I18N = (() => {
             "sysinfo.vendor": "Vendor",
             "sysinfo.product": "Product",
             "sysinfo.version": "Version",
+            "sysinfo.emmc_life": "MMC LIFE INFO",
+            "sysinfo.status.normal": "Normal",
+            "sysinfo.status.warning": "Warning",
+            "sysinfo.status.urgent": "Urgent",
+            "sysinfo.status.unknown": "Unknown",
             "sysinfo.type": "Type",
             "sysinfo.part_index": "Index",
             "sysinfo.part_start": "Start Address",
@@ -7846,6 +7978,11 @@ const I18N = (() => {
             "sysinfo.vendor": "厂商",
             "sysinfo.product": "产品",
             "sysinfo.version": "版本",
+            "sysinfo.emmc_life": "MMC 寿命信息",
+            "sysinfo.status.normal": "正常",
+            "sysinfo.status.warning": "警告",
+            "sysinfo.status.urgent": "危险",
+            "sysinfo.status.unknown": "未知",
             "sysinfo.type": "类型",
             "sysinfo.part_index": "序号",
             "sysinfo.part_start": "起始地址",

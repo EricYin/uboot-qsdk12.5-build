@@ -194,6 +194,15 @@ void sysinfo_handler(enum httpd_uri_handler_status status,
             len += snprintf(buf + len, left - len, ".%d\"", change_ver);
         else
             len += snprintf(buf + len, left - len, "\"");
+
+		if (!IS_SD(mmc) && mmc->version >= MMC_VERSION_4) {
+			u8 life_a, life_b, pre_eol;
+			if (!mmc_get_life_info(mmc, &life_a, &life_b, &pre_eol)) {
+				len += snprintf(buf + len, left - len,
+					",\"life_a\":\"0x%02x\",\"life_b\":\"0x%02x\",\"pre_eol\":\"0x%02x\"",
+					life_a, life_b, pre_eol);
+			}
+		}
 	}
 	len += snprintf(buf + len, left - len, "},"); /* devices: mmc */
 

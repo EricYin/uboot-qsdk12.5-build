@@ -482,6 +482,56 @@ static int mmc_send_ext_csd(struct mmc *mmc, u8 *ext_csd)
 	return err;
 }
 
+/**
+ * mmc_get_life_info() - Read eMMC life time estimation and pre-EOL info
+ *
+ * @mmc:        Pointer to MMC device structure
+ * @life_a:     Pointer to store type A life time value (0x00-0x0B)
+ * @life_b:     Pointer to store type B life time value (0x00-0x0B)
+ * @pre_eol:    Pointer to store pre-EOL info value (0x00-0x03)
+ * @return:     0 on success, negative error code on failure
+ */
+int mmc_get_life_info(struct mmc *mmc, u8 *life_a, u8 *life_b, u8 *pre_eol)
+{
+    ALLOC_CACHE_ALIGN_BUFFER(u8, ext_csd, MMC_MAX_BLOCK_LEN);
+    int err;
+
+    if (!mmc)
+        return -EINVAL;
+
+    /* Only MMC cards support EXT_CSD */
+    if (IS_SD(mmc)) {
+        printf("SD card does not support EXT_CSD life time info\n");
+        return -ENOTSUPP;
+    }
+
+    /* MMC version must be >= 4.0 for EXT_CSD */
+    if (mmc->version < MMC_VERSION_4) {
+        printf("MMC version %d.%d does not support EXT_CSD\n",
+               EXTRACT_SDMMC_MAJOR_VERSION(mmc->version),
+               EXTRACT_SDMMC_MINOR_VERSION(mmc->version));
+        return -ENOTSUPP;
+    }
+
+    /* Read EXT_CSD */
+    err = mmc_send_ext_csd(mmc, ext_csd);
+    if (err) {
+        printf("Failed to read EXT_CSD: %d\n", err);
+        return err;
+    }
+
+    /* Extract life time and pre-EOL information */
+	if (life_a)
+		*life_a = ext_csd[EXT_CSD_DEVICE_LIFE_TIME_EST_TYP_A];
+
+	if (life_b)
+		*life_b = ext_csd[EXT_CSD_DEVICE_LIFE_TIME_EST_TYP_B];
+
+	if (pre_eol)
+		*pre_eol = ext_csd[EXT_CSD_PRE_EOL_INFO];
+
+    return 0;
+}
 
 static int mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value)
 {
