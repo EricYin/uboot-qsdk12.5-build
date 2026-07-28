@@ -68,6 +68,11 @@ struct smem_ptable {
 	struct smem_ptn parts[SMEM_PTABLE_PARTS_MAX];
 } __attribute__ ((__packed__));
 
+#define APPEND_JSON_TO_BUF(fmt, args...)	\
+	do {	\
+		len += snprintf(buf + len, left - len, fmt, ##args);	\
+	} while (0)
+
 static void handle_response_message(struct httpd_response *response,
     int code, const char *data, const char *content_type)
 {
@@ -112,13 +117,12 @@ void sysinfo_handler(enum httpd_uri_handler_status status,
 		return;
 	}
 
-	len += snprintf(buf + len, left - len, "{");
+	APPEND_JSON_TO_BUF("{");
 
-    len += snprintf(buf + len, left - len,
-        "\"is_9008_mode\":%s,", is_9008_mode() ? "true" : "false");
+    APPEND_JSON_TO_BUF("\"is_9008_mode\":%s,", is_9008_mode() ? "true" : "false");
 
     json_escape(version_string, esc_version_string, sizeof(esc_version_string));
-    len += snprintf(buf + len, left - len, "\"uboot_version\":\"%s\",", esc_version_string);
+    APPEND_JSON_TO_BUF("\"uboot_version\":\"%s\",", esc_version_string);
 
     /* Board info */
     board_hostname = fdt_getprop(gd->fdt_blob, 0, "host_name", NULL);
@@ -129,49 +133,45 @@ void sysinfo_handler(enum httpd_uri_handler_status status,
     json_escape(board_model, esc_board_model, sizeof(esc_board_model));
     json_escape(board_compat, esc_board_compat, sizeof(esc_board_compat));
 
-	len += snprintf(buf + len, left - len, "\"board\":{");
-	len += snprintf(buf + len, left - len, "\"hostname\":\"%s\",", esc_board_hostname);
-	len += snprintf(buf + len, left - len, "\"model\":\"%s\",", esc_board_model);
-	len += snprintf(buf + len, left - len, "\"compatible\":\"%s\",", esc_board_compat);
-	len += snprintf(buf + len, left - len, "\"machid\":\"0x%lx\",", (ulong)gd->bd->bi_arch_number);
-	len += snprintf(buf + len, left - len, "\"ram_size\":%lu", (ulong)gd->ram_size);
-	len += snprintf(buf + len, left - len, "},"); /* board */
+	APPEND_JSON_TO_BUF("\"board\":{");
+	APPEND_JSON_TO_BUF("\"hostname\":\"%s\",", esc_board_hostname);
+	APPEND_JSON_TO_BUF("\"model\":\"%s\",", esc_board_model);
+	APPEND_JSON_TO_BUF("\"compatible\":\"%s\",", esc_board_compat);
+	APPEND_JSON_TO_BUF("\"machid\":\"0x%lx\",", (ulong)gd->bd->bi_arch_number);
+	APPEND_JSON_TO_BUF("\"ram_size\":%lu", (ulong)gd->ram_size);
+	APPEND_JSON_TO_BUF("},"); /* board */
 
     /* SMEM info */
-	len += snprintf(buf + len, left - len, "\"smeminfo\": {");
+	APPEND_JSON_TO_BUF("\"smeminfo\": {");
 
-    len += snprintf(buf + len, left - len, "\"flash_type\":\"%s\",",
-        flash_type_to_string(sfi->flash_type));
+    APPEND_JSON_TO_BUF("\"flash_type\":\"%s\",", flash_type_to_string(sfi->flash_type));
 
-    len += snprintf(buf + len, left - len,
-        "\"flash_block_size\":%lu,", (ulong)sfi->flash_block_size);
+    APPEND_JSON_TO_BUF("\"flash_block_size\":%lu,", (ulong)sfi->flash_block_size);
 
-    len += snprintf(buf + len, left - len,
-        "\"flash_density\":%lu", (ulong)sfi->flash_density);
+    APPEND_JSON_TO_BUF("\"flash_density\":%lu", (ulong)sfi->flash_density);
 
-	len += snprintf(buf + len, left - len, "},"); /* smeminfo */
+	APPEND_JSON_TO_BUF("},"); /* smeminfo */
 
 	/* Flash devices info */
-	len += snprintf(buf + len, left - len, "\"devices\":{");
+	APPEND_JSON_TO_BUF("\"devices\":{");
 
 	/* SPI info */
-	len += snprintf(buf + len, left - len, "\"spi\":{");
-	len += snprintf(buf + len, left - len, "\"present\":%s", dfd->spi ? "true" : "false");
+	APPEND_JSON_TO_BUF("\"spi\":{");
+	APPEND_JSON_TO_BUF("\"present\":%s", dfd->spi ? "true" : "false");
 	if (dfd->spi) {
 		struct spi_flash *spi;
 		spi = spi_flash_probe(CONFIG_SF_DEFAULT_BUS, CONFIG_SF_DEFAULT_CS,
 					CONFIG_SF_DEFAULT_SPEED, CONFIG_SF_DEFAULT_MODE);
-		len += snprintf(buf + len, left - len,
-			",\"name\":\"%s\",\"size\":%lu,"
+		APPEND_JSON_TO_BUF(",\"name\":\"%s\",\"size\":%lu,"
             "\"page_size\":%lu,\"sector_size\":%lu,\"erase_size\":%lu",
             spi->name, (ulong)spi->size,
             (ulong)spi->page_size, (ulong)spi->sector_size, (ulong)spi->erase_size);
 	}
-	len += snprintf(buf + len, left - len, "},"); /* devices: spi */
+	APPEND_JSON_TO_BUF("},"); /* devices: spi */
 
 	/* MMC info */
-	len += snprintf(buf + len, left - len, "\"mmc\":{");
-	len += snprintf(buf + len, left - len, "\"present\":%s", dfd->mmc ? "true" : "false");
+	APPEND_JSON_TO_BUF("\"mmc\":{");
+	APPEND_JSON_TO_BUF("\"present\":%s", dfd->mmc ? "true" : "false");
 	if (dfd->mmc) {
         int major_ver, minor_ver, change_ver;
 
@@ -182,8 +182,7 @@ void sysinfo_handler(enum httpd_uri_handler_status status,
         minor_ver = EXTRACT_SDMMC_MINOR_VERSION(mmc->version);
         change_ver = EXTRACT_SDMMC_CHANGE_VERSION(mmc->version);
 
-		len += snprintf(buf + len, left - len,
-			",\"vendor\":\"%s\",\"product\":\"%s\","
+		APPEND_JSON_TO_BUF(",\"vendor\":\"%s\",\"product\":\"%s\","
             "\"size\":%llu,\"block_size\":%lu,"
             "\"version\":\"%d.%d",
 			bd->vendor, bd->product,
@@ -191,47 +190,45 @@ void sysinfo_handler(enum httpd_uri_handler_status status,
             major_ver, minor_ver);
 
         if (change_ver)
-            len += snprintf(buf + len, left - len, ".%d\"", change_ver);
+            APPEND_JSON_TO_BUF(".%d\"", change_ver);
         else
-            len += snprintf(buf + len, left - len, "\"");
+            APPEND_JSON_TO_BUF("\"");
 
 		if (!IS_SD(mmc) && mmc->version >= MMC_VERSION_4) {
 			u8 life_a, life_b, pre_eol;
 			if (!mmc_get_life_info(mmc, &life_a, &life_b, &pre_eol)) {
-				len += snprintf(buf + len, left - len,
-					",\"life_a\":\"0x%02x\",\"life_b\":\"0x%02x\",\"pre_eol\":\"0x%02x\"",
+				APPEND_JSON_TO_BUF(",\"life_a\":\"0x%02x\",\"life_b\":\"0x%02x\",\"pre_eol\":\"0x%02x\"",
 					life_a, life_b, pre_eol);
 			}
 		}
 	}
-	len += snprintf(buf + len, left - len, "},"); /* devices: mmc */
+	APPEND_JSON_TO_BUF("},"); /* devices: mmc */
 
 	/* NAND info */
-	len += snprintf(buf + len, left - len, "\"nand\":{");
-	len += snprintf(buf + len, left - len, "\"present\":%s", dfd->nand ? "true" : "false");
+	APPEND_JSON_TO_BUF("\"nand\":{");
+	APPEND_JSON_TO_BUF("\"present\":%s", dfd->nand ? "true" : "false");
 	if (dfd->nand) {
 		nand_info_t *nand = &nand_info[CONFIG_NAND_FLASH_INFO_IDX];
-		len += snprintf(buf + len, left - len,
-			",\"name\":\"%s\",\"size\":%llu,"
+		APPEND_JSON_TO_BUF(",\"name\":\"%s\",\"size\":%llu,"
             "\"page_size\":%lu,\"block_size\":%lu,\"oob_size\":%lu,"
             "\"oob_avail\":%lu,\"ecc_step_size\":%u,\"ecc_strength\":%u",
             nand->name, (unsigned long long)nand->size,
             (ulong)nand->writesize, (ulong)nand->erasesize, (ulong)nand->oobsize,
             (ulong)nand->oobavail, nand->ecc_step_size, nand->ecc_strength);
 	}
-	len += snprintf(buf + len, left - len, "}"); /* devices: nand */
-	len += snprintf(buf + len, left - len, "},"); /* devices */
+	APPEND_JSON_TO_BUF("}"); /* devices: nand */
+	APPEND_JSON_TO_BUF("},"); /* devices */
 
 
 	/* Partitions */
-	len += snprintf(buf + len, left - len, "\"partitions\":{");
+	APPEND_JSON_TO_BUF("\"partitions\":{");
 
 	/* SMEM partitions */
 	spt = get_smem_ptable_addr();
 
-	len += snprintf(buf + len, left - len, "\"smem\":{");
-	len += snprintf(buf + len, left - len, "\"present\":%s,", spt->len ? "true" : "false");
-	len += snprintf(buf + len, left - len, "\"parts\":[");
+	APPEND_JSON_TO_BUF("\"smem\":{");
+	APPEND_JSON_TO_BUF("\"present\":%s,", spt->len ? "true" : "false");
+	APPEND_JSON_TO_BUF("\"parts\":[");
 
 	for (int i = 0; i < spt->len; i++) {
 		const struct smem_ptn *p = &spt->parts[i];
@@ -239,25 +236,24 @@ void sysinfo_handler(enum httpd_uri_handler_status status,
 
 		getpart_offset_size((char *)p->name, &offset_in_bytes, &size_in_bytes);
 
-		len += snprintf(buf + len, left - len,
-			"%s{\"name\":\"%s\",\"start\":%lu,\"size\":%lu}",
+		APPEND_JSON_TO_BUF("%s{\"name\":\"%s\",\"start\":%lu,\"size\":%lu}",
 			i ? "," : "", p->name, (ulong)offset_in_bytes, (ulong)size_in_bytes);
 	}
 
-	len += snprintf(buf + len, left - len, "]"); /* partitions: smem: parts */
-	len += snprintf(buf + len, left - len, "},"); /* partitions: smem */
+	APPEND_JSON_TO_BUF("]"); /* partitions: smem: parts */
+	APPEND_JSON_TO_BUF("},"); /* partitions: smem */
 
 	/* MMC partitions */
-	len += snprintf(buf + len, left - len, "\"mmc\":{");
-	len += snprintf(buf + len, left - len, "\"present\":%s,", dfd->mmc ? "true" : "false");
-	len += snprintf(buf + len, left - len, "\"parts\":[");
+	APPEND_JSON_TO_BUF("\"mmc\":{");
+	APPEND_JSON_TO_BUF("\"present\":%s,", dfd->mmc ? "true" : "false");
+	APPEND_JSON_TO_BUF("\"parts\":[");
 
 	if (dfd->mmc) {
 		disk_partition_t dpart = {0};
 		int idx = 1;
 
-		len += snprintf(buf + len, left - len,
-			"{\"name\":\"0:GPT\",\"start\":0,\"size\":%lu}", GPT_SIZE_IN_BLOCKS * bd->blksz);
+		APPEND_JSON_TO_BUF("{\"name\":\"0:GPT\",\"start\":0,\"size\":%lu}",
+			GPT_SIZE_IN_BLOCKS * bd->blksz);
 
 		while (len < left - 128) {
 			if (get_partition_info_efi(bd, idx, &dpart))
@@ -268,8 +264,7 @@ void sysinfo_handler(enum httpd_uri_handler_status status,
 				continue;
 			}
 
-			len += snprintf(buf + len, left - len,
-				",{\"name\":\"%s\",\"start\":%llu,\"size\":%llu}",
+			APPEND_JSON_TO_BUF(",{\"name\":\"%s\",\"start\":%llu,\"size\":%llu}",
 				dpart.name, (unsigned long long)dpart.start * dpart.blksz,
                 (unsigned long long)dpart.size * dpart.blksz);
 
@@ -277,11 +272,11 @@ void sysinfo_handler(enum httpd_uri_handler_status status,
 		}
 	}
 
-	len += snprintf(buf + len, left - len, "]"); /* partitions: mmc: parts */
-	len += snprintf(buf + len, left - len, "}"); /* partitions: mmc */
-	len += snprintf(buf + len, left - len, "}"); /* partitions */
+	APPEND_JSON_TO_BUF("]"); /* partitions: mmc: parts */
+	APPEND_JSON_TO_BUF("}"); /* partitions: mmc */
+	APPEND_JSON_TO_BUF("}"); /* partitions */
 
-	len += snprintf(buf + len, left - len, "}");
+	APPEND_JSON_TO_BUF("}");
 
 	handle_response_message(response, 200, buf, "application/json");
 	response->session_data = buf;
