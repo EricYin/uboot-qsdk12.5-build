@@ -268,7 +268,7 @@ typedef struct {
 #define CONFIG_CMD_UBI
 #define CONFIG_RBTREE
 #define CONFIG_CMD_BOOTZ
-#define CONFIG_SYS_BOOTM_LEN   (64 << 20)
+#define CONFIG_SYS_BOOTM_LEN   (200 << 20)
 #define CONFIG_IPQ_FDT_HIGH     0x87000000
 #define CONFIG_OF_BOARD_SETUP 1
 

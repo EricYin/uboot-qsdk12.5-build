@@ -45,7 +45,7 @@
 #define CONFIG_NR_DRAM_BANKS            1
 #define CONFIG_SKIP_LOWLEVEL_INIT
 
-#define CONFIG_SYS_BOOTM_LEN            (64 << 20)
+#define CONFIG_SYS_BOOTM_LEN            (200 << 20)
 #define HAVE_BLOCK_DEVICE
 /*
  * Size of malloc() pool
