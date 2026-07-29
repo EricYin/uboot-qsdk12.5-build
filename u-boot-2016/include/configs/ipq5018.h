@@ -474,7 +474,7 @@ extern loff_t board_env_size;
 /*
  * Network abort detection for U-Boot autoboot
  */
-#define CONFIG_NET_ABORT
+/* #define CONFIG_NET_ABORT */
 
 /*
  * DHCP Server support
