@@ -665,7 +665,7 @@ static int failsafe_write_firmware(ulong data_addr, ulong data_size)
 			ADD_CMD_TO_LIST("xtract_n_flash 0x%lx %s %s",
 				data_addr, entry->node_name, entry->part_name);
 		}
-#ifndef CONFIG_ARCH_IPQ5332
+#if !defined(CONFIG_ARCH_IPQ5332) && !defined(CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000)
 		ADD_CMD_TO_LIST("flasherase rootfs_data");
 #endif /* CONFIG_ARCH_IPQ5332 */
 		break;
@@ -684,6 +684,11 @@ static int failsafe_write_firmware(ulong data_addr, ulong data_size)
 		handle_wrong_fw_type("FIRMWARE");
 		return RET_WRONG_FW_TYPE;
 	}
+
+#ifdef CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000
+	if (!part_exists("rootfs_data", 0))
+		ADD_CMD_TO_LIST("flasherase rootfs_data");
+#endif
 
 #ifdef CONFIG_FAILSAFE_BOOTCONFIG
 	ADD_CMD_TO_LIST("bootconfig set firmware 0");
