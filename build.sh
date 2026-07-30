@@ -444,7 +444,7 @@ check_dependencies() {
                 version=$(cleancss --version 2>/dev/null)
                 ;;
             "terser")
-                version=$(terser --version 2>/dev/null)
+                version=$(terser --version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1)
                 ;;
             *)
                 version=""
@@ -967,7 +967,7 @@ generate_release_notes() {
 ## 文件下载
 
 | 平台名称 | 设备名称 | 设备型号 | 下载链接 |
-|---------|---------|---------|---------|
+|:--------|:--------|:--------|:--------|
 EOF
 
     # 添加表格行
