@@ -49,7 +49,13 @@ typedef struct {
 	unsigned int active_level;
 } button_info_t;
 
-detected_flash_device_t detected_flash_device;
+typedef struct {
+	bool spi;
+	bool nand;
+	bool mmc;
+} detected_flash_device_t;
+
+static detected_flash_device_t detected_flash_device;
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -304,6 +310,21 @@ void detect_flash_device(void)
 	printf("FLASH(S): %s\n", len ? flash_list : "NONE");
 }
 
+bool has_spi(void)
+{
+	return detected_flash_device.spi;
+}
+
+bool has_nand(void)
+{
+	return detected_flash_device.nand;
+}
+
+bool has_mmc(void)
+{
+	return detected_flash_device.mmc;
+}
+
 /**
  * json_escape - 对字符串进行JSON转义处理
  * @input: 要转义的输入字符串（可以为NULL）
@@ -371,9 +392,8 @@ bool mmc_part_exists(const char *part_name)
 	int ret;
 	block_dev_desc_t *mmc_dev;
 	disk_partition_t disk_info = {0};
-	const detected_flash_device_t *dfd = &detected_flash_device;
 
-	if (!dfd->mmc)
+	if (!has_mmc())
 		return false;
 
 	mmc_dev = mmc_get_dev(mmc_host.dev_num);
@@ -573,15 +593,13 @@ done:
 
 void reload_mibib_from_flash_in_9008_mode(void)
 {
-	const detected_flash_device_t *dfd = &detected_flash_device;
-
 	if (!is_9008_mode())
 		return;
 
-	if (dfd->spi && !reload_mibib_from_spi())
+	if (has_spi() && !reload_mibib_from_spi())
 		return;
 
-	if (dfd->nand)
+	if (has_nand())
 		reload_mibib_from_nand();
 }
 
@@ -592,19 +610,18 @@ void reload_mibib_from_flash_in_9008_mode(void)
 void set_default_flash_type_in_9008_mode(void)
 {
 	qca_smem_flash_info_t *sfi = &qca_smem_flash_info;
-	const detected_flash_device_t *dfd = &detected_flash_device;
 
 	if (!is_9008_mode())
 		return;
 
 	/* SPI-NOR 具有最高优先级 */
-	if (dfd->spi) {
+	if (has_spi()) {
 		sfi->flash_type = SMEM_BOOT_SPI_FLASH;
 		return;
 	}
 
 	/* 只有 NAND 存在 */
-	if (dfd->nand && !dfd->mmc) {
+	if (has_nand() && !has_mmc()) {
 #ifdef CONFIG_QPIC_SERIAL
 		sfi->flash_type = SMEM_BOOT_QSPI_NAND_FLASH;
 #else
@@ -614,7 +631,7 @@ void set_default_flash_type_in_9008_mode(void)
 	}
 
 	/* 只有 eMMC 存在 */
-	if (dfd->mmc && !dfd->nand) {
+	if (has_mmc() && !has_nand()) {
 		sfi->flash_type = SMEM_BOOT_MMC_FLASH;
 		return;
 	}

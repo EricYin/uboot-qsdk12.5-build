@@ -77,7 +77,6 @@ static ulong factory_fw_kernel_size;
 static char info[666];
 static char resp[888];
 static fw_type_t fw_type;
-static const detected_flash_device_t *dfd = &detected_flash_device;
 
 /* Implemented in: u-boot-2016/board/qca/arm/common/cmd_bootqca.c */
 extern int config_select(unsigned int addr, char *rcmd, int rcmd_size);
@@ -88,7 +87,7 @@ extern int config_select(unsigned int addr, char *rcmd, int rcmd_size);
 
 #define RETURN_IF_NOR_FLASH_NOT_FOUND \
     do {    \
-        if (!dfd->spi) {    \
+        if (!has_spi()) {    \
             handle_flash_not_found("SPI-NOR");   \
             return RET_FLASH_NOT_FOUND; \
         }   \
@@ -96,7 +95,7 @@ extern int config_select(unsigned int addr, char *rcmd, int rcmd_size);
 
 #define RETURN_IF_NAND_FLASH_NOT_FOUND \
     do {    \
-        if (!dfd->nand) {    \
+        if (!has_nand()) {    \
             handle_flash_not_found("NAND");   \
             return RET_FLASH_NOT_FOUND; \
         }   \
@@ -104,7 +103,7 @@ extern int config_select(unsigned int addr, char *rcmd, int rcmd_size);
 
 #define RETURN_IF_MMC_FLASH_NOT_FOUND \
     do {    \
-        if (!dfd->mmc) {    \
+        if (!has_mmc()) {    \
             handle_flash_not_found("EMMC");   \
             return RET_FLASH_NOT_FOUND; \
         }   \
@@ -244,7 +243,7 @@ static int validate_file_size(char *file_name, char *part_name, ulong file_size_
     ulong file_size_blocks = 0;
 	uint32_t offset_bytes, size_bytes;
 
-	if (dfd->spi || dfd->nand) {
+	if (has_spi() || has_nand()) {
 		ret = getpart_offset_size(part_name, &offset_bytes, &size_bytes);
 		if (!ret) {
 			part_size_bytes = (ulong)size_bytes;
@@ -254,7 +253,7 @@ static int validate_file_size(char *file_name, char *part_name, ulong file_size_
 		}
 	}
 
-	if (!dfd->mmc)
+	if (!has_mmc())
 		goto part_not_found;
 
 	mmc_dev = mmc_get_dev(mmc_host.dev_num);

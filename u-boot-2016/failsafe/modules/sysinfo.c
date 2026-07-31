@@ -52,7 +52,6 @@ DECLARE_GLOBAL_DATA_PTR;
 #define SMEM_PTABLE_PARTS_MAX 32
 
 static const qca_smem_flash_info_t *sfi = &qca_smem_flash_info;
-static const detected_flash_device_t *dfd = &detected_flash_device;
 
 struct smem_ptn {
 	char name[SMEM_PTN_NAME_MAX];
@@ -157,8 +156,8 @@ void sysinfo_handler(enum httpd_uri_handler_status status,
 
 	/* SPI info */
 	APPEND_JSON_TO_BUF("\"spi\":{");
-	APPEND_JSON_TO_BUF("\"present\":%s", dfd->spi ? "true" : "false");
-	if (dfd->spi) {
+	APPEND_JSON_TO_BUF("\"present\":%s", has_spi() ? "true" : "false");
+	if (has_spi()) {
 		struct spi_flash *spi;
 		spi = spi_flash_probe(CONFIG_SF_DEFAULT_BUS, CONFIG_SF_DEFAULT_CS,
 					CONFIG_SF_DEFAULT_SPEED, CONFIG_SF_DEFAULT_MODE);
@@ -171,8 +170,8 @@ void sysinfo_handler(enum httpd_uri_handler_status status,
 
 	/* MMC info */
 	APPEND_JSON_TO_BUF("\"mmc\":{");
-	APPEND_JSON_TO_BUF("\"present\":%s", dfd->mmc ? "true" : "false");
-	if (dfd->mmc) {
+	APPEND_JSON_TO_BUF("\"present\":%s", has_mmc() ? "true" : "false");
+	if (has_mmc()) {
         int major_ver, minor_ver, change_ver;
 
 		mmc = find_mmc_device(mmc_host.dev_num);
@@ -206,8 +205,8 @@ void sysinfo_handler(enum httpd_uri_handler_status status,
 
 	/* NAND info */
 	APPEND_JSON_TO_BUF("\"nand\":{");
-	APPEND_JSON_TO_BUF("\"present\":%s", dfd->nand ? "true" : "false");
-	if (dfd->nand) {
+	APPEND_JSON_TO_BUF("\"present\":%s", has_nand() ? "true" : "false");
+	if (has_nand()) {
 		nand_info_t *nand = &nand_info[CONFIG_NAND_FLASH_INFO_IDX];
 		APPEND_JSON_TO_BUF(",\"name\":\"%s\",\"size\":%llu,"
             "\"page_size\":%lu,\"block_size\":%lu,\"oob_size\":%lu,"
@@ -245,10 +244,10 @@ void sysinfo_handler(enum httpd_uri_handler_status status,
 
 	/* MMC partitions */
 	APPEND_JSON_TO_BUF("\"mmc\":{");
-	APPEND_JSON_TO_BUF("\"present\":%s,", dfd->mmc ? "true" : "false");
+	APPEND_JSON_TO_BUF("\"present\":%s,", has_mmc() ? "true" : "false");
 	APPEND_JSON_TO_BUF("\"parts\":[");
 
-	if (dfd->mmc) {
+	if (has_mmc()) {
 		disk_partition_t dpart = {0};
 		int idx = 1;
 

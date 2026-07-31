@@ -183,7 +183,6 @@ void webterm_upload_handler(enum httpd_uri_handler_status status,
 {
 	struct httpd_form_value *file;
 	block_dev_desc_t *mmc_dev;
-	const detected_flash_device_t *dfd = &detected_flash_device;
 	ulong size_blocks;
 	char *buf;
 	size_t len = 0;
@@ -206,7 +205,7 @@ void webterm_upload_handler(enum httpd_uri_handler_status status,
 
 	setenv_hex("fileaddr", (ulong)file->data);
     setenv_hex("filesize", (ulong)file->size);
-    if (dfd->mmc) {
+    if (has_mmc()) {
         mmc_dev = mmc_get_dev(mmc_host.dev_num);
         if (mmc_dev && mmc_dev->blksz) {
             size_blocks = file->size / mmc_dev->blksz +

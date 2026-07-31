@@ -651,7 +651,6 @@ char * const argv[])
 static int do_flupdate(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	const qca_smem_flash_info_t *sfi = &qca_smem_flash_info;
-	const detected_flash_device_t *dfd = &detected_flash_device;
 	const char *flash_type_str;
 
 	if (argc < 2 || argc > 3)
@@ -664,11 +663,11 @@ static int do_flupdate(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]
 		flash_type_str = argv[2];
 
 		if (!strncmp(flash_type_str, "nor", 3)) {
-			if (!dfd->spi)
+			if (!has_spi())
 				goto flash_not_found;
 			flash_type_new = SMEM_BOOT_SPI_FLASH;
 		} else if (!strncmp(flash_type_str, "nand", 4)) {
-			if (!dfd->nand)
+			if (!has_nand())
 				goto flash_not_found;
 #ifdef CONFIG_QPIC_SERIAL
 			flash_type_new = SMEM_BOOT_QSPI_NAND_FLASH;
@@ -676,7 +675,7 @@ static int do_flupdate(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]
 			flash_type_new = SMEM_BOOT_NAND_FLASH;
 #endif
 		} else if (!strncmp(flash_type_str, "mmc", 3)) {
-			if (!dfd->mmc)
+			if (!has_mmc())
 				goto flash_not_found;
 			flash_type_new = SMEM_BOOT_MMC_FLASH;
 		} else {
@@ -703,7 +702,6 @@ flash_not_found:
 static int read_partition(const char *part_name, const ulong load_addr)
 {
 	const qca_smem_flash_info_t *sfi = &qca_smem_flash_info;
-    const detected_flash_device_t *dfd = &detected_flash_device;
 	block_dev_desc_t *mmc_dev;
 	disk_partition_t disk_info = {0};
 	ulong offset_blocks = 0, size_blocks = 0;
@@ -742,7 +740,7 @@ static int read_partition(const char *part_name, const ulong load_addr)
 	case SMEM_BOOT_NO_FLASH:
 	case SMEM_BOOT_SDC_FLASH:
 	default:
-        if (!dfd->mmc)
+        if (!has_mmc())
 			goto part_not_found;
 
 		mmc_dev = mmc_get_dev(mmc_host.dev_num);
@@ -784,7 +782,7 @@ static int read_partition(const char *part_name, const ulong load_addr)
 
     setenv_hex("fileaddr", load_addr);
     setenv_hex("filesize", size_bytes);
-    if (dfd->mmc) {
+    if (has_mmc()) {
         if (!size_blocks) {
 			mmc_dev = mmc_get_dev(mmc_host.dev_num);
 			if (mmc_dev && mmc_dev->blksz)

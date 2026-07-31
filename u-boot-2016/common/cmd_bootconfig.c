@@ -63,7 +63,6 @@ typedef struct {
 } bootconfig_info_t;
 
 static const qca_smem_flash_info_t *sfi = &qca_smem_flash_info;
-static const detected_flash_device_t *dfd = &detected_flash_device;
 
 /**
  * get_bootconfig_part_offset - Get bootconfig partition offset
@@ -90,7 +89,7 @@ static int get_bootconfig_part_offset(const char *part_name)
 	case SMEM_BOOT_MMC_FLASH:
 	case SMEM_BOOT_NO_FLASH:
 	case SMEM_BOOT_SDC_FLASH:
-		if (!dfd->mmc)
+		if (!has_mmc())
 			return -ENODEV;
 		mmc_dev = mmc_get_dev(mmc_host.dev_num);
 		if (!mmc_dev)

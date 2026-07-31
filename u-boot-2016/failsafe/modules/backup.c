@@ -215,7 +215,6 @@ void backup_handler(enum httpd_uri_handler_status status,
         struct httpd_request *request,
         struct httpd_response *response)
 {
-	const detected_flash_device_t *dfd = &detected_flash_device;
 	struct backup_session *st;
 	struct httpd_form_value *mode, *target, *start, *size;
 	char target_name[64] = "";
@@ -289,7 +288,7 @@ void backup_handler(enum httpd_uri_handler_status status,
 				st->smem.flash_type = SMEM_BOOT_SPI_FLASH;
 				st->smem.which_flash = 0;
 			} else if (!strncmp(target_name, "mmc", 3)) {
-				if (!dfd->mmc)
+				if (!has_mmc())
 					goto bad_target;
 
 				st->mmc = find_mmc_device(mmc_host.dev_num);
@@ -328,11 +327,11 @@ void backup_handler(enum httpd_uri_handler_status status,
 			st->smem.which_flash = get_which_flash_param(target_name);
 			strlcpy(st->smem.name, target_name, sizeof(st->smem.name));
 
-			if (st->smem.which_flash && !dfd->nand)
+			if (st->smem.which_flash && !has_nand())
 				goto bad_target;
 		} else {
 			/* MMC path */
-			if (!dfd->mmc)
+			if (!has_mmc())
 				goto bad_target;
 
 			st->mmc = find_mmc_device(mmc_host.dev_num);

@@ -418,7 +418,6 @@ int net_loop(enum proto_t protocol)
 	net_restarted = 0;
 	net_dev_exists = 0;
 	net_try_count = 1;
-	const detected_flash_device_t *dfd = &detected_flash_device;
 	debug_cond(DEBUG_INT_STATE, "--- net_loop Entry\n");
 
 	bootstage_mark_name(BOOTSTAGE_ID_ETH_START, "eth_start");
@@ -684,7 +683,7 @@ restart:
 				       net_boot_file_size, net_boot_file_size);
 				setenv_hex("fileaddr", load_addr);
 				setenv_hex("filesize", net_boot_file_size);
-				if (dfd->mmc) {
+				if (has_mmc()) {
 					ulong file_size_in_blocks;
 					block_dev_desc_t *mmc_dev;
 					mmc_dev = mmc_get_dev(mmc_host.dev_num);

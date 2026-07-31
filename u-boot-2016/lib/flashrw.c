@@ -38,14 +38,12 @@ extern qca_mmc mmc_host;
 extern struct sdhci_host mmc_host;
 #endif
 
-static const detected_flash_device_t *dfd = &detected_flash_device;
-
 int read_data_from_spi(ulong offset, size_t size, void *buf, size_t buf_size)
 {
     struct spi_flash *spi;
     int ret;
 
-    if (!dfd->spi)
+    if (!has_spi())
         return -ENODEV;
 
     spi = spi_flash_probe(CONFIG_SF_DEFAULT_BUS, CONFIG_SF_DEFAULT_CS,
@@ -82,7 +80,7 @@ int read_data_from_nand(ulong offset, size_t size, void *buf, size_t buf_size)
 	void *tmp_buf;
     int ret;
 
-    if (!dfd->nand)
+    if (!has_nand())
         return -ENODEV;
 
     if (offset + size > nand->size) {
@@ -136,7 +134,7 @@ int read_data_from_mmc(u64 offset, size_t size, void *buf, size_t buf_size)
 	ulong readblks, num_blocks;
 	void *tmp_buf;
 
-    if (!dfd->mmc)
+    if (!has_mmc())
         return -ENODEV;
 
     mmc = find_mmc_device(mmc_host.dev_num);
@@ -186,7 +184,7 @@ int write_data_to_spi(ulong offset, size_t size, const void *buf)
     const char *err_oper = NULL;
     int ret;
 
-    if (!dfd->spi)
+    if (!has_spi())
         return -ENODEV;
 
     spi = spi_flash_probe(CONFIG_SF_DEFAULT_BUS, CONFIG_SF_DEFAULT_CS,
@@ -259,7 +257,7 @@ int write_data_to_nand(ulong offset, size_t size, const void *buf)
     const char *err_oper = NULL;
     int ret;
 
-    if (!dfd->nand)
+    if (!has_nand())
         return -ENODEV;
 
     if (offset + size > nand->size) {
@@ -332,7 +330,7 @@ int write_data_to_mmc(u64 offset, size_t size, const void *buf)
 	ulong readblks, writeblks, num_blocks;
 	void *tmp_buf;
 
-    if (!dfd->mmc)
+    if (!has_mmc())
         return -ENODEV;
 
     mmc = find_mmc_device(mmc_host.dev_num);

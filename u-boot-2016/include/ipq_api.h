@@ -25,14 +25,6 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-typedef struct {
-	bool spi;
-	bool nand;
-	bool mmc;
-} detected_flash_device_t;
-
-extern detected_flash_device_t detected_flash_device;
-
 #define SZ_KIB(n) ((n) << 10)
 #define SZ_MIB(n) ((n) << 20)
 
@@ -110,13 +102,17 @@ typedef enum {
 
 void do_network_check(void);
 void do_httpd_check(void);
-void detect_flash_device(void);
 void ipq_gpio_init(void);
 size_t json_escape(const char *input, char *output, size_t output_buffer_size);
 bool mmc_part_exists(const char *part_name);
 const void *get_mibib_ptable_offset(const void *addr, size_t limit, mibib_type_t mibib_type);
 void reload_mibib_from_flash_in_9008_mode(void);
 void set_default_flash_type_in_9008_mode(void);
+
+void detect_flash_device(void);
+bool has_spi(void);
+bool has_nand(void);
+bool has_mmc(void);
 
 #if defined(CONFIG_HTTPD)
 const char *flash_type_to_string(const uint32_t flash_type);

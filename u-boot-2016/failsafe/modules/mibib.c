@@ -36,7 +36,6 @@ void mibib_reload_handler(enum httpd_uri_handler_status status,
 {
     static char resp[256];
     qca_smem_flash_info_t *sfi = &qca_smem_flash_info;
-    const detected_flash_device_t *dfd = &detected_flash_device;
     struct spi_flash *spi;
     nand_info_t *nand;
     struct httpd_form_value *mibib;
@@ -73,7 +72,7 @@ void mibib_reload_handler(enum httpd_uri_handler_status status,
     fw_type = check_fw_type((uintptr_t)mibib->data, mibib->size);
     switch (fw_type) {
     case FW_TYPE_MIBIB_NAND:
-        if (!dfd->nand)
+        if (!has_nand())
 			goto flash_not_found;
         nand = &nand_info[CONFIG_NAND_FLASH_INFO_IDX];
         page_size = 2048;
@@ -86,7 +85,7 @@ void mibib_reload_handler(enum httpd_uri_handler_status status,
         sfi->flash_density = nand->size;
         break;
     case FW_TYPE_MIBIB_NOR:
-        if (!dfd->spi)
+        if (!has_spi())
 			goto flash_not_found;
         spi = spi_flash_probe(CONFIG_SF_DEFAULT_BUS, CONFIG_SF_DEFAULT_CS,
                     CONFIG_SF_DEFAULT_SPEED, CONFIG_SF_DEFAULT_MODE);

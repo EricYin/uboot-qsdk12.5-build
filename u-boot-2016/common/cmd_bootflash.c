@@ -26,7 +26,6 @@
 static int do_bootflash(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
     qca_smem_flash_info_t *sfi = &qca_smem_flash_info;
-    const detected_flash_device_t *dfd = &detected_flash_device;
     const char *flash_type_str;
 
     if (!is_9008_mode()) {
@@ -43,11 +42,11 @@ static int do_bootflash(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[
     flash_type_str = argv[2];
 
     if (!strncmp(flash_type_str, "nor", 3)) {
-        if (!dfd->spi)
+        if (!has_spi())
             goto flash_not_found;
         sfi->flash_type = SMEM_BOOT_SPI_FLASH;
     } else if (!strncmp(flash_type_str, "nand", 4)) {
-        if (!dfd->nand)
+        if (!has_nand())
             goto flash_not_found;
 #ifdef CONFIG_QPIC_SERIAL
         sfi->flash_type = SMEM_BOOT_QSPI_NAND_FLASH;
@@ -55,7 +54,7 @@ static int do_bootflash(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[
         sfi->flash_type = SMEM_BOOT_NAND_FLASH;
 #endif
     } else if (!strncmp(flash_type_str, "mmc", 3)) {
-        if (!dfd->mmc)
+        if (!has_mmc())
             goto flash_not_found;
         sfi->flash_type = SMEM_BOOT_MMC_FLASH;
     } else {

@@ -58,7 +58,6 @@ enum {
 };
 
 static const qca_smem_flash_info_t *sfi = &qca_smem_flash_info;
-static const detected_flash_device_t *dfd = &detected_flash_device;
 
 static void handle_response_message(struct httpd_response *response,
 		int code, const char *msg, const char *content_type)
@@ -92,7 +91,7 @@ static int get_mac_part_offset_size(uint32_t *part_offset, uint32_t *part_size)
 	case SMEM_BOOT_MMC_FLASH:
 	case SMEM_BOOT_NO_FLASH:
 	case SMEM_BOOT_SDC_FLASH:
-		if (!dfd->mmc)
+		if (!has_mmc())
 			return -ENODEV;
 		mmc_dev = mmc_get_dev(mmc_host.dev_num);
 		if (!mmc_dev)
