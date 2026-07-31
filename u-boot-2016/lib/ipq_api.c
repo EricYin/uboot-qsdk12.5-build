@@ -43,21 +43,11 @@ extern qca_mmc mmc_host;
 extern struct sdhci_host mmc_host;
 #endif
 
-typedef struct {
-	const char *name;
-	unsigned int gpio;
-	unsigned int active_level;
-} button_info_t;
-
-typedef struct {
-	bool spi;
-	bool nand;
-	bool mmc;
-} detected_flash_device_t;
-
-static detected_flash_device_t detected_flash_device;
-
 DECLARE_GLOBAL_DATA_PTR;
+
+// =============================================================================
+// GPIO 帮助函数
+// =============================================================================
 
 void ipq_gpio_init(void)
 {
@@ -70,6 +60,16 @@ void ipq_gpio_init(void)
 			qca_gpio_init(node);
 	}
 }
+
+// =============================================================================
+// httpd 触发检测（按键、环境变量、9008 模式）
+// =============================================================================
+
+typedef struct {
+	const char *name;
+	unsigned int gpio;
+	unsigned int active_level;
+} button_info_t;
 
 static bool is_button_pressed(unsigned int button_gpio, unsigned int active_level)
 {
@@ -214,6 +214,10 @@ void do_httpd_check(void)
 	}
 }
 
+// =============================================================================
+// 网络参数检查与修改 (ipaddr、netmask、serverip)
+// =============================================================================
+
 /**
  * 每次启动都会检查环境变量：ipaddr、netmask 和 serverip，并将其重置为默认值。
  * 若想要自定义这三个环境变量，需添加 custom_network 环境变量（任意合法非空值即可）。
@@ -273,6 +277,18 @@ void do_network_check(void)
 	}
 }
 
+// =============================================================================
+// 闪存设备检测
+// =============================================================================
+
+typedef struct {
+	bool spi;
+	bool nand;
+	bool mmc;
+} detected_flash_device_t;
+
+static detected_flash_device_t detected_flash_device;
+
 void detect_flash_device(void)
 {
 	int len = 0;
@@ -325,87 +341,11 @@ bool has_mmc(void)
 	return detected_flash_device.mmc;
 }
 
-/**
- * json_escape - 对字符串进行JSON转义处理
- * @input: 要转义的输入字符串（可以为NULL）
- * @output: 存储转义后字符串的输出缓冲区
- * @output_buffer_size: 输出缓冲区的大小（字节）
- *
- * 该函数将输入字符串中的特殊字符转义为JSON兼容的格式，包括：
- *   - 双引号转义为 \"
- *   - 反斜杠转义为 \\
- *   - 换行符转义为 \n
- *   - 回车符转义为 \r
- *   - 制表符转义为 \t
- *   - 其他控制字符（< 0x20）替换为空格
- *   - 普通字符保持不变
- *
- * 返回值：写入输出缓冲区的字符数（不包括结尾的'\0'）
- */
-size_t json_escape(const char *input, char *output, size_t output_buffer_size)
-{
-	int j = 0;
+// =============================================================================
+// flash_type enum 与 string 转换
+// =============================================================================
 
-    if (!output || !output_buffer_size)
-        return 0;
-
-    if (!input)
-        goto done;
-
-    for (int i = 0; input[i] && j < output_buffer_size - 1; i++) {
-        switch (input[i]) {
-        case '"':
-        case '\\':
-            if (j + 2 >= output_buffer_size)
-                goto done;
-            output[j++] = '\\';
-            output[j++] = input[i];
-            break;
-        case '\n':
-        case '\r':
-        case '\t':
-            if (j + 2 >= output_buffer_size)
-                goto done;
-            output[j++] = '\\';
-            if (input[i] == '\n')
-                output[j++] = 'n';
-            else if (input[i] == '\r')
-                output[j++] = 'r';
-            else
-                output[j++] = 't';
-            break;
-        default:
-            if ((unsigned char)input[i] < 0x20)
-                output[j++] = ' ';
-            else
-                output[j++] = input[i];
-        }
-    }
-
-done:
-    output[j] = '\0';
-    return j;
-}
-
-bool mmc_part_exists(const char *part_name)
-{
-	int ret;
-	block_dev_desc_t *mmc_dev;
-	disk_partition_t disk_info = {0};
-
-	if (!has_mmc())
-		return false;
-
-	mmc_dev = mmc_get_dev(mmc_host.dev_num);
-	if (!mmc_dev)
-		return false;
-
-	ret = get_partition_info_efi_by_name(mmc_dev, part_name, &disk_info);
-
-	return ret ? false : true;
-}
-
-const char *flash_type_to_string(const uint32_t flash_type)
+const char *flash_type_to_string(uint32_t flash_type)
 {
     switch (flash_type) {
     case SMEM_BOOT_NO_FLASH: return NO_FLASH_STR;
@@ -447,6 +387,10 @@ int string_to_flash_type(const char *str)
     else
         return -1;
 }
+
+// =============================================================================
+// 9008 模式相关 (MIBIB 重载、默认 flash_type 设置)
+// =============================================================================
 
 const void *get_mibib_ptable_offset(const void *addr, size_t limit, mibib_type_t mibib_type)
 {
@@ -638,4 +582,134 @@ void set_default_flash_type_in_9008_mode(void)
 
 	/* 其他情况不做修改 */
 	return;
+}
+
+// =============================================================================
+// 地址合法性检测（检测文件上传地址及内存区域是否可用）
+// =============================================================================
+
+bool is_load_addr_valid(uintptr_t load_addr)
+{
+	/*
+     * Do not load files to the reserved region or the
+     * region where linux is executed.
+     */
+#ifdef CONFIG_IPQ806X
+    if ((load_addr < IPQ_TFTP_MIN_ADDR) || (load_addr >= IPQ_TFTP_MAX_ADDR))
+#else
+    if ((load_addr < IPQ_TFTP_MIN_ADDR) || (load_addr >= CONFIG_SYS_SDRAM_END) ||
+        ((load_addr >= CONFIG_IPQ_FDT_HIGH) && (load_addr < CONFIG_TZ_END_ADDR)))
+#endif /* CONFIG_IPQ806X */
+        return false;
+
+	return true;
+}
+
+bool is_memory_region_available(uintptr_t load_addr, size_t size)
+{
+	uintptr_t end_addr;
+
+	if (!is_load_addr_valid(load_addr))
+		return false;
+
+	end_addr = load_addr + size;
+
+	/*
+	 * The file to be loaded should not overwrite the
+	 * code/stack area.
+	 */
+#ifdef CONFIG_IPQ806X
+    if (end_addr >= IPQ_TFTP_MAX_ADDR)
+#else
+    if ((end_addr >= CONFIG_SYS_SDRAM_END) ||
+        ((end_addr >= CONFIG_IPQ_FDT_HIGH) && (end_addr < CONFIG_TZ_END_ADDR)) ||
+		((load_addr < CONFIG_IPQ_FDT_HIGH) && (end_addr >= CONFIG_TZ_END_ADDR)))
+#endif /* CONFIG_IPQ806X */
+        return false;
+
+	return true;
+}
+
+// =============================================================================
+// 杂项
+// =============================================================================
+
+/**
+ * json_escape - 对字符串进行JSON转义处理
+ * @input: 要转义的输入字符串（可以为NULL）
+ * @output: 存储转义后字符串的输出缓冲区
+ * @output_buffer_size: 输出缓冲区的大小（字节）
+ *
+ * 该函数将输入字符串中的特殊字符转义为JSON兼容的格式，包括：
+ *   - 双引号转义为 \"
+ *   - 反斜杠转义为 \\
+ *   - 换行符转义为 \n
+ *   - 回车符转义为 \r
+ *   - 制表符转义为 \t
+ *   - 其他控制字符（< 0x20）替换为空格
+ *   - 普通字符保持不变
+ *
+ * 返回值：写入输出缓冲区的字符数（不包括结尾的'\0'）
+ */
+size_t json_escape(const char *input, char *output, size_t output_buffer_size)
+{
+	int j = 0;
+
+    if (!output || !output_buffer_size)
+        return 0;
+
+    if (!input)
+        goto done;
+
+    for (int i = 0; input[i] && j < output_buffer_size - 1; i++) {
+        switch (input[i]) {
+        case '"':
+        case '\\':
+            if (j + 2 >= output_buffer_size)
+                goto done;
+            output[j++] = '\\';
+            output[j++] = input[i];
+            break;
+        case '\n':
+        case '\r':
+        case '\t':
+            if (j + 2 >= output_buffer_size)
+                goto done;
+            output[j++] = '\\';
+            if (input[i] == '\n')
+                output[j++] = 'n';
+            else if (input[i] == '\r')
+                output[j++] = 'r';
+            else
+                output[j++] = 't';
+            break;
+        default:
+            if ((unsigned char)input[i] < 0x20)
+                output[j++] = ' ';
+            else
+                output[j++] = input[i];
+        }
+    }
+
+done:
+    output[j] = '\0';
+    return j;
+}
+
+bool mmc_part_exists(const char *part_name)
+{
+	int ret;
+	block_dev_desc_t *mmc_dev;
+	disk_partition_t disk_info = {0};
+
+	if (!has_mmc())
+		return false;
+
+	mmc_dev = mmc_get_dev(mmc_host.dev_num);
+	if (!mmc_dev)
+		return false;
+
+	ret = get_partition_info_efi_by_name(mmc_dev, part_name, &disk_info);
+
+	return ret ? false : true;
 }

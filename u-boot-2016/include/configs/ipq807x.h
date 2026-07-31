@@ -386,6 +386,12 @@ extern loff_t board_env_size;
 #endif
 
 /*
+ * Lib functions
+ */
+#define CONFIG_LIB_IPQ_API
+#define CONFIG_LIB_FLASHRW
+
+/*
  * Disable some modules
  */
 #define CONFIG_CMD_DISABLE_EXECTZT

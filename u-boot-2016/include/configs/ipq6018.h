@@ -391,6 +391,12 @@ extern loff_t board_env_size;
 #endif
 
 /*
+ * Lib functions
+ */
+#define CONFIG_LIB_IPQ_API
+#define CONFIG_LIB_FLASHRW
+
+/*
  * Flash read/write commands
  */
 #define CONFIG_CMD_FLASHREAD

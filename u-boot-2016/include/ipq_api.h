@@ -23,8 +23,6 @@
 
 #include <ipq_led.h>
 
-DECLARE_GLOBAL_DATA_PTR;
-
 #define SZ_KIB(n) ((n) << 10)
 #define SZ_MIB(n) ((n) << 20)
 
@@ -34,48 +32,6 @@ DECLARE_GLOBAL_DATA_PTR;
 #else
 #define CONFIG_LOADADDR 0x44000000
 #endif
-
-static inline bool is_load_addr_valid(uintptr_t load_addr)
-{
-	/*
-     * Do not load files to the reserved region or the
-     * region where linux is executed.
-     */
-#ifdef CONFIG_IPQ806X
-    if ((load_addr < IPQ_TFTP_MIN_ADDR) || (load_addr >= IPQ_TFTP_MAX_ADDR))
-#else
-    if ((load_addr < IPQ_TFTP_MIN_ADDR) || (load_addr >= CONFIG_SYS_SDRAM_END) ||
-        ((load_addr >= CONFIG_IPQ_FDT_HIGH) && (load_addr < CONFIG_TZ_END_ADDR)))
-#endif /* CONFIG_IPQ806X */
-        return false;
-
-	return true;
-}
-
-static inline bool is_memory_region_available(uintptr_t load_addr, size_t size)
-{
-	uintptr_t end_addr;
-
-	if (!is_load_addr_valid(load_addr))
-		return false;
-
-	end_addr = load_addr + size;
-
-	/*
-	 * The file to be loaded should not overwrite the
-	 * code/stack area.
-	 */
-#ifdef CONFIG_IPQ806X
-    if (end_addr >= IPQ_TFTP_MAX_ADDR)
-#else
-    if ((end_addr >= CONFIG_SYS_SDRAM_END) ||
-        ((end_addr >= CONFIG_IPQ_FDT_HIGH) && (end_addr < CONFIG_TZ_END_ADDR)) ||
-		((load_addr < CONFIG_IPQ_FDT_HIGH) && (end_addr >= CONFIG_TZ_END_ADDR)))
-#endif /* CONFIG_IPQ806X */
-        return false;
-
-	return true;
-}
 
 #define CONFIG_TFTP_TSIZE
 #if defined(CONFIG_TFTP_TSIZE)
@@ -109,24 +65,15 @@ const void *get_mibib_ptable_offset(const void *addr, size_t limit, mibib_type_t
 void reload_mibib_from_flash_in_9008_mode(void);
 void set_default_flash_type_in_9008_mode(void);
 
+bool is_load_addr_valid(uintptr_t load_addr);
+bool is_memory_region_available(uintptr_t load_addr, size_t size);
+
 void detect_flash_device(void);
 bool has_spi(void);
 bool has_nand(void);
 bool has_mmc(void);
 
-#if defined(CONFIG_HTTPD)
-const char *flash_type_to_string(const uint32_t flash_type);
+const char *flash_type_to_string(uint32_t flash_type);
 int string_to_flash_type(const char *str);
-#else
-static inline const char *flash_type_to_string(const uint32_t flash_type)
-{
-	return "";
-}
-
-static inline int string_to_flash_type(const char *str)
-{
-	return -1;
-}
-#endif
 
 #endif /* __IPQ_API__ */

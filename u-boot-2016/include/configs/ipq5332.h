@@ -519,6 +519,12 @@ extern loff_t board_env_size;
 #endif /* CONFIG_LIST_OF_CONFIG_NAMES_SUPPORT */
 
 /*
+ * Lib functions
+ */
+#define CONFIG_LIB_IPQ_API
+#define CONFIG_LIB_FLASHRW
+
+/*
  * Other commands
  */
 #define CONFIG_CMD_BOOTCONFIG
