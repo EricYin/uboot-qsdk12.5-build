@@ -82,32 +82,38 @@
 
 暂未添加纯 NOR 固件的刷写逻辑。
 
-## 编译方法
+## 快速开始
 
-### 本地编译
+### 下载编译好的文件
+
+不想自己编译的直接到 Release 中下载编译好的文件即可：[点击前往最新 Release](https://github.com/chenxin527/uboot-qsdk12.5-build/releases/latest)。
+
+### 自行编译
+
+#### 本地编译
 
 > 建议使用 Ubuntu 进行编译。
 
-#### 1. 克隆项目到本地
+##### 1. 克隆项目到本地
 
 ```bash
 git clone https://github.com/chenxin527/uboot-qsdk12.5-build.git
 cd uboot-qsdk12.5-build
 ```
 
-#### 2. 安装编译依赖
+##### 2. 安装编译依赖
 
 ```bash
 sudo ./build.sh install_deps
 ```
 
-#### 3. 检查编译依赖
+##### 3. 检查编译依赖
 
 ```bash
 ./build.sh check_deps
 ```
 
-#### 4. 查看帮助文档
+##### 4. 查看帮助文档
 
 ```bash
 用法: ./build.sh [命令] [参数]
@@ -170,11 +176,11 @@ sudo ./build.sh install_deps
   sudo ./build.sh install_deps             安装编译所需的依赖
 ```
 
-#### 5. 开始编译
+##### 5. 开始编译
 
 根据所需设备按需编译。
 
-### 云编译
+#### 云编译
 
 Fork 本仓库后使用 GitHub Actions 云编译。
 
