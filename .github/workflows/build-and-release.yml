@@ -38,6 +38,7 @@ on:
           - redmi_ax6
           - sy_y6010
           - xiaomi_ax3600
+          - xiaomi_be3600-pro
           - zn_m2
         default: 'all'
       PRERELEASE:

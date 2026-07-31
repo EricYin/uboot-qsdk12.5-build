@@ -43,11 +43,13 @@
 /* ETH PHY Types */
 #define MALIBU_PHY_TYPE			0x1
 #define QCA8081_PHY_TYPE		0x2
-#define AQ_PHY_TYPE			0x3
+#define AQ_PHY_TYPE			    0x3
 #define QCA8033_PHY_TYPE		0x4
 #define SFP_PHY_TYPE			0x5
 #define QCA8084_PHY_TYPE		0x6
-#define ATHRS17C_SWITCH_TYPE		0x7
+#define ATHRS17C_SWITCH_TYPE	0x7
+#define RTL8221D_PHY_TYPE		0x8
+#define RTL8372N_SWITCH_TYPE	0x9
 #define UNUSED_PHY_TYPE 		0xFF
 #endif
 

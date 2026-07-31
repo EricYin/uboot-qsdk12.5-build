@@ -326,6 +326,9 @@ typedef struct {
 	char phy_name[MDIO_NAME_LEN];
 } ipq5332_edma_board_cfg_t;
 
+#ifdef CONFIG_TARGET_IPQ5332_XIAOMI_BE3600_PRO
+extern void ipq5332_ppe_interface_mode_override(uint32_t mode0, uint32_t mode1);
+#endif /* CONFIG_TARGET_IPQ5332_XIAOMI_BE3600_PRO */
 extern void ipq5332_ppe_provision_init(void);
 extern void ipq5332_port_mac_clock_reset(int port);
 extern void ipq5332_speed_clock_set(int port, int clk[4]);

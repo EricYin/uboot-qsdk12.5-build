@@ -906,6 +906,9 @@ void ipq_uboot_fdt_fixup(void)
 			add_config_entry("config-rdp473");
 			break;
 		case MACH_TYPE_IPQ5332_AP_MI04_1_C2:
+#ifdef CONFIG_TARGET_IPQ5332_XIAOMI_BE3600_PRO
+			add_config_entry("config@be3600-pro");
+#endif
 			add_config_entry("config@mi04.1-c2");
 			add_config_entry("config-mi04.1-c2");
 			add_config_entry("config@rdp478");

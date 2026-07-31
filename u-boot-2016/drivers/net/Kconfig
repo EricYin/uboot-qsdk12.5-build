@@ -121,6 +121,11 @@ config ATHRS17C_SWITCH
 	help
 	  Enable QTI S17C switch support.
 
+config IPQ_REALTEK
+	bool "Realtek RTL8372N switch and RTL8221D PHY support"
+	help
+	  Enable the Realtek Ethernet components used by Xiaomi BE3600 Pro.
+
 config QCA8084_PHY
 	depends on QCA8081_PHY
 	bool "Enable QCA8084 Ethernet Chip support"

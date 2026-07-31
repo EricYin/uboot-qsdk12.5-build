@@ -83,4 +83,12 @@ config TARGET_IPQ5332_JDCLOUD_RE_CS_08
 	default n
     help
 	  Enable support for JDCloud ER2 board
+
+config TARGET_IPQ5332_XIAOMI_BE3600_PRO
+    bool "Xiaomi BE3600 Pro (5/8 Ethernet ports) board support"
+	default n
+    help
+	  Enable universal support for Xiaomi BE3600 Pro RP01/RP02 with
+	  runtime detection of one RTL8372N plus RTL8221D or two RTL8372N
+	  switches.
 endif

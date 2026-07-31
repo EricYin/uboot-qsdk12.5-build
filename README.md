@@ -41,6 +41,7 @@
 | IPQ50xx | JDCloud AX3000              | jdcloud_ax3000    | 所有网口都可以使用；无法启动 6.18 内核的固件 ([pmyy-wt/jdc_re-cs-03](https://github.com/pmyy-wt/jdc_re-cs-03/releases) 仓库 2026-07-27 及之后的固件) |
 | IPQ53xx | JDCloud BE6500              | jdcloud_re-cs-06  |                              |
 | IPQ53xx | JDCloud ER2                 | jdcloud_re-cs-08  | 待测试；MAC 位置未明确       |
+| IPQ53xx | Xiaomi BE3600 Pro (5/8 Ethernet ports) | xiaomi_be3600-pro | 待测试；MAC 位置未明确       |
 | IPQ60xx | CMIOT AX18                  | cmiot_ax18        | WAN 口（靠近 Reset 键）不通  |
 | IPQ60xx | GL.iNet AX1800              | glinet_gl-ax1800  | 待测试                       |
 | IPQ60xx | JDCloud AX6600 (Athena)     | jdcloud_re-cs-02  |                              |

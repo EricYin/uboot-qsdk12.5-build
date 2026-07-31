@@ -30,6 +30,9 @@
 #include <asm/global_data.h>
 #include <fdtdec.h>
 #include "ipq5332_edma.h"
+#ifdef CONFIG_IPQ_REALTEK
+#include "ipq_realtek.h"
+#endif
 #include "ipq_phy.h"
 #include "ipq_qca8084.h"
 #include "ipq5332_acl.h"
@@ -1068,6 +1071,7 @@ static int ipq5332_eth_init(struct eth_device *eth_dev, bd_t *this)
 			clk[2] = 0x418;
 			clk[3] = 9;
 			if ((phy_info->phy_type == QCA8081_PHY_TYPE) ||
+				(phy_info->phy_type == RTL8221D_PHY_TYPE) ||
 				(phy_info->phy_type == QCA8033_PHY_TYPE)) {
 				clk[1] = 3;
 				clk[3] = 3;
@@ -1085,6 +1089,7 @@ static int ipq5332_eth_init(struct eth_device *eth_dev, bd_t *this)
 			clk[2] = 0x418;
 			clk[3] = 1;
 			if ((phy_info->phy_type == QCA8081_PHY_TYPE) ||
+				(phy_info->phy_type == RTL8221D_PHY_TYPE) ||
 				(phy_info->phy_type == QCA8084_PHY_TYPE) ||
 				(phy_info->phy_type == QCA8033_PHY_TYPE)) {
 				clk[0] = 0x309;
@@ -1100,6 +1105,7 @@ static int ipq5332_eth_init(struct eth_device *eth_dev, bd_t *this)
 			clk[2] = 0x404;
 			clk[3] = 0x0;
 			if ((phy_info->phy_type == QCA8081_PHY_TYPE) ||
+				(phy_info->phy_type == RTL8221D_PHY_TYPE) ||
 				(phy_info->phy_type == QCA8084_PHY_TYPE) ||
 				(phy_info->phy_type == QCA8033_PHY_TYPE) ||
 				(sfp_mode == EPORT_WRAPPER_SGMII_FIBER)) {
@@ -1114,6 +1120,7 @@ static int ipq5332_eth_init(struct eth_device *eth_dev, bd_t *this)
 			clk[2] = 0x407;
 			clk[3] = 0x0;
 			if ((phy_info->phy_type == SFP_PHY_TYPE) ||
+				(phy_info->phy_type == RTL8221D_PHY_TYPE) ||
 				(phy_info->phy_type == QCA8081_PHY_TYPE) ||
 				(phy_info->phy_type == QCA8084_PHY_TYPE)) {
 				clk[0] = 0x301;
@@ -1121,6 +1128,7 @@ static int ipq5332_eth_init(struct eth_device *eth_dev, bd_t *this)
 			}
 
 			if ((phy_info->phy_type == QCA8081_PHY_TYPE) ||
+				(phy_info->phy_type == RTL8221D_PHY_TYPE) ||
 				(phy_info->phy_type == QCA8084_PHY_TYPE)) {
 				sgmii_mode = EPORT_WRAPPER_SGMII_PLUS;
 			}
@@ -1153,6 +1161,7 @@ static int ipq5332_eth_init(struct eth_device *eth_dev, bd_t *this)
 		}
 
 		if ((phy_info->phy_type == QCA8081_PHY_TYPE) ||
+			(phy_info->phy_type == RTL8221D_PHY_TYPE) ||
 			(phy_info->phy_type == QCA8033_PHY_TYPE) ||
 			(phy_info->phy_type == QCA8084_PHY_TYPE)) {
 			ppe_port_bridge_txmac_set(i, 1);
@@ -1197,7 +1206,8 @@ static int ipq5332_eth_init(struct eth_device *eth_dev, bd_t *this)
 
 		ipq5332_port_mac_clock_reset(i);
 
-		if (phy_info->phy_type == AQ_PHY_TYPE){
+		if ((phy_info->phy_type == AQ_PHY_TYPE) ||
+		    (phy_info->phy_type == RTL8372N_SWITCH_TYPE)) {
 			ipq5332_uxsgmii_speed_set(i, mac_speed, duplex, status);
 		} else if ((phy_info->phy_type == SFP_PHY_TYPE) &&
 				(sfp_mode != EPORT_WRAPPER_SGMII_FIBER)) {
@@ -1796,6 +1806,66 @@ void get_mdio_info(int offset, mdio_info_t * mdio_info[], int max_phy_ports)
 	}
 }
 
+#ifdef CONFIG_TARGET_IPQ5332_XIAOMI_BE3600_PRO
+static void ipq5332_set_realtek_port(int port, u32 phy_addr, u32 phy_type,
+				     int uniphy_id, int mode, u32 speed)
+{
+	port_info[port]->phy_info->phy_address = phy_addr;
+	port_info[port]->phy_info->phy_type = phy_type;
+	port_info[port]->phy_info->forced_speed = speed;
+	port_info[port]->phy_info->forced_duplex = FAL_FULL_DUPLEX;
+	port_info[port]->uniphy_id = uniphy_id;
+	port_info[port]->mode = mode;
+}
+
+static int ipq5332_detect_be3600_topology(void)
+{
+	int switch0, switch1d, rtl8221d;
+
+	switch0 = !ipq_rtl8372n_switch_detect(0x0);
+	switch1d = !ipq_rtl8372n_switch_detect(0x1d);
+
+	if (switch0) {
+		ipq5332_set_realtek_port(0, 0x0, RTL8372N_SWITCH_TYPE, 0,
+					 EPORT_WRAPPER_USXGMII, 10000);
+		if (switch1d) {
+			ipq5332_set_realtek_port(1, 0x1d,
+						 RTL8372N_SWITCH_TYPE, 1,
+						 EPORT_WRAPPER_USXGMII, 10000);
+		} else {
+			ipq5332_set_realtek_port(1, 0, UNUSED_PHY_TYPE, 1,
+						 EPORT_WRAPPER_USXGMII, 0);
+		}
+		ipq5332_ppe_interface_mode_override(EPORT_WRAPPER_USXGMII,
+						    EPORT_WRAPPER_USXGMII);
+		printf("BE3600 Pro topology: 8-eth, RTL8372N@0%s\n",
+		       switch1d ? " + RTL8372N@1d" : ", @1d unavailable");
+		return 0;
+	}
+
+	rtl8221d = !ipq_rtl8221d_phy_detect(0x1);
+	if (!rtl8221d) {
+		printf("BE3600 Pro topology detection failed\n");
+		return -ENODEV;
+	}
+
+	if (switch1d) {
+		ipq5332_set_realtek_port(0, 0x1d, RTL8372N_SWITCH_TYPE, 0,
+					 EPORT_WRAPPER_USXGMII, 10000);
+	} else {
+		ipq5332_set_realtek_port(0, 0, UNUSED_PHY_TYPE, 0,
+					 EPORT_WRAPPER_USXGMII, 0);
+	}
+	ipq5332_set_realtek_port(1, 0x1, RTL8221D_PHY_TYPE, 1,
+				 EPORT_WRAPPER_SGMII_PLUS, 2500);
+	ipq5332_ppe_interface_mode_override(EPORT_WRAPPER_USXGMII,
+					    EPORT_WRAPPER_SGMII_PLUS);
+	printf("BE3600 Pro topology: 5-eth, %s + RTL8221D@1\n",
+	       switch1d ? "RTL8372N@1d" : "RTL8372N@1d unavailable");
+	return 0;
+}
+#endif
+
 #ifdef CONFIG_ATHRS17C_SWITCH
 void ipq5332_prepare_qca8337_info(int phy_node, int max_phy_ports)
 {
@@ -1990,6 +2060,12 @@ int ipq5332_edma_init(void *edma_board_cfg)
 		if (ret)
 			goto init_failed;
 
+#ifdef CONFIG_TARGET_IPQ5332_XIAOMI_BE3600_PRO
+		ret = ipq5332_detect_be3600_topology();
+		if (ret)
+			goto init_failed;
+#endif
+
 		ret = ipq5332_edma_hw_init(hw[i]);
 
 		if (ret)
@@ -2012,6 +2088,25 @@ int ipq5332_edma_init(void *edma_board_cfg)
 
 			if(phy_info->phy_type == UNUSED_PHY_TYPE)
 				continue;
+
+#ifdef CONFIG_IPQ_REALTEK
+			if (phy_info->phy_type == RTL8372N_SWITCH_TYPE) {
+				ret = ipq_rtl8372n_switch_init(
+					&ipq5332_edma_dev[i]->ops[phy_id],
+					phy_addr);
+				if (ret)
+					goto init_failed;
+				continue;
+			}
+			if (phy_info->phy_type == RTL8221D_PHY_TYPE) {
+				ret = ipq_rtl8221d_phy_init(
+					&ipq5332_edma_dev[i]->ops[phy_id],
+					phy_addr);
+				if (ret)
+					goto init_failed;
+				continue;
+			}
+#endif
 
 #ifdef CONFIG_QCA8084_SWT_MODE
 			if (phy_info->phy_type == QCA8084_PHY_TYPE &&

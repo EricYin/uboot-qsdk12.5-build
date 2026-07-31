@@ -35,6 +35,16 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define pr_info(fmt, args...) printf(fmt, ##args);
 
+#ifdef CONFIG_TARGET_IPQ5332_XIAOMI_BE3600_PRO
+static int ipq5332_interface_mode_override[2] = { -1, -1 };
+
+void ipq5332_ppe_interface_mode_override(uint32_t mode0, uint32_t mode1)
+{
+	ipq5332_interface_mode_override[0] = mode0;
+	ipq5332_interface_mode_override[1] = mode1;
+}
+#endif
+
 /*
  * ipq5332_ppe_reg_read()
  */
@@ -740,7 +750,7 @@ void ppe_port_mux_mac_type_set(int port_id, int mode)
 
 void ipq5332_ppe_interface_mode_init(void)
 {
-	uint32_t mode0, mode1;
+	int32_t mode0, mode1;
 	int node;
 	node = fdt_path_offset(gd->fdt_blob, "/ess-switch");
 	if (node < 0) {
@@ -748,13 +758,25 @@ void ipq5332_ppe_interface_mode_init(void)
 		return;
 	}
 
+#ifdef CONFIG_TARGET_IPQ5332_XIAOMI_BE3600_PRO
+	mode0 = ipq5332_interface_mode_override[0];
+	if (mode0 < 0)
+		mode0 = fdtdec_get_uint(gd->fdt_blob, node, "switch_mac_mode0", -1);
+#else
 	mode0 = fdtdec_get_uint(gd->fdt_blob, node, "switch_mac_mode0", -1);
+#endif
 	if (mode0 < 0) {
 		printf("\nError: switch_mac_mode0 not specified in dts");
 		return;
 	}
 
+#ifdef CONFIG_TARGET_IPQ5332_XIAOMI_BE3600_PRO
+	mode1 = ipq5332_interface_mode_override[1];
+	if (mode1 < 0)
+		mode1 = fdtdec_get_uint(gd->fdt_blob, node, "switch_mac_mode1", -1);
+#else
 	mode1 = fdtdec_get_uint(gd->fdt_blob, node, "switch_mac_mode1", -1);
+#endif
 	if (mode1 < 0) {
 		printf("\nError: switch_mac_mode1 not specified in dts");
 		return;
