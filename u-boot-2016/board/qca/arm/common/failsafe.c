@@ -109,6 +109,14 @@ extern int config_select(unsigned int addr, char *rcmd, int rcmd_size);
         }   \
     } while (0)
 
+#define RETURN_IF_BOTH_NOR_FLASH_AND_MMC_FLASH_NOT_FOUND \
+    do {    \
+        if (!has_spi() && !has_mmc()) {    \
+            handle_flash_not_found("SPI-NOR or EMMC");   \
+            return RET_FLASH_NOT_FOUND; \
+        }   \
+    } while (0)
+
 static void handle_wrong_fw_type(const char *expected_file_type_str)
 {
 	char *actual_file_type_str = fw_type_to_string(fw_type);
@@ -455,7 +463,7 @@ static int failsafe_validate_firmware(const void *data_addr, ulong data_size)
 
     switch (fw_type) {
     case FW_TYPE_FIT:
-		RETURN_IF_MMC_FLASH_NOT_FOUND;
+		RETURN_IF_BOTH_NOR_FLASH_AND_MMC_FLASH_NOT_FOUND;
         ret = parse_factory_firmware(data_addr, data_size);
 		if (ret)
 			break;
@@ -465,7 +473,7 @@ static int failsafe_validate_firmware(const void *data_addr, ulong data_size)
         ret = validate_file_size("firmware rootfs", "rootfs", data_size - factory_fw_kernel_size);
         break;
     case FW_TYPE_SYSUPGRADE:
-		RETURN_IF_MMC_FLASH_NOT_FOUND;
+		RETURN_IF_BOTH_NOR_FLASH_AND_MMC_FLASH_NOT_FOUND;
 		ret = parse_tar_image(data_addr, (size_t)data_size,
 				NULL, &kernel_size, NULL, &rootfs_size);
         if (ret) {
@@ -644,7 +652,7 @@ static int failsafe_write_firmware(ulong data_addr, ulong data_size)
 
 	switch (fw_type) {
 	case FW_TYPE_FIT:
-		RETURN_IF_MMC_FLASH_NOT_FOUND;
+		RETURN_IF_BOTH_NOR_FLASH_AND_MMC_FLASH_NOT_FOUND;
 		ADD_CMD_TO_LIST("flash 0:HLOS 0x%lx 0x%lx",
 			data_addr, factory_fw_kernel_size);
 		ADD_CMD_TO_LIST("flash rootfs 0x%lx 0x%lx",
@@ -670,7 +678,7 @@ static int failsafe_write_firmware(ulong data_addr, ulong data_size)
 		break;
 	case FW_TYPE_SYSUPGRADE:
 	case FW_TYPE_ASUSWRT_EMMC:
-		RETURN_IF_MMC_FLASH_NOT_FOUND;
+		RETURN_IF_BOTH_NOR_FLASH_AND_MMC_FLASH_NOT_FOUND;
 		ADD_CMD_TO_LIST("untar 0x%lx 0x%lx", data_addr, data_size);
 		ADD_CMD_TO_LIST("flash 0:HLOS $kernel_addr $kernel_size");
 		ADD_CMD_TO_LIST("flash rootfs $rootfs_addr $rootfs_size");
