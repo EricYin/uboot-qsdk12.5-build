@@ -54,6 +54,12 @@ config TARGET_IPQ807x_INSEEGO_FG2000
     help
 	  Enable support for Inseego FG2000 board
 
+config TARGET_IPQ807X_OPPO_CKB01
+    bool "SoftBank Air 5G (OPPO CKB01) board support"
+	default n
+    help
+	  Enable support for SoftBank Air 5G (OPPO CKB01) board
+
 config TARGET_IPQ807x_REDMI_AX6
     bool "Redmi AX6 board support"
 	default n

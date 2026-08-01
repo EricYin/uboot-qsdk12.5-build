@@ -147,6 +147,7 @@ $(info CONFIG_TARGET_IPQ6018_SY_Y6010          = $(CONFIG_TARGET_IPQ6018_SY_Y601
 $(info CONFIG_TARGET_IPQ6018_ZN_M2             = $(CONFIG_TARGET_IPQ6018_ZN_M2))
 $(info CONFIG_TARGET_IPQ807x_ALIYUN_AP8220     = $(CONFIG_TARGET_IPQ807x_ALIYUN_AP8220))
 $(info CONFIG_TARGET_IPQ807x_INSEEGO_FG2000    = $(CONFIG_TARGET_IPQ807x_INSEEGO_FG2000))
+$(info CONFIG_TARGET_IPQ807X_OPPO_CKB01        = $(CONFIG_TARGET_IPQ807X_OPPO_CKB01))
 $(info CONFIG_TARGET_IPQ807x_REDMI_AX6         = $(CONFIG_TARGET_IPQ807x_REDMI_AX6))
 $(info CONFIG_TARGET_IPQ807x_XIAOMI_AX3600     = $(CONFIG_TARGET_IPQ807x_XIAOMI_AX3600))
 
@@ -172,6 +173,7 @@ dtb-$(CONFIG_TARGET_IPQ6018_SY_Y6010)          += ipq6018-sy_y6010.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_ZN_M2)             += ipq6018-zn_m2.dtb
 dtb-$(CONFIG_TARGET_IPQ807x_ALIYUN_AP8220)     += ipq807x-aliyun_ap8220.dtb
 dtb-$(CONFIG_TARGET_IPQ807x_INSEEGO_FG2000)    += ipq807x-inseego_fg2000.dtb
+dtb-$(CONFIG_TARGET_IPQ807X_OPPO_CKB01)        += ipq807x-oppo_ckb01.dtb
 dtb-$(CONFIG_TARGET_IPQ807x_REDMI_AX6)         += ipq807x-redmi_ax6.dtb
 dtb-$(CONFIG_TARGET_IPQ807x_XIAOMI_AX3600)     += ipq807x-xiaomi_ax3600.dtb
 
@@ -369,6 +371,23 @@ dtb-$(CONFIG_TARGET_IPQ807x_ALIYUN_AP8220)     += ipq807x-hk01.dtb \
 											  	  ipq807x-hk10-c2.dtb \
 											  	  ipq807x-db-hk02.dtb
 dtb-$(CONFIG_TARGET_IPQ807x_INSEEGO_FG2000)    += ipq807x-hk01.dtb \
+											  	  ipq807x-hk02.dtb \
+											  	  ipq807x-hk06.dtb \
+											  	  ipq807x-hk07.dtb \
+											  	  ipq807x-hk08.dtb \
+											  	  ipq807x-hk10.dtb \
+											  	  ipq807x-hk14.dtb \
+											  	  ipq807x-hk11-c1.dtb \
+											  	  ipq807x-ac01.dtb \
+											  	  ipq807x-ac03.dtb \
+											  	  ipq807x-ac04.dtb \
+											  	  ipq807x-oak02.dtb \
+											  	  ipq807x-hk01-c2.dtb \
+											  	  ipq807x-hk01-c4.dtb \
+											  	  ipq807x-hk01-c5.dtb \
+											  	  ipq807x-hk10-c2.dtb \
+											  	  ipq807x-db-hk02.dtb
+dtb-$(CONFIG_TARGET_IPQ807X_OPPO_CKB01)        += ipq807x-hk01.dtb \
 											  	  ipq807x-hk02.dtb \
 											  	  ipq807x-hk06.dtb \
 											  	  ipq807x-hk07.dtb \

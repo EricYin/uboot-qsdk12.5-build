@@ -794,7 +794,9 @@ void board_nand_init(void)
 	int i;
 #endif
 
+#ifndef CONFIG_TARGET_IPQ807X_OPPO_CKB01
 	qpic_nand_init(&gboard_param.qpic_nand_cfg);
+#endif
 
 #ifdef CONFIG_QCA_SPI
 	gpio_node = fdt_path_offset(gd->fdt_blob, "/spi/spi_gpio");

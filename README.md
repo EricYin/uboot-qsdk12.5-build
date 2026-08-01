@@ -56,6 +56,7 @@
 | IPQ60xx | ZN M2                       | zn_m2             | WAN 口（靠近 Reset 键）不通  |
 | IPQ807x | Aliyun AP8220               | aliyun_ap8220     |                              |
 | IPQ807x | Inseego FG2000              | inseego_fg2000    | 5G 网口未驱动                |
+| IPQ807x | SoftBank Air 5G (OPPO CKB01) | oppo_ckb01       | 待测试                        |
 | IPQ807x | Redmi AX6                   | redmi_ax6         |                              |
 | IPQ807x | Xiaomi AX3600               | xiaomi_ax3600     |                              |
 

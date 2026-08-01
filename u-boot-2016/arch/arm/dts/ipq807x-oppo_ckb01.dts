@@ -1,0 +1,207 @@
+/*
+ * Copyright (c) 2016 - 2018, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+/dts-v1/;
+#include "ipq807x-soc.dtsi"
+#include <dt-bindings/qcom/gpio-ipq807x.h>
+/ {
+    host_name = "SoftBank Air 5G (OPPO CKB01)";
+	model = "ipq807x-oppo_ckb01";
+	compatible = "qca,ipq807x-hk09", "qca,ipq807x";
+	machid = <0x08010008>;
+	config_name = "config@ckb01", "config-ckb01", "config@hk09", "config-hk09", "config@1", "config-1";
+
+	aliases {
+		console = "/serial@78B3000";
+		uart2 = "/serial@78B0000";
+		i2c0 = "/i2c@78b6000";
+		pci0 = "/pci@20000000";
+	};
+
+    keys {
+		compatible = "gpio-keys";
+
+        reset {
+            gpio = <60>;
+            func = <0>;
+            drvstr = <GPIO_8MA>;
+            pull = <GPIO_PULL_UP>;
+            oe = <GPIO_OE_DISABLE>;
+			active_level = <GPIO_ACTIVE_LOW>;
+        };
+
+        wps {
+            gpio = <15>;
+            func = <0>;
+            drvstr = <GPIO_8MA>;
+            pull = <GPIO_PULL_UP>;
+            oe = <GPIO_OE_DISABLE>;
+			active_level = <GPIO_ACTIVE_LOW>;
+        };
+
+        level {
+            gpio = <34>;
+            func = <0>;
+            drvstr = <GPIO_8MA>;
+            pull = <GPIO_PULL_UP>;
+            oe = <GPIO_OE_DISABLE>;
+			active_level = <GPIO_ACTIVE_LOW>;
+        };
+    };
+
+    leds {
+		compatible = "gpio-leds";
+
+        led_4g_red {
+			label = "power_led";
+            gpio = <42>;
+            func = <0>;
+            out = <GPIO_OUT_HIGH>;
+            drvstr = <GPIO_2MA>;
+            pull = <GPIO_NO_PULL>;
+            oe = <GPIO_OE_ENABLE>;
+            active_level = <GPIO_ACTIVE_HIGH>;
+        };
+
+        led_5g_blue {
+			label = "blink_led";
+            gpio = <18>;
+            func = <0>;
+            out = <GPIO_OUT_LOW>;
+            drvstr = <GPIO_2MA>;
+            pull = <GPIO_NO_PULL>;
+            oe = <GPIO_OE_ENABLE>;
+            active_level = <GPIO_ACTIVE_HIGH>;
+        };
+
+        led_4g_green {
+			label = "system_led";
+            gpio = <43>;
+            func = <0>;
+            out = <GPIO_OUT_LOW>;
+            drvstr = <GPIO_2MA>;
+            pull = <GPIO_NO_PULL>;
+            oe = <GPIO_OE_ENABLE>;
+            active_level = <GPIO_ACTIVE_HIGH>;
+        };
+
+        led_wifi {
+            gpio = <3>;
+            func = <0>;
+            out = <GPIO_OUT_LOW>;
+            drvstr = <GPIO_2MA>;
+            pull = <GPIO_PULL_DOWN>;
+            oe = <GPIO_OE_ENABLE>;
+            active_level = <GPIO_ACTIVE_HIGH>;
+        };
+
+        led_sim_red {
+            gpio = <11>;
+            func = <0>;
+            out = <GPIO_OUT_LOW>;
+            drvstr = <GPIO_2MA>;
+            pull = <GPIO_PULL_DOWN>;
+            oe = <GPIO_OE_ENABLE>;
+            active_level = <GPIO_ACTIVE_HIGH>;
+        };
+
+        led_sim_green {
+            gpio = <14>;
+            func = <0>;
+            out = <GPIO_OUT_LOW>;
+            drvstr = <GPIO_2MA>;
+            pull = <GPIO_PULL_DOWN>;
+            oe = <GPIO_OE_ENABLE>;
+            active_level = <GPIO_ACTIVE_HIGH>;
+        };
+
+        led_sim_state {
+            gpio = <16>;
+            func = <0>;
+            out = <GPIO_OUT_LOW>;
+            drvstr = <GPIO_2MA>;
+            pull = <GPIO_PULL_DOWN>;
+            oe = <GPIO_OE_ENABLE>;
+            active_level = <GPIO_ACTIVE_HIGH>;
+        };
+
+        led_rf_red {
+            gpio = <51>;
+            func = <0>;
+            out = <GPIO_OUT_LOW>;
+            drvstr = <GPIO_2MA>;
+            pull = <GPIO_PULL_DOWN>;
+            oe = <GPIO_OE_ENABLE>;
+            active_level = <GPIO_ACTIVE_HIGH>;
+        };
+
+        led_rf_blue_1 {
+            gpio = <0>;
+            func = <0>;
+            out = <GPIO_OUT_LOW>;
+            drvstr = <GPIO_2MA>;
+            pull = <GPIO_PULL_DOWN>;
+            oe = <GPIO_OE_ENABLE>;
+            active_level = <GPIO_ACTIVE_HIGH>;
+        };
+
+        led_rf_blue_2 {
+            gpio = <19>;
+            func = <0>;
+            out = <GPIO_OUT_LOW>;
+            drvstr = <GPIO_2MA>;
+            pull = <GPIO_PULL_DOWN>;
+            oe = <GPIO_OE_ENABLE>;
+            active_level = <GPIO_ACTIVE_HIGH>;
+        };
+
+        led_rf_blue_3 {
+            gpio = <20>;
+            func = <0>;
+            out = <GPIO_OUT_LOW>;
+            drvstr = <GPIO_2MA>;
+            pull = <GPIO_PULL_DOWN>;
+            oe = <GPIO_OE_ENABLE>;
+            active_level = <GPIO_ACTIVE_HIGH>;
+        };
+    };
+
+	gpio-export {
+		rj45_leds {
+			gpio = <17>;
+			func = <0>;
+			out = <GPIO_OUT_HIGH>;
+			drvstr = <GPIO_2MA>;
+			pull = <GPIO_PULL_DOWN>;
+			oe = <GPIO_OE_ENABLE>;
+			describe = "enable-rj45-leds";
+		};
+	};
+
+	ess-switch {
+		switch_mac_mode = <0x0>;
+		switch_mac_mode1 = <0xff>;
+		switch_mac_mode2 = <0xff>;
+
+		port_phyinfo {
+			port@0 {
+				phy_address = <8>;
+				phy_type = <1>;
+			};
+			port@1 {
+				phy_address = <9>;
+				phy_type = <1>;
+			};
+		};
+	};
+};
