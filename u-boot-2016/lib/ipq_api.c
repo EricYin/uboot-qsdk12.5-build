@@ -52,7 +52,7 @@ DECLARE_GLOBAL_DATA_PTR;
 void ipq_gpio_init(void)
 {
 	int node;
-	const char *node_paths[] = {"/leds", "/keys"};
+	const char *node_paths[] = {"/leds", "/keys", "/gpio-export"};
 
 	for (int i = 0; i < ARRAY_SIZE(node_paths); i++) {
 		node = fdt_path_offset(gd->fdt_blob, node_paths[i]);
