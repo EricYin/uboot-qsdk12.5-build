@@ -12,4 +12,6 @@
 #define GPIO_ACTIVE_HIGH 0
 #define GPIO_ACTIVE_LOW 1
 
+#define GPIO_NOT_FOUND UINT_MAX
+
 #endif

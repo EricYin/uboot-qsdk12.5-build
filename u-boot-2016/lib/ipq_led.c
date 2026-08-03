@@ -61,7 +61,7 @@ static int led_get_info_by_label(const char *led_label, led_info_t *led_info)
 			node_label = NULL;
 			ret = fdt_get_string_index(gd->fdt_blob, node, "label", i, &node_label);
 			if (!ret && node_label && !strcmp(node_label, led_label)) {
-				led_info->gpio = fdtdec_get_uint(gd->fdt_blob, node, "gpio", 0);
+				led_info->gpio = fdtdec_get_uint(gd->fdt_blob, node, "gpio", GPIO_NOT_FOUND);
 				led_info->active_level = fdtdec_get_uint(gd->fdt_blob, node, "active_level", GPIO_ACTIVE_HIGH);
 				return 0;
 			}
@@ -101,7 +101,7 @@ void led_control(led_op_t op, const char *label)
     unsigned int value;
 
 	ret = led_get_info_by_label(label, &led);
-	if (ret || !led.gpio)
+	if (ret || led.gpio == GPIO_NOT_FOUND)
 		return;
 
     ret = led_get_out_value(op, led.gpio, led.active_level, &value);
@@ -125,9 +125,9 @@ void led_control_all(led_op_t op)
 		return;
 
 	fdt_for_each_subnode(gd->fdt_blob, node, parent) {
-		gpio = fdtdec_get_uint(gd->fdt_blob, node, "gpio", 0);
+		gpio = fdtdec_get_uint(gd->fdt_blob, node, "gpio", GPIO_NOT_FOUND);
 		active_level = fdtdec_get_uint(gd->fdt_blob, node, "active_level", GPIO_ACTIVE_HIGH);
-		if (gpio && !led_get_out_value(op, gpio, active_level, &value))
+		if (gpio != GPIO_NOT_FOUND && !led_get_out_value(op, gpio, active_level, &value))
             gpio_set_value(gpio, value);
 	}
 }

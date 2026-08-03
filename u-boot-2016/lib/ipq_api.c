@@ -93,9 +93,9 @@ static bool is_any_button_pressed(button_info_t *button_info)
 		return false;
 
 	fdt_for_each_subnode(gd->fdt_blob, node, parent) {
-		gpio = fdtdec_get_uint(gd->fdt_blob, node, "gpio", 0);
+		gpio = fdtdec_get_uint(gd->fdt_blob, node, "gpio", GPIO_NOT_FOUND);
 		active_level = fdtdec_get_uint(gd->fdt_blob, node, "active_level", GPIO_ACTIVE_LOW);
-		if (gpio && is_button_pressed(gpio, active_level)) {
+		if (gpio != GPIO_NOT_FOUND && is_button_pressed(gpio, active_level)) {
 			button_info->name = fdt_get_name(gd->fdt_blob, node, NULL);
 			button_info->gpio = gpio;
 			button_info->active_level = active_level;
