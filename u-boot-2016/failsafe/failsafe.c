@@ -644,10 +644,19 @@ static int do_httpd(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	int ret;
 
 #if defined(CONFIG_HTTPD_DEBUG)
-	if (getenv("httpd_debug") || is_9008_mode())
-		httpd_debug_on = true;
-	else
-		httpd_debug_on = false;
+	const char *debug_str = getenv("httpd_debug");
+	const char *disable_strs[] = {"0", "false", "no", "off"};
+
+	httpd_debug_on = true;
+
+	if (debug_str) {
+		for (int i = 0; i < ARRAY_SIZE(disable_strs); i++) {
+			if (!strcasecmp(debug_str, disable_strs[i])) {
+				httpd_debug_on = false;
+				break;
+			}
+		}
+	}
 #endif
 
 #if defined(CONFIG_NET_FORCE_IPADDR)
