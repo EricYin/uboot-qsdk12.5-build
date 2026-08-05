@@ -96,6 +96,7 @@ else
 obj-y += vsprintf.o panic.o strto.o
 endif
 
+obj-$(CONFIG_LIB_BOOTCONFIG) += bootconfig.o
 obj-$(CONFIG_LIB_IPQ_API) += ipq_api.o ipq_led.o
 obj-$(CONFIG_LIB_FLASHRW) += flashrw.o
 obj-$(CONFIG_CALL_FUNC_CAPTURE) += capture.o
