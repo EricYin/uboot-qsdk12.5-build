@@ -31,7 +31,3 @@ config MAC_LABEL
 config MAC_COUNT
     int "Number of MAC addresses"
     depends on FAILSAFE_MAC_MANAGEMENT
-
-config FAILSAFE_BOOTCONFIG
-    bool "Failsafe bootconfig"
-    default y

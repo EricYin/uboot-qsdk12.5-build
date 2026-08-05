@@ -29,6 +29,7 @@
 #include <ipq_api.h>
 #include <u-boot/md5.h>
 #include <capture.h>
+#include <bootconfig.h>
 
 #include "untar.h"
 
@@ -697,9 +698,8 @@ static int failsafe_write_firmware(ulong data_addr, ulong data_size)
 		ADD_CMD_TO_LIST("flasherase rootfs_data");
 #endif
 
-#ifdef CONFIG_FAILSAFE_BOOTCONFIG
-	ADD_CMD_TO_LIST("bootconfig set firmware 0");
-#endif
+	if (validate_bootconfig())
+		ADD_CMD_TO_LIST("bootconfig set firmware 0");
 
 	return failsafe_run_command_list();
 }

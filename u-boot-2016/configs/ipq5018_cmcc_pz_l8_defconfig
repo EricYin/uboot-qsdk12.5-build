@@ -30,11 +30,6 @@ CONFIG_MAC_OFFSET_IN_PART=0x0
 CONFIG_MAC_COUNT=5
 
 #
-# Failsafe bootconfig
-#
-CONFIG_FAILSAFE_BOOTCONFIG=y
-
-#
 # Tiny support
 #
 # CONFIG_IPQ_TINY is not set

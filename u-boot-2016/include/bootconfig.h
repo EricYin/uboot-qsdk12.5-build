@@ -58,5 +58,6 @@ int sync_bootconfig(bool reverse);
 int print_bootconfig(void);
 int get_bootconfig(const char *part_name);
 int set_bootconfig(const char *part_name, uint32_t value);
+bool validate_bootconfig(void);
 
 #endif /* __BOOTCONFIG_H__ */

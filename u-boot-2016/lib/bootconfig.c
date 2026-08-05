@@ -213,6 +213,25 @@ int write_bootconfig(bootconfig_info_t *bootcfg)
 	return ret;
 }
 
+bool validate_bootconfig(void)
+{
+    bootconfig_info_t bootcfg;
+	int ret;
+
+	bootcfg.size = sizeof(struct bootconfig_info);
+
+	bootcfg.part_name = BOOTCONFIG_PART_NAME;
+	ret = read_bootconfig(&bootcfg, false, true);
+	if (ret == 0 || ret == -ENOENT)
+		goto done;
+
+	bootcfg.part_name = BOOTCONFIG_BACKUP_PART_NAME;
+	ret = read_bootconfig(&bootcfg, false, true);
+
+done:
+    return ret ? false : true;
+}
+
 /**
  * sync_bootconfig - Sync 0:BOOTCONFIG1 with 0:BOOTCONFIG or vice versa
  */
