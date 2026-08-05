@@ -32,6 +32,7 @@ on:
           - jdcloud_re-ss-01
           - link_nn6000
           - oceanblue_s200-h
+          - oppo_ckb01
           - philips_ly1800
           - qihoo_360v6
           - redmi_ax5-jdcloud
