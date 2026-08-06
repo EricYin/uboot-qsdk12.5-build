@@ -24,6 +24,7 @@
 #include <mmc.h>
 #include <sdhci.h>
 #include <nand.h>
+#include <linux/sizes.h>
 #include <failsafe/failsafe.h>
 #include <failsafe/fw_dec.h>
 #include <ipq_api.h>
@@ -337,7 +338,7 @@ static int parse_factory_firmware(const void *data_addr, ulong data_size)
 	while (size_remain >= magic_len) {
 		size_remain--;
 		if (!memcmp(p, &magic, magic_len) &&
-			((p - data_addr) % SZ_MIB(2) == 0)) {
+			((p - data_addr) % SZ_2M == 0)) {
 			/* 内核大小需为 2 MiB 的整数倍 */
 			factory_fw_kernel_size = p - data_addr;
 			return RET_SUCCESS;

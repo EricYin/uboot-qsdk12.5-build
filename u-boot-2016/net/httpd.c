@@ -13,6 +13,7 @@
 #include <net.h>
 #include <net/tcp.h>
 #include <net/httpd.h>
+#include <linux/sizes.h>
 #include <failsafe/failsafe.h>
 #include <ipq_api.h>
 
@@ -108,8 +109,8 @@ static void *httpd_get_upload_buffer_ptr(size_t size)
 {
 	uintptr_t load_addr;
 
-	if (gd->ram_size >= SZ_MIB(512))
-		load_addr = CONFIG_SYS_SDRAM_BASE + SZ_MIB(256);
+	if (gd->ram_size >= SZ_512M)
+		load_addr = CONFIG_SYS_SDRAM_BASE + SZ_256M;
 	else
 		load_addr = IPQ_TFTP_MIN_ADDR;
 
