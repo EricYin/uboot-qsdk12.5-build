@@ -29,6 +29,7 @@
 #include <sdhci.h>
 #include <spi.h>
 #include <spi_flash.h>
+#include <linux/sizes.h>
 #include <asm/arch-qca-common/smem.h>
 #include <linux/mtd/mtd.h>
 #include <nand.h>
@@ -445,7 +446,7 @@ static int reload_mibib_from_spi(void)
 		return -ENODEV;
 
 	/* 读取 SPI-NOR 的前 2 MiB 数据 */
-	read_size = min_t(size_t, SZ_MIB(2), spi->size);
+	read_size = min_t(size_t, SZ_2M, spi->size);
 
 	load_addr = map_sysmem(CONFIG_SYS_LOAD_ADDR, read_size);
 	if (!load_addr)
@@ -468,7 +469,7 @@ static int reload_mibib_from_spi(void)
 	ret = 0;
 
 	sfi->flash_type = SMEM_BOOT_SPI_FLASH;
-	sfi->flash_block_size = spi->erase_size;
+	sfi->flash_block_size = SZ_64K;
 	sfi->flash_density = spi->size;
 
 	get_kernel_fs_part_details();
@@ -493,7 +494,7 @@ static int reload_mibib_from_nand(void)
 	int ret;
 
 	/* 读取 NAND 的前 4 MiB 数据 */
-	read_size = min_t(size_t, SZ_MIB(4), nand->size);
+	read_size = min_t(size_t, SZ_4M, nand->size);
 
 	load_addr = map_sysmem(CONFIG_SYS_LOAD_ADDR, read_size);
 	if (!load_addr)

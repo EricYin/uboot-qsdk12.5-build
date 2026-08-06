@@ -22,6 +22,7 @@
 #include <spi.h>
 #include <spi_flash.h>
 #include <nand.h>
+#include <linux/sizes.h>
 #include <asm/arch-qca-common/smem.h>
 #include <net/httpd.h>
 #include <failsafe/failsafe.h>
@@ -39,7 +40,7 @@ void mibib_reload_handler(enum httpd_uri_handler_status status,
     struct spi_flash *spi;
     nand_info_t *nand;
     struct httpd_form_value *mibib;
-    uint32_t page_size;
+    const void *mibib_ptable;
     fw_type_t fw_type;
     int ret;
 
@@ -75,7 +76,6 @@ void mibib_reload_handler(enum httpd_uri_handler_status status,
         if (!has_nand())
 			goto flash_not_found;
         nand = &nand_info[CONFIG_NAND_FLASH_INFO_IDX];
-        page_size = 2048;
 #ifdef CONFIG_QPIC_SERIAL
 		sfi->flash_type = SMEM_BOOT_QSPI_NAND_FLASH;
 #else
@@ -89,9 +89,8 @@ void mibib_reload_handler(enum httpd_uri_handler_status status,
 			goto flash_not_found;
         spi = spi_flash_probe(CONFIG_SF_DEFAULT_BUS, CONFIG_SF_DEFAULT_CS,
                     CONFIG_SF_DEFAULT_SPEED, CONFIG_SF_DEFAULT_MODE);
-        page_size = 256;
         sfi->flash_type = SMEM_BOOT_SPI_FLASH;
-        sfi->flash_block_size = spi->erase_size;
+        sfi->flash_block_size = SZ_64K;
         sfi->flash_density = spi->size;
         break;
     default:
@@ -104,7 +103,10 @@ void mibib_reload_handler(enum httpd_uri_handler_status status,
         return;
     }
 
-    ret = mibib_ptable_init((unsigned int *)(mibib->data + page_size));
+    mibib_ptable = get_mibib_ptable_offset(mibib->data, mibib->size,
+            (fw_type == FW_TYPE_MIBIB_NOR) ? MIBIB_TYPE_NOR : MIBIB_TYPE_NAND);
+
+    ret = mibib_ptable_init((unsigned int *)mibib_ptable);
     if (ret) {
         handle_fail_led_state();
         response->data = "{\"status\":\"fail\","
