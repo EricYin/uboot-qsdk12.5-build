@@ -59,6 +59,7 @@
 #endif
 #include <dm/root.h>
 #include <linux/compiler.h>
+#include <ipq_api.h>
 
 /*
  * Pointer to initial global data area
@@ -941,6 +942,9 @@ static init_fnc_t init_sequence_f[] = {
 #endif /* CONFIG_MPC5xxx */
 #if defined(CONFIG_DISPLAY_BOARDINFO)
 	show_board_info,
+#endif
+#if defined(CONFIG_LIB_IPQ_API)
+	print_board_info,
 #endif
 	INIT_FUNC_WATCHDOG_INIT
 #if defined(CONFIG_MISC_INIT_F)

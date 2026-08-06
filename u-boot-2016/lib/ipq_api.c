@@ -632,6 +632,35 @@ bool is_memory_region_available(uintptr_t load_addr, size_t size)
 }
 
 // =============================================================================
+// 打印设备信息
+// =============================================================================
+
+int print_board_info(void)
+{
+	const char *board_hostname, *board_model, *config_name;
+	const char *unknown = "Unknown";
+	int ret, configs_count;
+
+	board_hostname = fdt_getprop(gd->fdt_blob, 0, "host_name", NULL);
+	board_model = fdt_getprop(gd->fdt_blob, 0, "model", NULL);
+	printf("Model: %s (%s)\n",
+		board_hostname ? board_hostname : unknown,
+		board_model ? board_model : unknown);
+
+	puts("Config(s): ");
+	configs_count = fdt_count_strings(gd->fdt_blob, 0, "config_name");
+	for (int i = 0; i < configs_count; i++) {
+		config_name = NULL;
+		ret = fdt_get_string_index(gd->fdt_blob, 0, "config_name", i, &config_name);
+		if (!ret && config_name)
+			printf("%s%s", i ? ", " : "", config_name);
+	}
+	putc('\n');
+
+	return 0;
+}
+
+// =============================================================================
 // 杂项
 // =============================================================================
 
