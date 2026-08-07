@@ -32,8 +32,8 @@ fw_type_t check_fw_type(uintptr_t addr, size_t size)
 	case HEADER_MAGIC_CDT:
 		return FW_TYPE_CDT;
 	case HEADER_MAGIC_ELF:
-		if (get_mibib_ptable_offset((const void *)addr,
-				size, MIBIB_TYPE_NOR) != NULL)
+		if (get_mibib_and_ptable_addr((const void *)addr,
+				size, NULL, NULL, MIBIB_TYPE_NOR) == 0)
 			return FW_TYPE_SIMG_NOR;
 		return FW_TYPE_ELF;
 	case HEADER_MAGIC_FIT:

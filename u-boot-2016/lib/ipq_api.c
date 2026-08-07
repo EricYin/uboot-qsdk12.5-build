@@ -393,7 +393,8 @@ int string_to_flash_type(const char *str)
 // 9008 模式相关 (MIBIB 重载、默认 flash_type 设置)
 // =============================================================================
 
-const void *get_mibib_ptable_offset(const void *addr, size_t limit, mibib_type_t mibib_type)
+int get_mibib_and_ptable_addr(const void *addr, size_t limit,
+		const void **mibib_addr, const void **ptable_addr, mibib_type_t mibib_type)
 {
 	const void *p = addr;
 	const u64 magic_mibib_start = HEADER_MAGIC_MBN;
@@ -403,7 +404,7 @@ const void *get_mibib_ptable_offset(const void *addr, size_t limit, mibib_type_t
 	uint32_t ptable_start_in_mibib, ptable_end_in_mibib;
 
 	if (!p)
-		return NULL;
+		return -EINVAL;
 
 	switch (mibib_type) {
 	case MIBIB_TYPE_NAND:
@@ -415,7 +416,7 @@ const void *get_mibib_ptable_offset(const void *addr, size_t limit, mibib_type_t
 		ptable_end_in_mibib = PTABLE_END_IN_MIBIB_NOR;
 		break;
 	default:
-		return NULL;
+		return -EINVAL;
 	}
 
 	while (limit >= ptable_end_in_mibib + magic_len) {
@@ -423,12 +424,43 @@ const void *get_mibib_ptable_offset(const void *addr, size_t limit, mibib_type_t
 		if (!memcmp(p, &magic_mibib_start, magic_len) &&
 			!memcmp(p + ptable_start_in_mibib, &magic_ptable_start, magic_len) &&
 			!memcmp(p + ptable_end_in_mibib, &magic_ptable_end, magic_len)) {
-			return p + ptable_start_in_mibib;
+			if (mibib_addr)
+				*mibib_addr = p;
+			if (ptable_addr)
+				*ptable_addr = p + ptable_start_in_mibib;
+			return 0;
 		}
 		p++;
 	}
 
-	return NULL;
+	return -ENOENT;
+}
+
+static int check_smem_flash_block_size(const void *load_addr,
+		const void *mibib_addr, mibib_type_t mibib_type)
+{
+	qca_smem_flash_info_t *sfi = &qca_smem_flash_info;
+	uint32_t offset_blocks, size_blocks;
+	uint32_t smem_offset_bytes, acutal_offset_bytes;
+	uint32_t flash_block_size;
+	int ret;
+
+	ret = smem_getpart("0:MIBIB", &offset_blocks, &size_blocks);
+	if (ret)
+		return ret;
+
+	smem_offset_bytes = offset_blocks * sfi->flash_block_size;
+	acutal_offset_bytes = mibib_addr - load_addr;
+	if (acutal_offset_bytes && smem_offset_bytes != acutal_offset_bytes) {
+		if (offset_blocks && acutal_offset_bytes % offset_blocks == 0) {
+			flash_block_size = acutal_offset_bytes / offset_blocks;
+			printf("change smem flash block size from 0x%x to 0x%x\n",
+				sfi->flash_block_size, flash_block_size);
+			sfi->flash_block_size = flash_block_size;
+		}
+	}
+
+	return 0;
 }
 
 static int reload_mibib_from_spi(void)
@@ -437,7 +469,7 @@ static int reload_mibib_from_spi(void)
 	struct spi_flash *spi;
 	size_t read_size;
 	void *load_addr;
-	const void *mibib_ptable;
+	const void *mibib_addr, *ptable_addr;
 	int ret;
 
 	spi = spi_flash_probe(CONFIG_SF_DEFAULT_BUS, CONFIG_SF_DEFAULT_CS,
@@ -456,30 +488,33 @@ static int reload_mibib_from_spi(void)
 	if (ret)
 		goto done;
 
-	mibib_ptable = get_mibib_ptable_offset(load_addr, read_size, MIBIB_TYPE_NOR);
-	if (!mibib_ptable) {
-		ret = -ENOENT;
-		goto done;
-	}
-
-	ret = mibib_ptable_init((unsigned int *)mibib_ptable);
+	ret = get_mibib_and_ptable_addr(load_addr, read_size,
+			&mibib_addr, &ptable_addr,  MIBIB_TYPE_NOR);
 	if (ret)
 		goto done;
 
-	ret = 0;
+	ret = mibib_ptable_init((unsigned int *)ptable_addr);
+	if (ret)
+		goto done;
+
+	sfi->flash_block_size = SZ_64K;
+	ret = check_smem_flash_block_size(load_addr, mibib_addr, MIBIB_TYPE_NOR);
+	if (ret) {
+		sfi->flash_block_size = 0;
+		goto done;
+	}
 
 	sfi->flash_type = SMEM_BOOT_SPI_FLASH;
-	sfi->flash_block_size = SZ_64K;
 	sfi->flash_density = spi->size;
 
 	get_kernel_fs_part_details();
 
 done:
-	puts("try reloading MIBIB from SPI: ");
+	puts("try reloading MIBIB from SPI FLASH: ");
 	if (ret)
 		printf("failure (errno: %d)\n", ret);
 	else
-		puts("success\n");
+		puts("success\nplease run 'smeminfo' to check if smem info is correct\n");
 	unmap_sysmem(load_addr);
 	return ret;
 }
@@ -490,7 +525,7 @@ static int reload_mibib_from_nand(void)
 	nand_info_t *nand = &nand_info[CONFIG_NAND_FLASH_INFO_IDX];
 	size_t read_size;
 	void *load_addr;
-	const void *mibib_ptable;
+	const void *mibib_addr, *ptable_addr;
 	int ret;
 
 	/* 读取 NAND 的前 4 MiB 数据 */
@@ -504,34 +539,37 @@ static int reload_mibib_from_nand(void)
 	if (ret)
 		goto done;
 
-	mibib_ptable = get_mibib_ptable_offset(load_addr, read_size, MIBIB_TYPE_NAND);
-	if (!mibib_ptable) {
-		ret = -ENOENT;
-		goto done;
-	}
-
-	ret = mibib_ptable_init((unsigned int *)mibib_ptable);
+	ret = get_mibib_and_ptable_addr(load_addr, read_size,
+			&mibib_addr, &ptable_addr,  MIBIB_TYPE_NAND);
 	if (ret)
 		goto done;
 
-	ret = 0;
+	ret = mibib_ptable_init((unsigned int *)ptable_addr);
+	if (ret)
+		goto done;
+
+	sfi->flash_block_size = nand->erasesize;
+	ret = check_smem_flash_block_size(load_addr, mibib_addr, MIBIB_TYPE_NAND);
+	if (ret) {
+		sfi->flash_block_size = 0;
+		goto done;
+	}
 
 #ifdef CONFIG_QPIC_SERIAL
 	sfi->flash_type = SMEM_BOOT_QSPI_NAND_FLASH;
 #else
 	sfi->flash_type = SMEM_BOOT_NAND_FLASH;
 #endif
-	sfi->flash_block_size = nand->erasesize;
 	sfi->flash_density = nand->size;
 
 	get_kernel_fs_part_details();
 
 done:
-	puts("try reloading MIBIB from NAND: ");
+	puts("try reloading MIBIB from NAND FLASH: ");
 	if (ret)
 		printf("failure (errno: %d)\n", ret);
 	else
-		puts("success\n");
+		puts("success\nplease run 'smeminfo' to check if smem info is correct\n");
 	unmap_sysmem(load_addr);
 	return ret;
 }

@@ -61,7 +61,8 @@ void do_httpd_check(void);
 void ipq_gpio_init(void);
 size_t json_escape(const char *input, char *output, size_t output_buffer_size);
 bool mmc_part_exists(const char *part_name);
-const void *get_mibib_ptable_offset(const void *addr, size_t limit, mibib_type_t mibib_type);
+int get_mibib_and_ptable_addr(const void *addr, size_t limit,
+		const void **mibib_addr, const void **ptable_addr, mibib_type_t mibib_type);
 void reload_mibib_from_flash_and_set_default_flash_type_in_9008_mode(void);
 
 bool is_load_addr_valid(uintptr_t load_addr);

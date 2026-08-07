@@ -40,7 +40,7 @@ void mibib_reload_handler(enum httpd_uri_handler_status status,
     struct spi_flash *spi;
     nand_info_t *nand;
     struct httpd_form_value *mibib;
-    const void *mibib_ptable;
+    const void *ptable_addr;
     fw_type_t fw_type;
     int ret;
 
@@ -103,10 +103,17 @@ void mibib_reload_handler(enum httpd_uri_handler_status status,
         return;
     }
 
-    mibib_ptable = get_mibib_ptable_offset(mibib->data, mibib->size,
+    ret = get_mibib_and_ptable_addr(mibib->data, mibib->size, NULL, &ptable_addr,
             (fw_type == FW_TYPE_MIBIB_NOR) ? MIBIB_TYPE_NOR : MIBIB_TYPE_NAND);
+    if (ret) {
+        handle_fail_led_state();
+        response->data = "{\"status\":\"fail\","
+                        "\"info\":{\"type\":\"invalid_mibib_file\"}}";
+        response->size = strlen(response->data);
+        return;
+    }
 
-    ret = mibib_ptable_init((unsigned int *)mibib_ptable);
+    ret = mibib_ptable_init((unsigned int *)ptable_addr);
     if (ret) {
         handle_fail_led_state();
         response->data = "{\"status\":\"fail\","
