@@ -82,7 +82,7 @@
 
 ### NOR 固件
 
-分区表参考高通 [meta-tools](https://github.com/stkuroneko/meta-tools) 中的 nor-partition.xml。
+分区表参考高通 [meta-tools](https://github.com/chenxin527/meta-tools) 中的 nor-partition.xml。
 
 | 类型               | 支持 | 说明                             |
 | :----------------- | :--- | :------------------------------- |
@@ -152,6 +152,7 @@ sudo ./build.sh install_deps
   ipq53xx:
     jdcloud_re-cs-06          JDCloud BE6500
     jdcloud_re-cs-08          JDCloud ER2
+    xiaomi_be3600-pro         Xiaomi BE3600 Pro (5/8 Ethernet ports)
 
   ipq60xx:
     cmiot_ax18                CMIOT AX18
@@ -170,6 +171,7 @@ sudo ./build.sh install_deps
   ipq807x:
     aliyun_ap8220             Aliyun AP8220
     inseego_fg2000            Inseego FG2000
+    oppo_ckb01                OPPO CKB01 (SoftBank Air 5G)
     redmi_ax6                 Redmi AX6
     xiaomi_ax3600             Xiaomi AX3600
 
