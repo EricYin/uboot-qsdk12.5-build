@@ -179,161 +179,20 @@ dtb-$(CONFIG_TARGET_IPQ807X_OPPO_CKB01)        += ipq807x-oppo_ckb01.dtb
 dtb-$(CONFIG_TARGET_IPQ807x_REDMI_AX6)         += ipq807x-redmi_ax6.dtb
 dtb-$(CONFIG_TARGET_IPQ807x_XIAOMI_AX3600)     += ipq807x-xiaomi_ax3600.dtb
 
-ifdef CONFIG_ADD_EXTRA_DTB
-dtb-$(CONFIG_TARGET_IPQ5018_CMCC_MR3000D_CI)   += ipq5018-emulation.dtb \
-												  ipq5018-mp02.1.dtb \
-												  ipq5018-mp03.1-c2.dtb \
-												  ipq5018-mp03.1-c3.dtb \
-												  ipq5018-mp03.3.dtb \
-												  ipq5018-mp03.3-c2.dtb \
-												  ipq5018-mp03.3-c3.dtb \
-												  ipq5018-mp03.3-c4.dtb \
-												  ipq5018-mp03.3-c5.dtb \
-												  ipq5018-mp03.4-c1.dtb \
-												  ipq5018-mp03.4-c2.dtb \
-												  ipq5018-mp03.6-c1.dtb \
-												  ipq5018-mp03.6-c2.dtb \
-												  ipq5018-mp03.5-c1.dtb \
-												  ipq5018-mp03.5-c2.dtb \
-												  ipq5018-db-mp02.1.dtb \
-												  ipq5018-db-mp03.1.dtb \
-												  ipq5018-db-mp03.1-c2.dtb \
-												  ipq5018-db-mp03.3.dtb \
-												  ipq5018-db-mp03.3-c2.dtb \
-												  ipq5018-tb-mp04.dtb \
-												  ipq5018-mp03.1.dtb
-dtb-$(CONFIG_TARGET_IPQ5018_CMCC_PZ_L8)        += ipq5018-emulation.dtb \
-												  ipq5018-mp03.1-c2.dtb \
-												  ipq5018-mp03.1-c3.dtb \
-												  ipq5018-mp03.3.dtb \
-												  ipq5018-mp03.3-c2.dtb \
-												  ipq5018-mp03.3-c3.dtb \
-												  ipq5018-mp03.3-c4.dtb \
-												  ipq5018-mp03.3-c5.dtb \
-												  ipq5018-mp03.4-c1.dtb \
-												  ipq5018-mp03.4-c2.dtb \
-												  ipq5018-mp03.6-c1.dtb \
-												  ipq5018-mp03.6-c2.dtb \
-												  ipq5018-mp03.5-c1.dtb \
-												  ipq5018-mp03.5-c2.dtb \
-												  ipq5018-db-mp02.1.dtb \
-												  ipq5018-db-mp03.1.dtb \
-												  ipq5018-db-mp03.1-c2.dtb \
-												  ipq5018-db-mp03.3.dtb \
-												  ipq5018-db-mp03.3-c2.dtb \
-												  ipq5018-tb-mp04.dtb \
-												  ipq5018-mp03.1.dtb
-dtb-$(CONFIG_TARGET_IPQ5018_CMCC_RAX3000Q)     += ipq5018-emulation.dtb \
-												  ipq5018-mp03.1-c2.dtb \
-												  ipq5018-mp03.1-c3.dtb \
-												  ipq5018-mp03.3.dtb \
-												  ipq5018-mp03.3-c2.dtb \
-												  ipq5018-mp03.3-c3.dtb \
-												  ipq5018-mp03.3-c4.dtb \
-												  ipq5018-mp03.3-c5.dtb \
-												  ipq5018-mp03.4-c1.dtb \
-												  ipq5018-mp03.4-c2.dtb \
-												  ipq5018-mp03.6-c1.dtb \
-												  ipq5018-mp03.6-c2.dtb \
-												  ipq5018-mp03.5-c1.dtb \
-												  ipq5018-mp03.5-c2.dtb \
-												  ipq5018-db-mp02.1.dtb \
-												  ipq5018-db-mp03.1.dtb \
-												  ipq5018-db-mp03.1-c2.dtb \
-												  ipq5018-db-mp03.3.dtb \
-												  ipq5018-db-mp03.3-c2.dtb \
-												  ipq5018-tb-mp04.dtb \
-												  ipq5018-mp03.1.dtb
-dtb-$(CONFIG_TARGET_IPQ5018_CUCC_VS010)        += ipq5018-emulation.dtb \
-												  ipq5018-mp03.1-c2.dtb \
-												  ipq5018-mp03.1-c3.dtb \
-												  ipq5018-mp03.3.dtb \
-												  ipq5018-mp03.3-c2.dtb \
-												  ipq5018-mp03.3-c3.dtb \
-												  ipq5018-mp03.3-c4.dtb \
-												  ipq5018-mp03.3-c5.dtb \
-												  ipq5018-mp03.4-c1.dtb \
-												  ipq5018-mp03.4-c2.dtb \
-												  ipq5018-mp03.6-c1.dtb \
-												  ipq5018-mp03.6-c2.dtb \
-												  ipq5018-mp03.5-c1.dtb \
-												  ipq5018-mp03.5-c2.dtb \
-												  ipq5018-db-mp02.1.dtb \
-												  ipq5018-db-mp03.1.dtb \
-												  ipq5018-db-mp03.1-c2.dtb \
-												  ipq5018-db-mp03.3.dtb \
-												  ipq5018-db-mp03.3-c2.dtb \
-												  ipq5018-tb-mp04.dtb \
-												  ipq5018-mp03.1.dtb
-dtb-$(CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000)    += ipq5018-emulation.dtb \
-												  ipq5018-mp02.1.dtb \
-												  ipq5018-mp03.1-c2.dtb \
-												  ipq5018-mp03.1-c3.dtb \
-												  ipq5018-mp03.3.dtb \
-												  ipq5018-mp03.3-c2.dtb \
-												  ipq5018-mp03.3-c3.dtb \
-												  ipq5018-mp03.3-c4.dtb \
-												  ipq5018-mp03.3-c5.dtb \
-												  ipq5018-mp03.4-c1.dtb \
-												  ipq5018-mp03.4-c2.dtb \
-												  ipq5018-mp03.6-c1.dtb \
-												  ipq5018-mp03.6-c2.dtb \
-												  ipq5018-mp03.5-c1.dtb \
-												  ipq5018-db-mp02.1.dtb \
-												  ipq5018-db-mp03.1.dtb \
-												  ipq5018-db-mp03.1-c2.dtb \
-												  ipq5018-db-mp03.3.dtb \
-												  ipq5018-db-mp03.3-c2.dtb \
-												  ipq5018-tb-mp04.dtb \
-												  ipq5018-mp03.1.dtb
-dtb-$(CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_06)  += ipq5332-emulation.dtb \
-												  ipq5332-mi01.2.dtb \
-												  ipq5332-mi01.2-qcn9160-c1.dtb \
-												  ipq5332-mi01.3.dtb \
-												  ipq5332-mi01.4.dtb \
-												  ipq5332-mi01.9.dtb \
-												  ipq5332-mi01.12.dtb \
-												  ipq5332-mi01.13.dtb \
-												  ipq5332-mi03.1.dtb \
-												  ipq5332-mi04.1.dtb \
-												  ipq5332-mi04.3.dtb \
-												  ipq5332-db-mi01.1.dtb \
-												  ipq5332-db-mi02.1.dtb \
-												  ipq5332-db-mi03.1.dtb \
-												  ipq5332-tb-mi03.1.dtb \
-												  ipq5332-tb-mi05.1.dtb
-dtb-$(CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_08)  += ipq5332-emulation.dtb \
-												  ipq5332-mi01.2.dtb \
-												  ipq5332-mi01.2-qcn9160-c1.dtb \
-												  ipq5332-mi01.3.dtb \
-												  ipq5332-mi01.4.dtb \
-												  ipq5332-mi01.9.dtb \
-												  ipq5332-mi01.12.dtb \
-												  ipq5332-mi01.13.dtb \
-												  ipq5332-mi03.1.dtb \
-												  ipq5332-mi04.1.dtb \
-												  ipq5332-mi04.3.dtb \
-												  ipq5332-db-mi01.1.dtb \
-												  ipq5332-db-mi02.1.dtb \
-												  ipq5332-db-mi03.1.dtb \
-												  ipq5332-tb-mi03.1.dtb \
-												  ipq5332-tb-mi05.1.dtb
-dtb-$(CONFIG_TARGET_IPQ5332_XIAOMI_BE3600_PRO) += ipq5332-emulation.dtb \
-												  ipq5332-mi01.2.dtb \
-												  ipq5332-mi01.2-qcn9160-c1.dtb \
-												  ipq5332-mi01.3.dtb \
-												  ipq5332-mi01.4.dtb \
-												  ipq5332-mi01.6.dtb \
-												  ipq5332-mi01.9.dtb \
-												  ipq5332-mi01.12.dtb \
-												  ipq5332-mi01.13.dtb \
-												  ipq5332-mi03.1.dtb \
-												  ipq5332-mi04.3.dtb \
-												  ipq5332-db-mi01.1.dtb \
-												  ipq5332-db-mi02.1.dtb \
-												  ipq5332-db-mi03.1.dtb \
-												  ipq5332-tb-mi03.1.dtb \
-												  ipq5332-tb-mi05.1.dtb
+ifdef CONFIG_INCLUDE_EXTRA_DTB
+dtb-$(CONFIG_TARGET_IPQ5018_CMCC_MR3000D_CI)   += ipq5018-jdcloud_ax3000.dtb \
+												  ipq5018-cucc_vs010.dtb
+dtb-$(CONFIG_TARGET_IPQ5018_CMCC_PZ_L8)        += ipq5018-cmcc_mr3000d-ci.dtb \
+												  ipq5018-jdcloud_ax3000.dtb
+dtb-$(CONFIG_TARGET_IPQ5018_CMCC_RAX3000Q)     += ipq5018-cmcc_mr3000d-ci.dtb \
+												  ipq5018-jdcloud_ax3000.dtb
+dtb-$(CONFIG_TARGET_IPQ5018_CUCC_VS010)        += ipq5018-cmcc_mr3000d-ci.dtb \
+												  ipq5018-jdcloud_ax3000.dtb
+dtb-$(CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000)    += ipq5018-cmcc_mr3000d-ci.dtb \
+												  ipq5018-cucc_vs010.dtb
+dtb-$(CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_06)  += ipq5332-xiaomi_be3600-pro.dtb
+dtb-$(CONFIG_TARGET_IPQ5332_JDCLOUD_RE_CS_08)  += ipq5332-xiaomi_be3600-pro.dtb
+dtb-$(CONFIG_TARGET_IPQ5332_XIAOMI_BE3600_PRO) += ipq5332-jdcloud_re-cs-06.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_JDCLOUD_RE_CS_02)  += ipq6018-jdcloud_re-ss-01.dtb \
 												  ipq6018-redmi_ax5-jdcloud.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_JDCLOUD_RE_CS_07)  += ipq6018-jdcloud_re-ss-01.dtb \
@@ -354,109 +213,24 @@ dtb-$(CONFIG_TARGET_IPQ6018_REDMI_AX5_JDCLOUD) += ipq6018-jdcloud_re-cs-02.dtb \
 												  ipq6018-jdcloud_re-ss-01.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_SY_Y6010)          += ipq6018-jdcloud_re-cs-02.dtb \
 												  ipq6018-jdcloud_re-cs-07.dtb
-dtb-$(CONFIG_TARGET_IPQ807x_ALIYUN_AP8220)     += ipq807x-hk01.dtb \
-											  	  ipq807x-hk02.dtb \
-											  	  ipq807x-hk06.dtb \
-											  	  ipq807x-hk07.dtb \
-											  	  ipq807x-hk08.dtb \
-											  	  ipq807x-hk09.dtb \
-											  	  ipq807x-hk10.dtb \
-											  	  ipq807x-hk14.dtb \
-											  	  ipq807x-hk11-c1.dtb \
-											  	  ipq807x-ac01.dtb \
-											  	  ipq807x-ac03.dtb \
-											  	  ipq807x-ac04.dtb \
-											  	  ipq807x-oak02.dtb \
-											  	  ipq807x-hk01-c2.dtb \
-											  	  ipq807x-hk01-c4.dtb \
-											  	  ipq807x-hk01-c5.dtb \
-											  	  ipq807x-hk10-c2.dtb \
-											  	  ipq807x-db-hk02.dtb
-dtb-$(CONFIG_TARGET_IPQ807X_CRADLEPOINT_E320)  += ipq807x-hk01.dtb \
-												  ipq807x-hk02.dtb \
-												  ipq807x-hk06.dtb \
-												  ipq807x-hk08.dtb \
-												  ipq807x-hk09.dtb \
-												  ipq807x-hk10.dtb \
-												  ipq807x-hk14.dtb \
-												  ipq807x-hk11-c1.dtb \
-												  ipq807x-ac01.dtb \
-												  ipq807x-ac03.dtb \
-												  ipq807x-ac04.dtb \
-												  ipq807x-oak02.dtb \
-												  ipq807x-hk01-c2.dtb \
-												  ipq807x-hk01-c4.dtb \
-												  ipq807x-hk01-c5.dtb \
-												  ipq807x-hk10-c2.dtb \
-												  ipq807x-db-hk02.dtb
-dtb-$(CONFIG_TARGET_IPQ807x_INSEEGO_FG2000)    += ipq807x-hk01.dtb \
-											  	  ipq807x-hk02.dtb \
-											  	  ipq807x-hk06.dtb \
-											  	  ipq807x-hk07.dtb \
-											  	  ipq807x-hk08.dtb \
-											  	  ipq807x-hk10.dtb \
-											  	  ipq807x-hk14.dtb \
-											  	  ipq807x-hk11-c1.dtb \
-											  	  ipq807x-ac01.dtb \
-											  	  ipq807x-ac03.dtb \
-											  	  ipq807x-ac04.dtb \
-											  	  ipq807x-oak02.dtb \
-											  	  ipq807x-hk01-c2.dtb \
-											  	  ipq807x-hk01-c4.dtb \
-											  	  ipq807x-hk01-c5.dtb \
-											  	  ipq807x-hk10-c2.dtb \
-											  	  ipq807x-db-hk02.dtb
-dtb-$(CONFIG_TARGET_IPQ807X_OPPO_CKB01)        += ipq807x-hk01.dtb \
-											  	  ipq807x-hk02.dtb \
-											  	  ipq807x-hk06.dtb \
-											  	  ipq807x-hk07.dtb \
-											  	  ipq807x-hk08.dtb \
-											  	  ipq807x-hk10.dtb \
-											  	  ipq807x-hk14.dtb \
-											  	  ipq807x-hk11-c1.dtb \
-											  	  ipq807x-ac01.dtb \
-											  	  ipq807x-ac03.dtb \
-											  	  ipq807x-ac04.dtb \
-											  	  ipq807x-oak02.dtb \
-											  	  ipq807x-hk01-c2.dtb \
-											  	  ipq807x-hk01-c4.dtb \
-											  	  ipq807x-hk01-c5.dtb \
-											  	  ipq807x-hk10-c2.dtb \
-											  	  ipq807x-db-hk02.dtb
-dtb-$(CONFIG_TARGET_IPQ807x_REDMI_AX6)  	   += ipq807x-hk01.dtb \
-											  	  ipq807x-hk02.dtb \
-											  	  ipq807x-hk06.dtb \
-											  	  ipq807x-hk07.dtb \
-											  	  ipq807x-hk08.dtb \
-											  	  ipq807x-hk09.dtb \
-											  	  ipq807x-hk10.dtb \
-											  	  ipq807x-hk14.dtb \
-											  	  ipq807x-hk11-c1.dtb \
-											  	  ipq807x-ac01.dtb \
-											  	  ipq807x-ac03.dtb \
-											  	  ipq807x-oak02.dtb \
-											  	  ipq807x-hk01-c2.dtb \
-											  	  ipq807x-hk01-c4.dtb \
-											  	  ipq807x-hk01-c5.dtb \
-											  	  ipq807x-hk10-c2.dtb \
-											  	  ipq807x-db-hk02.dtb
-dtb-$(CONFIG_TARGET_IPQ807x_XIAOMI_AX3600)     += ipq807x-hk01.dtb \
-											  	  ipq807x-hk02.dtb \
-											  	  ipq807x-hk06.dtb \
-											  	  ipq807x-hk07.dtb \
-											  	  ipq807x-hk08.dtb \
-											  	  ipq807x-hk09.dtb \
-											  	  ipq807x-hk10.dtb \
-											  	  ipq807x-hk14.dtb \
-											  	  ipq807x-hk11-c1.dtb \
-											  	  ipq807x-ac01.dtb \
-											  	  ipq807x-ac03.dtb \
-											  	  ipq807x-oak02.dtb \
-											  	  ipq807x-hk01-c2.dtb \
-											  	  ipq807x-hk01-c4.dtb \
-											  	  ipq807x-hk01-c5.dtb \
-											  	  ipq807x-hk10-c2.dtb \
-											  	  ipq807x-db-hk02.dtb
+dtb-$(CONFIG_TARGET_IPQ807x_ALIYUN_AP8220)     += ipq807x-cradlepoint_e320.dtb \
+											  	  ipq807x-inseego_fg2000.dtb \
+											  	  ipq807x-xiaomi_ax3600.dtb
+dtb-$(CONFIG_TARGET_IPQ807X_CRADLEPOINT_E320)  += ipq807x-aliyun_ap8220.dtb \
+											  	  ipq807x-inseego_fg2000.dtb \
+											  	  ipq807x-xiaomi_ax3600.dtb
+dtb-$(CONFIG_TARGET_IPQ807x_INSEEGO_FG2000)    += ipq807x-aliyun_ap8220.dtb \
+											  	  ipq807x-cradlepoint_e320.dtb \
+											  	  ipq807x-xiaomi_ax3600.dtb
+dtb-$(CONFIG_TARGET_IPQ807X_OPPO_CKB01)        += ipq807x-aliyun_ap8220.dtb \
+											  	  ipq807x-cradlepoint_e320.dtb \
+											  	  ipq807x-xiaomi_ax3600.dtb
+dtb-$(CONFIG_TARGET_IPQ807x_REDMI_AX6)  	   += ipq807x-aliyun_ap8220.dtb \
+											  	  ipq807x-cradlepoint_e320.dtb \
+											  	  ipq807x-inseego_fg2000.dtb
+dtb-$(CONFIG_TARGET_IPQ807x_XIAOMI_AX3600)     += ipq807x-aliyun_ap8220.dtb \
+											  	  ipq807x-cradlepoint_e320.dtb \
+											  	  ipq807x-inseego_fg2000.dtb
 endif
 
 dtb-$(CONFIG_ARCH_IPQ9574) += ipq9574-al01-c1.dtb \
