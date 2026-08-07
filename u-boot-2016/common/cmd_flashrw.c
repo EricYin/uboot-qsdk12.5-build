@@ -772,7 +772,7 @@ static int read_partition(const char *part_name, const ulong load_addr)
 	if (!is_memory_region_available(load_addr, size_bytes))
 		goto part_too_big;
 
-	printf("#Executing: %s\n", buf);
+	printf("# Executing: %s\n", buf);
 
     ret = run_command(buf, 0);
 	if (ret) {
@@ -811,10 +811,8 @@ static int do_flash_read(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv
     switch (argc) {
     case 2:
         loadaddr = getenv("loadaddr");
-        if (loadaddr == NULL)
-            return CMD_RET_USAGE;
         part_name = argv[1];
-        load_addr = simple_strtoul(loadaddr, NULL, 16);
+        load_addr = loadaddr ? simple_strtoul(loadaddr, NULL, 16) : CONFIG_SYS_LOAD_ADDR;
         break;
     case 3:
         part_name = argv[2];
