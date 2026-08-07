@@ -393,6 +393,16 @@ int string_to_flash_type(const char *str)
 // 9008 模式相关 (MIBIB 重载、默认 flash_type 设置)
 // =============================================================================
 
+typedef struct {
+	size_t read_size;
+	size_t flash_block_size;
+	size_t flash_size;
+	uint32_t flash_type;
+	const char *flash_type_str;
+	mibib_type_t mibib_type;
+	int (*read_data_from_flash)(ulong offset, size_t size, void *buf, size_t buf_size);
+} mibib_reload_info_t;
+
 int get_mibib_and_ptable_addr(const void *addr, size_t limit,
 		const void **mibib_addr, const void **ptable_addr, mibib_type_t mibib_type)
 {
@@ -463,33 +473,26 @@ static int check_smem_flash_block_size(const void *load_addr,
 	return 0;
 }
 
-static int reload_mibib_from_spi(void)
+static int reload_mibib_from_flash(mibib_reload_info_t *info)
 {
 	qca_smem_flash_info_t *sfi = &qca_smem_flash_info;
-	struct spi_flash *spi;
 	size_t read_size;
 	void *load_addr;
 	const void *mibib_addr, *ptable_addr;
 	int ret;
 
-	spi = spi_flash_probe(CONFIG_SF_DEFAULT_BUS, CONFIG_SF_DEFAULT_CS,
-			CONFIG_SF_DEFAULT_SPEED, CONFIG_SF_DEFAULT_MODE);
-	if (!spi)
-		return -ENODEV;
-
-	/* 读取 SPI-NOR 的前 2 MiB 数据 */
-	read_size = min_t(size_t, SZ_2M, spi->size);
+	read_size = min_t(size_t, info->read_size, info->flash_size);
 
 	load_addr = map_sysmem(CONFIG_SYS_LOAD_ADDR, read_size);
 	if (!load_addr)
 		return -ENOMEM;
 
-	ret = read_data_from_spi(0, read_size, load_addr, read_size);
+	ret = info->read_data_from_flash(0, read_size, load_addr, read_size);
 	if (ret)
 		goto done;
 
 	ret = get_mibib_and_ptable_addr(load_addr, read_size,
-			&mibib_addr, &ptable_addr,  MIBIB_TYPE_NOR);
+			&mibib_addr, &ptable_addr, info->mibib_type);
 	if (ret)
 		goto done;
 
@@ -497,75 +500,20 @@ static int reload_mibib_from_spi(void)
 	if (ret)
 		goto done;
 
-	sfi->flash_block_size = SZ_64K;
-	ret = check_smem_flash_block_size(load_addr, mibib_addr, MIBIB_TYPE_NOR);
+	sfi->flash_block_size = info->flash_block_size;
+	ret = check_smem_flash_block_size(load_addr, mibib_addr, info->mibib_type);
 	if (ret) {
 		sfi->flash_block_size = 0;
 		goto done;
 	}
 
-	sfi->flash_type = SMEM_BOOT_SPI_FLASH;
-	sfi->flash_density = spi->size;
+	sfi->flash_type = info->flash_type;
+	sfi->flash_density = info->flash_size;
 
 	get_kernel_fs_part_details();
 
 done:
-	puts("try reloading MIBIB from SPI FLASH: ");
-	if (ret)
-		printf("failure (errno: %d)\n", ret);
-	else
-		puts("success\nplease run 'smeminfo' to check if smem info is correct\n");
-	unmap_sysmem(load_addr);
-	return ret;
-}
-
-static int reload_mibib_from_nand(void)
-{
-	qca_smem_flash_info_t *sfi = &qca_smem_flash_info;
-	nand_info_t *nand = &nand_info[CONFIG_NAND_FLASH_INFO_IDX];
-	size_t read_size;
-	void *load_addr;
-	const void *mibib_addr, *ptable_addr;
-	int ret;
-
-	/* 读取 NAND 的前 4 MiB 数据 */
-	read_size = min_t(size_t, SZ_4M, nand->size);
-
-	load_addr = map_sysmem(CONFIG_SYS_LOAD_ADDR, read_size);
-	if (!load_addr)
-		return -ENOMEM;
-
-	ret = read_data_from_nand(0, read_size, load_addr, read_size);
-	if (ret)
-		goto done;
-
-	ret = get_mibib_and_ptable_addr(load_addr, read_size,
-			&mibib_addr, &ptable_addr,  MIBIB_TYPE_NAND);
-	if (ret)
-		goto done;
-
-	ret = mibib_ptable_init((unsigned int *)ptable_addr);
-	if (ret)
-		goto done;
-
-	sfi->flash_block_size = nand->erasesize;
-	ret = check_smem_flash_block_size(load_addr, mibib_addr, MIBIB_TYPE_NAND);
-	if (ret) {
-		sfi->flash_block_size = 0;
-		goto done;
-	}
-
-#ifdef CONFIG_QPIC_SERIAL
-	sfi->flash_type = SMEM_BOOT_QSPI_NAND_FLASH;
-#else
-	sfi->flash_type = SMEM_BOOT_NAND_FLASH;
-#endif
-	sfi->flash_density = nand->size;
-
-	get_kernel_fs_part_details();
-
-done:
-	puts("try reloading MIBIB from NAND FLASH: ");
+	printf("try reloading MIBIB from %s FLASH: ", info->flash_type_str);
 	if (ret)
 		printf("failure (errno: %d)\n", ret);
 	else
@@ -581,11 +529,45 @@ void reload_mibib_from_flash_and_set_default_flash_type_in_9008_mode(void)
 	if (!is_9008_mode())
 		return;
 
-	if (has_spi() && !reload_mibib_from_spi())
-		return;
+	if (has_spi()) {
+		struct spi_flash *spi;
+		spi = spi_flash_probe(CONFIG_SF_DEFAULT_BUS, CONFIG_SF_DEFAULT_CS,
+				CONFIG_SF_DEFAULT_SPEED, CONFIG_SF_DEFAULT_MODE);
+		if (spi) {
+			mibib_reload_info_t info = {
+				.read_size = SZ_2M,
+				.flash_block_size = SZ_64K,
+				.flash_size = spi->size,
+				.flash_type = SMEM_BOOT_SPI_FLASH,
+				.flash_type_str = "SPI-NOR",
+				.mibib_type = MIBIB_TYPE_NOR,
+				.read_data_from_flash = read_data_from_spi
+			};
+			if (!reload_mibib_from_flash(&info))
+				return;
+		}
+	}
 
-	if (has_nand() && !reload_mibib_from_nand())
-		return;
+	if (has_nand()) {
+		nand_info_t *nand = &nand_info[CONFIG_NAND_FLASH_INFO_IDX];
+		if (nand->name && nand->size > 0 && nand->writesize > 0) {
+			mibib_reload_info_t info = {
+				.read_size = SZ_4M,
+				.flash_block_size = nand->erasesize,
+				.flash_size = nand->size,
+#ifdef CONFIG_QPIC_SERIAL
+				.flash_type = SMEM_BOOT_QSPI_NAND_FLASH,
+#else
+				.flash_type = SMEM_BOOT_NAND_FLASH,
+#endif
+				.flash_type_str = "NAND",
+				.mibib_type = MIBIB_TYPE_NAND,
+				.read_data_from_flash = read_data_from_nand
+			};
+			if (!reload_mibib_from_flash(&info))
+				return;
+		}
+	}
 
 	if (has_mmc() && !has_spi() && !has_nand())
 		sfi->flash_type = SMEM_BOOT_MMC_FLASH;
