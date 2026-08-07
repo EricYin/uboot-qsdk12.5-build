@@ -48,6 +48,12 @@ config TARGET_IPQ807x_ALIYUN_AP8220
     help
 	  Enable support for Aliyun AP8220 board
 
+config TARGET_IPQ807X_CRADLEPOINT_E320
+    bool "Cradlepoint E320 board support"
+	default n
+    help
+	  Enable support for Cradlepoint E320 board
+
 config TARGET_IPQ807x_INSEEGO_FG2000
     bool "Inseego FG2000 board support"
 	default n

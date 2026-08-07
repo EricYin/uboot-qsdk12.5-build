@@ -21,6 +21,7 @@ on:
           - cmcc_pz-l8
           - cmcc_rax3000q
           - cmiot_ax18
+          - cradlepoint_e320
           - cucc_vs010
           - glinet_gl-ax1800
           - inseego_fg2000

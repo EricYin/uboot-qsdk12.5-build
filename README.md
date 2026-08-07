@@ -55,6 +55,7 @@
 | IPQ60xx | SY Y6010                    | sy_y6010          |                              |
 | IPQ60xx | ZN M2                       | zn_m2             | WAN 口（靠近 Reset 键）不通  |
 | IPQ807x | Aliyun AP8220               | aliyun_ap8220     |                              |
+| IPQ807x | Cradlepoint E320            | cradlepoint_e320  | 待测试；原机 CPU 有锁，需更换无锁 CPU 才能刷写此 U-Boot |
 | IPQ807x | Inseego FG2000              | inseego_fg2000    | 5G 网口未驱动                |
 | IPQ807x | OPPO CKB01 (SoftBank Air 5G) | oppo_ckb01       |                              |
 | IPQ807x | Redmi AX6                   | redmi_ax6         |                              |
@@ -170,6 +171,7 @@ sudo ./build.sh install_deps
 
   ipq807x:
     aliyun_ap8220             Aliyun AP8220
+    cradlepoint_e320          Cradlepoint E320
     inseego_fg2000            Inseego FG2000
     oppo_ckb01                OPPO CKB01 (SoftBank Air 5G)
     redmi_ax6                 Redmi AX6

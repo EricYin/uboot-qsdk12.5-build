@@ -85,6 +85,7 @@ DEVICE_LIST=(
     "ipq60xx:sy_y6010:ipq6018_sy_y6010:SY Y6010"
     "ipq60xx:zn_m2:ipq6018_zn_m2:ZN M2"
     "ipq807x:aliyun_ap8220:ipq807x_aliyun_ap8220:Aliyun AP8220"
+    "ipq807x:cradlepoint_e320:ipq807x_cradlepoint_e320:Cradlepoint E320"
     "ipq807x:inseego_fg2000:ipq807x_inseego_fg2000:Inseego FG2000"
     "ipq807x:oppo_ckb01:ipq807x_oppo_ckb01:OPPO CKB01 (SoftBank Air 5G)"
     "ipq807x:redmi_ax6:ipq807x_redmi_ax6:Redmi AX6"

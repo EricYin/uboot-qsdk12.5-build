@@ -794,7 +794,8 @@ void board_nand_init(void)
 	int i;
 #endif
 
-#ifndef CONFIG_TARGET_IPQ807X_OPPO_CKB01
+#if !defined(CONFIG_TARGET_IPQ807X_OPPO_CKB01) && \
+	!defined(CONFIG_TARGET_IPQ807X_CRADLEPOINT_E320)
 	qpic_nand_init(&gboard_param.qpic_nand_cfg);
 #endif
 
