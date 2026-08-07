@@ -1222,6 +1222,14 @@ const void *get_smem_ptable_addr(void)
 	return &smem_ptable;
 }
 
+void reset_smem_ptable_in_9008_mode(void)
+{
+	if (!is_9008_mode())
+		return;
+
+	memset(&smem_ptable, 0, sizeof(smem_ptable));
+}
+
 int do_smeminfo(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	qca_smem_flash_info_t *sfi = &qca_smem_flash_info;

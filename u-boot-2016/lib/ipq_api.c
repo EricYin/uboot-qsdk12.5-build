@@ -513,11 +513,21 @@ static int reload_mibib_from_flash(mibib_reload_info_t *info)
 	get_kernel_fs_part_details();
 
 done:
-	printf("try reloading MIBIB from %s FLASH: ", info->flash_type_str);
-	if (ret)
+	printf("reload MIBIB from %s FLASH: ", info->flash_type_str);
+	if (ret) {
 		printf("failure (errno: %d)\n", ret);
-	else
-		puts("success\nplease run 'smeminfo' to check if smem info is correct\n");
+		reset_smem_ptable_in_9008_mode();
+	} else {
+		const char *separator = "--------------------------------------------------------------------\n";
+		puts("success\n");
+		puts("please check if the smeminfo below is correct\n");
+		puts("especially flash_type, flash_block_size, and start & size for each partition entry\n");
+		puts(separator);
+		run_command("smeminfo", 0);
+		puts(separator);
+		putc('\n');
+	}
+
 	unmap_sysmem(load_addr);
 	return ret;
 }

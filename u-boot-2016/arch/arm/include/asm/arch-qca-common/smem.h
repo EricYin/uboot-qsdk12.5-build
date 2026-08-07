@@ -56,6 +56,7 @@ bool is_9008_mode(void);
 
 const void *get_smem_ptable_addr(void);
 bool smem_part_exists(const char *part_name);
+void reset_smem_ptable_in_9008_mode(void);
 unsigned int smem_get_board_platform_type(void);
 int smem_ptable_init(void);
 #if defined(CONFIG_HTTPD) || defined(CONFIG_IPQ_MIBIB_RELOAD)
