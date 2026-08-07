@@ -351,6 +351,24 @@ fail:
 	return RET_FAILURE;
 }
 
+void get_image_md5_str(const void *data_addr, ulong data_size, char *buf, size_t buf_size)
+{
+	const char *hexchars = "0123456789abcdef";
+	u8 md5_sum[16];
+
+	memset(buf, 0, buf_size);
+	if (buf_size < 33)
+		return;
+
+	md5((u8 *)data_addr, data_size, md5_sum);
+	for (int i = 0; i < 16; i++) {
+		u8 hex = (md5_sum[i] >> 4) & 0xf;
+		buf[i * 2] = hexchars[hex];
+		hex = md5_sum[i] & 0xf;
+		buf[i * 2 + 1] = hexchars[hex];
+	}
+}
+
 // =============================================================================
 // 帮助函数（刷写相关）
 // =============================================================================
@@ -877,21 +895,11 @@ int failsafe_validate_image(upgrade_type_t upgrade_type, const char *filename,
 	}
 
 	if (!ret) {
-		char *hexchars = "0123456789abcdef";
 		char md5_str[33], esc_filename[512];
-		u8 md5_sum[16];
 
-		memset(md5_str, 0, sizeof(md5_str));
-		md5((u8 *)data_addr, data_size, md5_sum);
-
-		for (int i = 0; i < 16; i++) {
-			u8 hex = (md5_sum[i] >> 4) & 0xf;
-			md5_str[i * 2] = hexchars[hex];
-			hex = md5_sum[i] & 0xf;
-			md5_str[i * 2 + 1] = hexchars[hex];
-		}
-
+		get_image_md5_str(data_addr, data_size, md5_str, sizeof(md5_str));
 		json_escape(filename, esc_filename, sizeof(esc_filename));
+
 		snprintf(info, sizeof(info),
 			"{\"type\":\"%s\",\"size\":\"%lu\",\"md5\":\"%s\",\"name\":\"%s\"}",
 			fw_type_to_string(fw_type), data_size, md5_str, esc_filename[0] ? esc_filename : "NONE");
