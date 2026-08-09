@@ -19,6 +19,7 @@
 #include <asm/arch-qca-common/smem.h>
 #include <part.h>
 #include <linux/mtd/mtd.h>
+#include <linux/sizes.h>
 #include <nand.h>
 #include <mmc.h>
 #include <sdhci.h>
@@ -26,6 +27,8 @@
 #include <fdtdec.h>
 #include <asm/arch-qca-common/qpic_nand.h>
 #include <ipq_api.h>
+
+DECLARE_GLOBAL_DATA_PTR;
 
 #ifndef CONFIG_SDHCI_SUPPORT
 extern qca_mmc mmc_host;
@@ -810,9 +813,15 @@ static int do_flash_read(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv
 
     switch (argc) {
     case 2:
-        loadaddr = getenv("loadaddr");
         part_name = argv[1];
-        load_addr = loadaddr ? simple_strtoul(loadaddr, NULL, 16) : CONFIG_SYS_LOAD_ADDR;
+
+        loadaddr = getenv("loadaddr");
+		if (loadaddr)
+			load_addr = simple_strtoul(loadaddr, NULL, 16);
+		else
+			load_addr = (gd->ram_size >= SZ_512M)
+						? (CONFIG_SYS_SDRAM_BASE + SZ_256M)
+						: IPQ_TFTP_MIN_ADDR;
         break;
     case 3:
         part_name = argv[2];
