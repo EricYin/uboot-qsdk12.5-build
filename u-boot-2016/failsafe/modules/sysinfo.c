@@ -83,7 +83,7 @@ static void handle_response_message(struct httpd_response *response,
 	response->info.content_type = content_type ? content_type : "text/plain";
 }
 
-void sysinfo_handler(enum httpd_uri_handler_status status,
+static void sysinfo_handler(enum httpd_uri_handler_status status,
         struct httpd_request *request,
         struct httpd_response *response)
 {
@@ -279,4 +279,9 @@ void sysinfo_handler(enum httpd_uri_handler_status status,
 
 	handle_response_message(response, 200, buf, "application/json");
 	response->session_data = buf;
+}
+
+void sysinfo_register_uri_handlers(struct httpd_instance *inst)
+{
+	httpd_register_uri_handler(inst, "/sysinfo", &sysinfo_handler, NULL);
 }

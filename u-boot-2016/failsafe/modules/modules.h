@@ -22,89 +22,26 @@
 #define _FAILSAFE_MODULES_H_
 
 // =============================================================================
-// 闪存备份
+// 帮助函数
 // =============================================================================
-void backup_handler(enum httpd_uri_handler_status status,
-        struct httpd_request *request,
-        struct httpd_response *response);
+bool get_enable_state(const char *env_key, bool enable_by_default);
 
 // =============================================================================
-// 环境变量管理
+// Handlers 注册函数
 // =============================================================================
-void env_list_handler(enum httpd_uri_handler_status status,
-	    struct httpd_request *request,
-	    struct httpd_response *response);
-void env_set_handler(enum httpd_uri_handler_status status,
-	    struct httpd_request *request,
-	    struct httpd_response *response);
-void env_unset_handler(enum httpd_uri_handler_status status,
-	    struct httpd_request *request,
-	    struct httpd_response *response);
-void env_reset_all_handler(enum httpd_uri_handler_status status,
-	    struct httpd_request *request,
-	    struct httpd_response *response);
-void env_reset_single_handler(enum httpd_uri_handler_status status,
-	    struct httpd_request *request,
-	    struct httpd_response *response);
-void env_restore_handler(enum httpd_uri_handler_status status,
-	    struct httpd_request *request,
-	    struct httpd_response *response);
-
-// =============================================================================
-// MAC 管理
-// =============================================================================
-void mac_info_handler(enum httpd_uri_handler_status status,
-	    struct httpd_request *request,
-	    struct httpd_response *response);
-void mac_set_handler(enum httpd_uri_handler_status status,
-	    struct httpd_request *request,
-	    struct httpd_response *response);
-
-// =============================================================================
-// MIBIB 重载
-// =============================================================================
-void mibib_reload_handler(enum httpd_uri_handler_status status,
-        struct httpd_request *request,
-        struct httpd_response *response);
-
-// =============================================================================
-// 网络参数设置
-// =============================================================================
-void network_info_handler(enum httpd_uri_handler_status status,
-	    struct httpd_request *request,
-	    struct httpd_response *response);
-void network_set_handler(enum httpd_uri_handler_status status,
-	    struct httpd_request *request,
-	    struct httpd_response *response);
-void network_reset_handler(enum httpd_uri_handler_status status,
-	    struct httpd_request *request,
-	    struct httpd_response *response);
-
-// =============================================================================
-// 系统信息
-// =============================================================================
-void sysinfo_handler(enum httpd_uri_handler_status status,
-        struct httpd_request *request,
-        struct httpd_response *response);
-
-// =============================================================================
-// 系统日志
-// =============================================================================
-void syslog_poll_handler(enum httpd_uri_handler_status status,
-	struct httpd_request *request,
-	struct httpd_response *response);
-
-// =============================================================================
-// 网页终端
-// =============================================================================
-void webterm_exec_handler(enum httpd_uri_handler_status status,
-	struct httpd_request *request,
-	struct httpd_response *response);
-void webterm_upload_handler(enum httpd_uri_handler_status status,
-	struct httpd_request *request,
-	struct httpd_response *response);
-void webterm_cmdlist_handler(enum httpd_uri_handler_status status,
-	struct httpd_request *request,
-	struct httpd_response *response);
+void index_register_uri_handlers(struct httpd_instance *inst);
+void html_register_uri_handlers(struct httpd_instance *inst);
+void backup_register_uri_handlers(struct httpd_instance *inst);
+void env_register_uri_handlers(struct httpd_instance *inst);
+#ifdef CONFIG_FAILSAFE_MAC_MANAGEMENT
+void mac_register_uri_handlers(struct httpd_instance *inst);
+#endif /* CONFIG_FAILSAFE_MAC_MANAGEMENT */
+void mibib_register_uri_handlers(struct httpd_instance *inst);
+void misc_register_uri_handlers(struct httpd_instance *inst);
+void network_register_uri_handlers(struct httpd_instance *inst);
+void sysinfo_register_uri_handlers(struct httpd_instance *inst);
+void syslog_register_uri_handlers(struct httpd_instance *inst);
+void upgrade_register_uri_handlers(struct httpd_instance *inst);
+void webterm_register_uri_handlers(struct httpd_instance *inst);
 
 #endif /* _FAILSAFE_MODULES_H_ */

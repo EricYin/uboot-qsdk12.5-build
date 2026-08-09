@@ -17,521 +17,60 @@
 #include <net/httpd.h>
 #include <failsafe/failsafe.h>
 #include <ipq_api.h>
-#if defined(CONFIG_DHCPD)
+#ifdef CONFIG_DHCPD
 #include <net/dhcpd.h>
-#endif
-#if defined(CONFIG_TELNETD)
+#endif /* CONFIG_DHCPD */
+#ifdef CONFIG_TELNETD
 #include <net/telnetd.h>
-#endif
-#if defined(CONFIG_NET_ABORT)
+#endif /* CONFIG_TELNETD */
+#ifdef CONFIG_NET_ABORT
 #include <net_abort.h>
-#endif
+#endif /* CONFIG_NET_ABORT */
+
 #include "fs.h"
 #include "modules/modules.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#if defined(CONFIG_HTTPD_DEBUG)
+#ifdef CONFIG_HTTPD_DEBUG
 bool httpd_debug_on;
-#endif
+#endif /* CONFIG_HTTPD_DEBUG */
 
-/*
- * httpd exposes a global symbol named `upload_id`.
- * Avoid colliding with it by using a failsafe-local name.
- */
-static u32 fs_upload_id;
-static u32 upload_data_id;
-static const void *upload_data;
-static size_t upload_size;
-static bool httpd_running;
-static bool httpd_done;
-static bool tcp_done;
-static upgrade_type_t upgrade_type;
+bool httpd_running;
+bool tcp_done;
 
-struct reboot_session {
-	int dummy;
+extern bool auto_action_pending;
+extern const void *upload_data;
+extern upgrade_type_t upgrade_type;
+
+typedef void (*register_uri_handlers_func_t)(struct httpd_instance *inst);
+
+register_uri_handlers_func_t register_uri_handlers_funcs[] = {
+	index_register_uri_handlers,
+	html_register_uri_handlers,
+	backup_register_uri_handlers,
+	env_register_uri_handlers,
+#ifdef CONFIG_FAILSAFE_MAC_MANAGEMENT
+	mac_register_uri_handlers,
+#endif /* CONFIG_FAILSAFE_MAC_MANAGEMENT */
+	mibib_register_uri_handlers,
+	misc_register_uri_handlers,
+	network_register_uri_handlers,
+	sysinfo_register_uri_handlers,
+	syslog_register_uri_handlers,
+	upgrade_register_uri_handlers,
+	webterm_register_uri_handlers,
 };
 
-static int gunzip_and_send(struct httpd_response *response,
-		const struct fs_desc *file, const char *filename)
+static void print_greeting_message(void)
 {
-	void *dst = NULL;
-	ulong len = file->uncompressed_size;
-
-	httpd_debug("gunzipping %s (%u -> %u bytes)\n",
-		filename, file->size, file->uncompressed_size);
-
-#if defined(CONFIG_GZIP)
-	dst = malloc(file->uncompressed_size);
-	if (!dst) {
-		printf("Error: Failed to allocate %u bytes for gunzip of %s\n",
-			   file->uncompressed_size, filename);
-        return -1;
-	}
-
-	if (gunzip(dst, file->uncompressed_size, (unsigned char *)file->data, &len) != 0) {
-		printf("Error: Failed to gunzip %s\n", filename);
-		printf("  - gzip_data: %p\n", file->data);
-		printf("  - gzip_size: %u\n", file->size);
-        printf("  - uncompressed_size: %u\n", file->uncompressed_size);
-		free(dst);
-		return -1;
-	}
-#else
-	printf("Error: Failed to gunzip %s because the gunzip module is not enabled\n", filename);
-	return -1;
-#endif
-
-	if (len != file->uncompressed_size)
-        printf("Warning: %s uncompressed size mismatch (expect: %u bytes, in fact: %lu bytes)\n",
-               filename, file->uncompressed_size, len);
-
-	response->data = dst;
-	response->size = len;
-	response->info.content_encoding = NULL;
-	response->info.content_length = len;
-	response->gunzip_buffer = dst;  /* 使用gunzip_buffer指针存储需要释放的内存地址 */
-
-	return 0;
-}
-
-static int output_plain_file(struct httpd_response *response, const char *filename)
-{
-	const struct fs_desc *file;
-
-	response->status = HTTP_RESP_STD;
-	response->info.connection_close = 1;
-	response->gunzip_buffer = NULL;
-
-	file = fs_find_file(filename);
-
-	/* 找不到文件 */
-	if (!file) {
-		response->data = "Error: file not found";
-		response->size = strlen(response->data);
-		response->info.code = 404;
-		response->info.content_type = "text/html";
-		response->info.content_encoding = NULL;
-
-		return 1;
-	}
-
-	response->info.code = 200;
-	response->info.content_type = file->content_type;
-
-	/* 文件本身就是未压缩的，直接发送 */
-	if (!file->is_gzip) {
-		response->data = file->data;
-		response->size = file->size;
-		response->info.content_encoding = NULL;
-		response->info.content_length = file->size;
-		return 0;
-	}
-
-	/* 检查客户端是否支持gzip */
-	int client_accepts_gzip = 0;
-	const char *accept_encoding = httpd_find_header("Accept-Encoding");
-
-	if (accept_encoding && strstr(accept_encoding, "gzip"))
-		client_accepts_gzip = 1;
-
-	/* 客户端支持gzip，直接发送压缩数据 */
-	if (client_accepts_gzip) {
-		response->data = file->data;
-		response->size = file->size;
-		response->info.content_encoding = "gzip";
-		response->info.content_length = file->size;
-		response->info.vary = "Accept-Encoding";
-
-		return 0;
-	}
-
-	/* 客户端不支持gzip，需要解压后发送 */
-	if (gunzip_and_send(response, file, filename) != 0) {
-		/* 解压失败，回退到发送压缩版本？或者返回错误 */
-		/* 这里选择返回错误页面 */
-		response->data = "Error: Failed to decompress file";
-		response->size = strlen(response->data);
-		response->info.content_encoding = NULL;
-		response->info.content_length = response->size;
-		response->info.code = 500;
-		response->info.content_type = "text/html";
-
-		return 1;
-	}
-
-	return 0;
-}
-
-static void not_found_handler(enum httpd_uri_handler_status status,
-	struct httpd_request *request,
-	struct httpd_response *response)
-{
-	if (status == HTTP_CB_NEW) {
-		output_plain_file(response, "404.html");
-		response->info.code = 404;
-	}
-}
-
-static void index_handler(enum httpd_uri_handler_status status,
-	struct httpd_request *request,
-	struct httpd_response *response)
-{
-	if (status == HTTP_CB_NEW)
-		output_plain_file(response, "index.html");
-}
-
-/**
- * 负责处理上传类 HTML 页面内容的生成。包括以下页面：
- * art.html, cdt.html, firmware.html, initramfs.html,
- * mibib.html, ptable.html, simg.html, uboot.html
- */
-static void upload_html_handler(enum httpd_uri_handler_status status,
-		struct httpd_request *request,
-		struct httpd_response *response)
-{
-	static char resp[512];
-	char page_name[32];
-	int cpy_len;
-
-	if (status != HTTP_CB_NEW)
-		return;
-
-	/* 5 == strlen(".html") */
-	cpy_len = strlen(request->urih->uri + 1) - 5;
-
-	/* page_name 只包含去掉 / 和 .html 后的内容 */
-	memcpy(page_name, request->urih->uri + 1, cpy_len);
-
-	page_name[cpy_len] = '\0';
-
-	snprintf(resp, sizeof(resp),
-		"<!DOCTYPE HTML>"
-		"<html>"
-		"<head>"
-		"	<meta charset='utf-8'>"
-		"	<meta name='viewport' content='width=device-width, initial-scale=1'>"
-		"	<title></title>"
-		"	<link rel='stylesheet' href='/style.css'>"
-		"	<script src='/main.js'></script>"
-		"</head>"
-		"<body onload='appInit(\"%s\")' data-page='%s'></body>"
-		"</html>", page_name, page_name);
-
-	response->status = HTTP_RESP_STD;
-	response->data = resp;
-	response->size = strlen(response->data);
-	response->info.code = 200;
-	response->info.connection_close = 1;
-	response->info.content_type = "text/html";
-}
-
-static void html_handler(enum httpd_uri_handler_status status,
-	struct httpd_request *request,
-	struct httpd_response *response)
-{
-	if (status != HTTP_CB_NEW)
-		return;
-
-	if (output_plain_file(response, request->urih->uri + 1))
-		not_found_handler(status, request, response);
-}
-
-static void version_handler(enum httpd_uri_handler_status status,
-	struct httpd_request *request,
-	struct httpd_response *response)
-{
-	if (status != HTTP_CB_NEW)
-		return;
-
-	response->status = HTTP_RESP_STD;
-
-	response->data = version_string;
-	response->size = strlen(response->data);
-
-	response->info.code = 200;
-	response->info.connection_close = 1;
-	response->info.content_type = "text/plain";
-}
-
-static void reboot_handler(enum httpd_uri_handler_status status,
-			   struct httpd_request *request,
-			   struct httpd_response *response)
-{
-	struct reboot_session *st;
-
-	if (status == HTTP_CB_NEW) {
-		st = calloc(1, sizeof(*st));
-		if (!st) {
-			response->info.code = 500;
-			return;
-		}
-
-		response->session_data = st;
-		response->status = HTTP_RESP_STD;
-		response->data = "rebooting";
-		response->size = strlen(response->data);
-		response->info.code = 200;
-		response->info.connection_close = 1;
-		response->info.content_type = "text/plain";
-		return;
-	}
-
-	if (status == HTTP_CB_CLOSED) {
-		st = response->session_data;
-		free(st);
-
-		/* Make sure the current HTTP session has fully closed before reset */
-		tcp_close_all_conn();
-		do_reset(NULL, 0, 0, NULL);
-	}
-}
-
-struct upload_session {
-	char header_buf[4096];
-	int ret;
-    int body_sent;
-};
-
-static const struct {
-	upgrade_type_t type;
-	const char *label;
-} upgrade_types[] = {
-	{ WEBFAILSAFE_UPGRADE_TYPE_FIRMWARE, "firmware" },
-	{ WEBFAILSAFE_UPGRADE_TYPE_UBOOT, "uboot" },
-	{ WEBFAILSAFE_UPGRADE_TYPE_ART, "art" },
-	{ WEBFAILSAFE_UPGRADE_TYPE_CDT, "cdt" },
-	{ WEBFAILSAFE_UPGRADE_TYPE_PTABLE, "ptable" },
-	{ WEBFAILSAFE_UPGRADE_TYPE_SIMG, "simg" },
-	{ WEBFAILSAFE_UPGRADE_TYPE_INITRAMFS, "initramfs" }
-};
-
-static void upload_handler(enum httpd_uri_handler_status status,
-				struct httpd_request *request,
-				struct httpd_response *response)
-{
-	struct httpd_form_value *form_value;
-	struct upload_session *sess;
-	int idx;
-
-	if (status == HTTP_CB_NEW) {
-		sess = calloc(1, sizeof(*sess));
-		if (!sess) {
-			response->info.code = 500;
-			return;
-		}
-
-		handle_start_led_state();
-
-		response->session_data = sess;
-
-		response->status = HTTP_RESP_CUSTOM;
-
-		response->info.http_1_0 = 1;
-		response->info.content_length = -1;
-		response->info.connection_close = 1;
-		response->info.content_type = "application/json";
-		response->info.code = 200;
-
-		response->size = http_make_response_header(&response->info,
-							sess->header_buf, sizeof(sess->header_buf));
-
-		response->data = sess->header_buf;
-
-		return;
-	}
-
-	if (status == HTTP_CB_RESPONDING) {
-		sess = response->session_data;
-
-		if (sess->body_sent) {
-			response->status = HTTP_RESP_NONE;
-			return;
-		}
-
-		/* new upload session identifier */
-		fs_upload_id = rand();
-
-		for (idx = 0; idx < ARRAY_SIZE(upgrade_types); idx++) {
-			form_value = httpd_request_find_value(request, upgrade_types[idx].label);
-			if (form_value) {
-				upgrade_type = upgrade_types[idx].type;
-				break;
-			}
-		}
-
-		if (idx == ARRAY_SIZE(upgrade_types)) {
-			puts("NO supported upgrade type found!\n");
-
-			/* 没有匹配的 upgrade_type，返回 fail*/
-			response->data = "{\"status\":\"fail\","
-							"\"info\":{\"type\":\"wrong_upgrade_type\"}}";
-			response->size = strlen(response->data);
-			sess->body_sent = 1;
-
-			httpd_debug("response message: %s\n", response->data);
-
-			return;
-		}
-
-		upload_data_id = fs_upload_id;
-		upload_data = form_value->data;
-		upload_size = form_value->size;
-
-		httpd_debug("upload_data = 0x%lx, upload_size = %lu (0x%lx)\n",
-			(ulong)upload_data, (ulong)upload_size, (ulong)upload_size);
-
-		sess->ret = failsafe_validate_image(upgrade_type, form_value->filename,
-						upload_data, (ulong)upload_size, response);
-
-		sess->body_sent = 1;
-
-		httpd_debug("response message: %s\n", response->data);
-
-		return;
-	}
-
-	if (status == HTTP_CB_CLOSED) {
-		sess = response->session_data;
-
-		if (sess->ret == RET_SUCCESS)
-			handle_success_led_state();
-		else
-			handle_fail_led_state();
-
-		free(response->session_data);
-	}
-}
-
-struct flashing_status {
-	char buf[4096];
-	int ret;
-	int body_sent;
-	bool auto_reboot;
-};
-
-static void result_handler(enum httpd_uri_handler_status status,
-				struct httpd_request *request,
-				struct httpd_response *response)
-{
-	struct httpd_form_value *auto_reboot;
-	struct flashing_status *st;
-	u32 size;
-
-	if (status == HTTP_CB_NEW) {
-		st = calloc(1, sizeof(*st));
-		if (!st) {
-			response->info.code = 500;
-			return;
-		}
-
-		handle_start_led_state();
-
-		auto_reboot = httpd_request_find_value(request, "auto_reboot");
-
-		if (!auto_reboot || !auto_reboot->data || strcmp(auto_reboot->data, "true"))
-			st->auto_reboot = false;
-		else
-			st->auto_reboot = true;
-
-		st->ret = RET_FAILURE;
-
-		response->session_data = st;
-
-		response->status = HTTP_RESP_CUSTOM;
-
-		response->info.http_1_0 = 1;
-		response->info.content_length = -1;
-		response->info.connection_close = 1;
-		response->info.content_type = "application/json";
-		response->info.code = 200;
-
-		size = http_make_response_header(&response->info,
-			st->buf, sizeof(st->buf));
-
-		response->data = st->buf;
-		response->size = size;
-
-		return;
-	}
-
-	if (status == HTTP_CB_RESPONDING) {
-		st = response->session_data;
-
-		if (st->body_sent) {
-			response->status = HTTP_RESP_NONE;
-			return;
-		}
-
-		if (upload_data_id == fs_upload_id) {
-			if (upgrade_type == WEBFAILSAFE_UPGRADE_TYPE_INITRAMFS) {
-				st->auto_reboot = true; /* 启动 Initramfs 等同于自动重启 */
-				st->ret = RET_SUCCESS;
-			} else {
-				st->ret = failsafe_write_image(upgrade_type, (ulong)upload_data,
-					(ulong)upload_size, response);
-			}
-		} else {
-			snprintf(st->buf, sizeof(st->buf),
-				"{\"status\":\"fail\","
-				"\"info\":{\"type\":\"upload_id_mismatch\","
-				"\"upload_data_id\":\"%u\",\"fs_upload_id\":\"%u\"}}",
-				upload_data_id, fs_upload_id);
-			response->data = st->buf;
-			st->ret = RET_UPLOAD_ID_MISMATCH;
-		}
-
-		/* invalidate upload identifier */
-		upload_data_id = rand();
-
-		if (st->ret == RET_SUCCESS) {
-			snprintf(st->buf, sizeof(st->buf),
-				"{\"status\":\"success\",\"info\":{\"reboot\":%s}}",
-				st->auto_reboot ? "true" : "false");
-			response->data = st->buf;
-		}
-
-		response->size = strlen(response->data);
-		st->body_sent = 1;
-
-		httpd_debug("response message: %s\n", response->data);
-
-		return;
-	}
-
-	if (status == HTTP_CB_CLOSED) {
-		bool upgrade_success;
-
-		st = response->session_data;
-		upgrade_success = st->ret == RET_SUCCESS ? true : false;
-		httpd_done = st->auto_reboot && upgrade_success;
-
-		free(response->session_data);
-
-		if (upgrade_success)
-			handle_success_led_state();
-		else
-			handle_fail_led_state();
-
-		if (httpd_done)
-			tcp_close_all_conn();
-	}
-}
-
-static void style_handler(enum httpd_uri_handler_status status,
-				struct httpd_request *request,
-				struct httpd_response *response)
-{
-	if (status == HTTP_CB_NEW)
-		output_plain_file(response, "style.css");
-}
-
-static void js_handler(enum httpd_uri_handler_status status,
-	struct httpd_request *request,
-	struct httpd_response *response)
-{
-	if (status == HTTP_CB_NEW)
-		output_plain_file(response, "main.js");
+	u32 ip = ntohl(net_ip.s_addr);
+
+	printf("\nWeb failsafe UI started\n");
+	printf("URL: http://%u.%u.%u.%u/\n",
+	       (ip >> 24) & 0xFF, (ip >> 16) & 0xFF,
+	       (ip >> 8) & 0xFF, ip & 0xFF);
+	printf("\nPress Ctrl+C to exit\n\n");
 }
 
 static int failsafe_loop(void)
@@ -574,8 +113,8 @@ static int failsafe_loop(void)
 #endif
 
 	httpd_running = true;
-	httpd_done = false;
 	tcp_done = false;
+	auto_action_pending = false;
 
 	tcp_start();
 
@@ -584,11 +123,10 @@ static int failsafe_loop(void)
 #endif
 #ifdef CONFIG_TELNETD
 	{
-		const char *disable_str = getenv("telnet_disable");
 		const char *port_str = getenv("telnet_port");
 		ulong port = 23;
 
-		if (!disable_str) {
+		if (get_enable_state("telnet_enable", true)) {
 			if (port_str) {
 				port = simple_strtoul(port_str, NULL, 10);
 				if (port < 1 || port > 65535)
@@ -599,7 +137,7 @@ static int failsafe_loop(void)
 	}
 #endif
 
-	while (!ctrlc() && !tcp_done && !httpd_done) {
+	while (!ctrlc() && !tcp_done && !auto_action_pending) {
 		eth_rx();
 		if (tcp_periodic_check())
 			tcp_done = true;
@@ -609,7 +147,8 @@ static int failsafe_loop(void)
 	dhcpd_stop();
 #endif
 #ifdef CONFIG_TELNETD
-	telnetd_stop();
+	if (telnetd_is_running())
+		telnetd_stop();
 #endif
 
 	httpd_running = false;
@@ -634,69 +173,11 @@ int start_web_failsafe(void)
 		return -1;
 	}
 
+	print_greeting_message();
 	handle_start_led_state();
 
-	httpd_register_uri_handler(inst, "/", &index_handler, NULL);
-	httpd_register_uri_handler(inst, "/cgi-bin/luci", &index_handler, NULL);
-	httpd_register_uri_handler(inst, "/cgi-bin/luci/", &index_handler, NULL);
-	httpd_register_uri_handler(inst, "/index.html", &index_handler, NULL);
-
-	httpd_register_uri_handler(inst, "/firmware.html", &upload_html_handler, NULL);
-	httpd_register_uri_handler(inst, "/art.html", &upload_html_handler, NULL);
-	httpd_register_uri_handler(inst, "/cdt.html", &upload_html_handler, NULL);
-	httpd_register_uri_handler(inst, "/initramfs.html", &upload_html_handler, NULL);
-	httpd_register_uri_handler(inst, "/ptable.html", &upload_html_handler, NULL);
-	httpd_register_uri_handler(inst, "/simg.html", &upload_html_handler, NULL);
-	httpd_register_uri_handler(inst, "/uboot.html", &upload_html_handler, NULL);
-	httpd_register_uri_handler(inst, "/booting.html", &html_handler, NULL);
-	httpd_register_uri_handler(inst, "/flashing.html", &html_handler, NULL);
-	httpd_register_uri_handler(inst, "/settings.html", &html_handler, NULL);
-
-	httpd_register_uri_handler(inst, "/main.js", &js_handler, NULL);
-	httpd_register_uri_handler(inst, "/style.css", &style_handler, NULL);
-
-	httpd_register_uri_handler(inst, "/result", &result_handler, NULL);
-	httpd_register_uri_handler(inst, "/sysinfo", &sysinfo_handler, NULL);
-	httpd_register_uri_handler(inst, "/upload", &upload_handler, NULL);
-	httpd_register_uri_handler(inst, "/version", &version_handler, NULL);
-
-	httpd_register_uri_handler(inst, "/syslog.html", &html_handler, NULL);
-	httpd_register_uri_handler(inst, "/syslog/poll", &syslog_poll_handler, NULL);
-
-	httpd_register_uri_handler(inst, "/reboot.html", &html_handler, NULL);
-	httpd_register_uri_handler(inst, "/reboot", &reboot_handler, NULL);
-
-	httpd_register_uri_handler(inst, "/mac.html", &html_handler, NULL);
-#if defined(CONFIG_FAILSAFE_MAC_MANAGEMENT)
-	httpd_register_uri_handler(inst, "/mac/info", &mac_info_handler, NULL);
-	httpd_register_uri_handler(inst, "/mac/set", &mac_set_handler, NULL);
-#endif
-
-	httpd_register_uri_handler(inst, "/mibib.html", &upload_html_handler, NULL);
-	httpd_register_uri_handler(inst, "/mibib/reload", &mibib_reload_handler, NULL);
-
-	httpd_register_uri_handler(inst, "/network.html", &html_handler, NULL);
-	httpd_register_uri_handler(inst, "/network/info", &network_info_handler, NULL);
-	httpd_register_uri_handler(inst, "/network/set", &network_set_handler, NULL);
-	httpd_register_uri_handler(inst, "/network/reset", &network_reset_handler, NULL);
-
-	httpd_register_uri_handler(inst, "/backup.html", &html_handler, NULL);
-	httpd_register_uri_handler(inst, "/backup", &backup_handler, NULL);
-
-	httpd_register_uri_handler(inst, "/env.html", &html_handler, NULL);
-	httpd_register_uri_handler(inst, "/env/list", &env_list_handler, NULL);
-	httpd_register_uri_handler(inst, "/env/set", &env_set_handler, NULL);
-	httpd_register_uri_handler(inst, "/env/unset", &env_unset_handler, NULL);
-	httpd_register_uri_handler(inst, "/env/reset/all", &env_reset_all_handler, NULL);
-	httpd_register_uri_handler(inst, "/env/reset/single", &env_reset_single_handler, NULL);
-	httpd_register_uri_handler(inst, "/env/restore", &env_restore_handler, NULL);
-
-	httpd_register_uri_handler(inst, "/webterm.html", &html_handler, NULL);
-	httpd_register_uri_handler(inst, "/webterm/exec", &webterm_exec_handler, NULL);
-	httpd_register_uri_handler(inst, "/webterm/upload", &webterm_upload_handler, NULL);
-	httpd_register_uri_handler(inst, "/webterm/cmdlist", &webterm_cmdlist_handler, NULL);
-
-	httpd_register_uri_handler(inst, "", &not_found_handler, NULL);
+	for (int i = 0; i < ARRAY_SIZE(register_uri_handlers_funcs); i++)
+		(register_uri_handlers_funcs[i])(inst);
 
 	ret = failsafe_loop();
 
@@ -709,40 +190,20 @@ int start_web_failsafe(void)
 
 static int do_httpd(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
-	u32 local_ip;
 	int ret;
 
-#if defined(CONFIG_HTTPD_DEBUG)
-	const char *debug_str = getenv("httpd_debug");
-	const char *disable_strs[] = {"0", "false", "no", "off"};
-
-	httpd_debug_on = true;
-
-	if (debug_str) {
-		for (int i = 0; i < ARRAY_SIZE(disable_strs); i++) {
-			if (!strcasecmp(debug_str, disable_strs[i])) {
-				httpd_debug_on = false;
-				break;
-			}
-		}
-	}
+#ifdef CONFIG_HTTPD_DEBUG
+	httpd_debug_on = get_enable_state("httpd_debug", true);
 #endif
 
-#if defined(CONFIG_NET_FORCE_IPADDR)
+#ifdef CONFIG_NET_FORCE_IPADDR
 	net_ip = string_to_ip(__stringify(CONFIG_IPADDR));
 	net_netmask = string_to_ip(__stringify(CONFIG_NETMASK));
 #endif
-	local_ip = ntohl(net_ip.s_addr);
-
-	printf("\nWeb failsafe UI started\n");
-	printf("URL: http://%u.%u.%u.%u/\n",
-	       (local_ip >> 24) & 0xFF, (local_ip >> 16) & 0xFF,
-	       (local_ip >> 8) & 0xFF, local_ip & 0xFF);
-	printf("\nPress Ctrl+C to exit\n\n");
 
 	ret = start_web_failsafe();
 
-	if (httpd_done) {
+	if (auto_action_pending) {
 		handle_success_led_state();
 		mdelay(1000);
 		if (upgrade_type == WEBFAILSAFE_UPGRADE_TYPE_INITRAMFS)

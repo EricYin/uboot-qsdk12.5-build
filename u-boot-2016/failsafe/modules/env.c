@@ -132,9 +132,9 @@ static char *failsafe_env_export_text(size_t *out_len)
 	return out;
 }
 
-void env_list_handler(enum httpd_uri_handler_status status,
-	struct httpd_request *request,
-	struct httpd_response *response)
+static void env_list_handler(enum httpd_uri_handler_status status,
+		struct httpd_request *request,
+		struct httpd_response *response)
 {
 	char *out;
 	size_t out_len = 0;
@@ -167,9 +167,9 @@ void env_list_handler(enum httpd_uri_handler_status status,
 	response->session_data = out;
 }
 
-void env_set_handler(enum httpd_uri_handler_status status,
-	struct httpd_request *request,
-	struct httpd_response *response)
+static void env_set_handler(enum httpd_uri_handler_status status,
+		struct httpd_request *request,
+		struct httpd_response *response)
 {
 	char *name = NULL, *value = NULL, *current_value = NULL;
 	bool changed = false;
@@ -217,9 +217,9 @@ void env_set_handler(enum httpd_uri_handler_status status,
 		failsafe_http_reply_text(response, 500, "save failed");
 }
 
-void env_unset_handler(enum httpd_uri_handler_status status,
-	struct httpd_request *request,
-	struct httpd_response *response)
+static void env_unset_handler(enum httpd_uri_handler_status status,
+		struct httpd_request *request,
+		struct httpd_response *response)
 {
 	char *name = NULL;
 	int ret;
@@ -253,9 +253,9 @@ void env_unset_handler(enum httpd_uri_handler_status status,
 	failsafe_http_reply_text(response, 200, "ok");
 }
 
-void env_reset_all_handler(enum httpd_uri_handler_status status,
-	struct httpd_request *request,
-	struct httpd_response *response)
+static void env_reset_all_handler(enum httpd_uri_handler_status status,
+		struct httpd_request *request,
+		struct httpd_response *response)
 {
 	int ret;
 
@@ -276,9 +276,9 @@ void env_reset_all_handler(enum httpd_uri_handler_status status,
 		failsafe_http_reply_text(response, 500, "save failed");
 }
 
-void env_reset_single_handler(enum httpd_uri_handler_status status,
-	struct httpd_request *request,
-	struct httpd_response *response)
+static void env_reset_single_handler(enum httpd_uri_handler_status status,
+		struct httpd_request *request,
+		struct httpd_response *response)
 {
     char *name, *current_value, *default_value;
     bool changed = false;
@@ -324,9 +324,9 @@ void env_reset_single_handler(enum httpd_uri_handler_status status,
 		failsafe_http_reply_text(response, 500, "save failed");
 }
 
-void env_restore_handler(enum httpd_uri_handler_status status,
-	struct httpd_request *request,
-	struct httpd_response *response)
+static void env_restore_handler(enum httpd_uri_handler_status status,
+		struct httpd_request *request,
+		struct httpd_response *response)
 {
 	struct httpd_form_value *envfile;
     uint32_t crc;
@@ -362,4 +362,14 @@ void env_restore_handler(enum httpd_uri_handler_status status,
 		failsafe_http_reply_text(response, 200, "ok");
 	else
 		failsafe_http_reply_text(response, 500, "restore failed");
+}
+
+void env_register_uri_handlers(struct httpd_instance *inst)
+{
+	httpd_register_uri_handler(inst, "/env/list", &env_list_handler, NULL);
+	httpd_register_uri_handler(inst, "/env/set", &env_set_handler, NULL);
+	httpd_register_uri_handler(inst, "/env/unset", &env_unset_handler, NULL);
+	httpd_register_uri_handler(inst, "/env/reset/all", &env_reset_all_handler, NULL);
+	httpd_register_uri_handler(inst, "/env/reset/single", &env_reset_single_handler, NULL);
+	httpd_register_uri_handler(inst, "/env/restore", &env_restore_handler, NULL);
 }

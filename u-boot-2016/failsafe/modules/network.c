@@ -91,7 +91,7 @@ static void network_set_env(struct httpd_response *response, bool custom,
 		handle_response_message(response, 500, "save failed", NULL);
 }
 
-void network_info_handler(enum httpd_uri_handler_status status,
+static void network_info_handler(enum httpd_uri_handler_status status,
 	    struct httpd_request *request,
 	    struct httpd_response *response)
 {
@@ -119,7 +119,7 @@ void network_info_handler(enum httpd_uri_handler_status status,
 	handle_response_message(response, 200, resp, "application/json");
 }
 
-void network_set_handler(enum httpd_uri_handler_status status,
+static void network_set_handler(enum httpd_uri_handler_status status,
 	    struct httpd_request *request,
 	    struct httpd_response *response)
 {
@@ -148,7 +148,7 @@ void network_set_handler(enum httpd_uri_handler_status status,
 		ipaddr->data, netmask->data, serverip->data);
 }
 
-void network_reset_handler(enum httpd_uri_handler_status status,
+static void network_reset_handler(enum httpd_uri_handler_status status,
 	    struct httpd_request *request,
 	    struct httpd_response *response)
 {
@@ -162,4 +162,11 @@ void network_reset_handler(enum httpd_uri_handler_status status,
 
 	network_set_env(response, false,
 		default_ipaddr, default_netmask, default_serverip);
+}
+
+void network_register_uri_handlers(struct httpd_instance *inst)
+{
+	httpd_register_uri_handler(inst, "/network/info", &network_info_handler, NULL);
+	httpd_register_uri_handler(inst, "/network/set", &network_set_handler, NULL);
+	httpd_register_uri_handler(inst, "/network/reset", &network_reset_handler, NULL);
 }

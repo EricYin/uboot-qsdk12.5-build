@@ -449,7 +449,7 @@ static int parse_mac_ascii(char *mac_str, mac_info_t *mac_info)
 }
 #endif /* CONFIG_MAC_TYPE_RAW_HEX */
 
-void mac_info_handler(enum httpd_uri_handler_status status,
+static void mac_info_handler(enum httpd_uri_handler_status status,
 	    struct httpd_request *request,
 	    struct httpd_response *response)
 {
@@ -508,7 +508,7 @@ void mac_info_handler(enum httpd_uri_handler_status status,
 	response->session_data = buf;
 }
 
-void mac_set_handler(enum httpd_uri_handler_status status,
+static void mac_set_handler(enum httpd_uri_handler_status status,
 	    struct httpd_request *request,
 	    struct httpd_response *response)
 {
@@ -543,4 +543,10 @@ void mac_set_handler(enum httpd_uri_handler_status status,
 		return;
 
 	handle_response_message(response, 200, "ok", NULL);
+}
+
+void mac_register_uri_handlers(struct httpd_instance *inst)
+{
+	httpd_register_uri_handler(inst, "/mac/info", &mac_info_handler, NULL);
+	httpd_register_uri_handler(inst, "/mac/set", &mac_set_handler, NULL);
 }

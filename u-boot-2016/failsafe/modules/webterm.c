@@ -76,9 +76,9 @@ static int webterm_run_command(void *cmd)
 	return run_command((const char *)cmd, 0);
 }
 
-void webterm_exec_handler(enum httpd_uri_handler_status status,
-	struct httpd_request *request,
-	struct httpd_response *response)
+static void webterm_exec_handler(enum httpd_uri_handler_status status,
+		struct httpd_request *request,
+		struct httpd_response *response)
 {
 	struct httpd_form_value *raw_cmd;
 	const char *echo_str = "";
@@ -177,9 +177,9 @@ static int print_file_info(void *arg)
 	return 0;
 }
 
-void webterm_upload_handler(enum httpd_uri_handler_status status,
-	struct httpd_request *request,
-	struct httpd_response *response)
+static void webterm_upload_handler(enum httpd_uri_handler_status status,
+		struct httpd_request *request,
+		struct httpd_response *response)
 {
 	struct httpd_form_value *file;
 	block_dev_desc_t *mmc_dev;
@@ -228,9 +228,9 @@ void webterm_upload_handler(enum httpd_uri_handler_status status,
 	}
 }
 
-void webterm_cmdlist_handler(enum httpd_uri_handler_status status,
-	struct httpd_request *request,
-	struct httpd_response *response)
+static void webterm_cmdlist_handler(enum httpd_uri_handler_status status,
+		struct httpd_request *request,
+		struct httpd_response *response)
 {
 	cmd_tbl_t *cmd_start = ll_entry_start(cmd_tbl_t, cmd);
 	const int cmd_items = ll_entry_count(cmd_tbl_t, cmd);
@@ -274,4 +274,11 @@ void webterm_cmdlist_handler(enum httpd_uri_handler_status status,
 
 	handle_response_message(response, 200, buf, -1, "application/json");
 	response->session_data = buf;
+}
+
+void webterm_register_uri_handlers(struct httpd_instance *inst)
+{
+	httpd_register_uri_handler(inst, "/webterm/exec", &webterm_exec_handler, NULL);
+	httpd_register_uri_handler(inst, "/webterm/upload", &webterm_upload_handler, NULL);
+	httpd_register_uri_handler(inst, "/webterm/cmdlist", &webterm_cmdlist_handler, NULL);
 }

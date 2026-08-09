@@ -43,9 +43,9 @@ static void handle_response_message(struct httpd_response *response,
 	response->info.content_type = "text/plain";
 }
 
-void syslog_poll_handler(enum httpd_uri_handler_status status,
-	struct httpd_request *request,
-	struct httpd_response *response)
+static void syslog_poll_handler(enum httpd_uri_handler_status status,
+		struct httpd_request *request,
+		struct httpd_response *response)
 {
 	char *buf = NULL;
 	int avail, want, got;
@@ -85,4 +85,9 @@ void syslog_poll_handler(enum httpd_uri_handler_status status,
 
     handle_response_message(response, 200, buf, got);
 	response->session_data = buf;
+}
+
+void syslog_register_uri_handlers(struct httpd_instance *inst)
+{
+	httpd_register_uri_handler(inst, "/syslog/poll", &syslog_poll_handler, NULL);
 }

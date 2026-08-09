@@ -31,7 +31,7 @@
 
 #include "modules.h"
 
-void mibib_reload_handler(enum httpd_uri_handler_status status,
+static void mibib_reload_handler(enum httpd_uri_handler_status status,
         struct httpd_request *request,
         struct httpd_response *response)
 {
@@ -140,4 +140,9 @@ flash_not_found:
     response->data = resp;
     response->size = strlen(response->data);
     return;
+}
+
+void mibib_register_uri_handlers(struct httpd_instance *inst)
+{
+	httpd_register_uri_handler(inst, "/mibib/reload", &mibib_reload_handler, NULL);
 }

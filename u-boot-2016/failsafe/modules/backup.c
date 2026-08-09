@@ -211,7 +211,7 @@ static int mmc_read_data(struct mmc *mmc, u64 offset, size_t size,
 	return (readblks == num_blocks) ? 0 : 1;
 }
 
-void backup_handler(enum httpd_uri_handler_status status,
+static void backup_handler(enum httpd_uri_handler_status status,
         struct httpd_request *request,
         struct httpd_response *response)
 {
@@ -509,4 +509,9 @@ oom:
 	response->info.connection_close = 1;
 	response->info.content_type = "text/plain";
 	return;
+}
+
+void backup_register_uri_handlers(struct httpd_instance *inst)
+{
+	httpd_register_uri_handler(inst, "/backup", &backup_handler, NULL);
 }
