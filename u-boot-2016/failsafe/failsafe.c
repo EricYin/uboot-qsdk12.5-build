@@ -8,8 +8,11 @@
  */
 
 #include <common.h>
+#include <command.h>
+#include <console.h>
 #include <malloc.h>
 #include <version.h>
+#include <linux/sizes.h>
 #include <net/tcp.h>
 #include <net/httpd.h>
 #include <failsafe/failsafe.h>
@@ -20,8 +23,13 @@
 #if defined(CONFIG_TELNETD)
 #include <net/telnetd.h>
 #endif
+#if defined(CONFIG_NET_ABORT)
+#include <net_abort.h>
+#endif
 #include "fs.h"
 #include "modules/modules.h"
+
+DECLARE_GLOBAL_DATA_PTR;
 
 #if defined(CONFIG_HTTPD_DEBUG)
 bool httpd_debug_on;
@@ -35,7 +43,9 @@ static u32 fs_upload_id;
 static u32 upload_data_id;
 static const void *upload_data;
 static size_t upload_size;
+static bool httpd_running;
 static bool httpd_done;
+static bool tcp_done;
 static upgrade_type_t upgrade_type;
 
 struct reboot_session {
@@ -524,9 +534,94 @@ static void js_handler(enum httpd_uri_handler_status status,
 		output_plain_file(response, "main.js");
 }
 
+static int failsafe_loop(void)
+{
+	int ret;
+
+	net_init();
+	if (eth_is_on_demand_init()) {
+		eth_halt();
+		eth_set_current();
+		ret = eth_init();
+		while (ret < 0) {
+			ulong ts = get_timer(0);
+			do {
+				if (ctrlc()) {
+					eth_halt();
+					return ret;
+				}
+				udelay(10000);
+			} while (get_timer(ts) < 1000);
+			ret = eth_init();
+		}
+		if (ret < 0) {
+			eth_halt();
+			return ret;
+		}
+	} else {
+		eth_init_state_only();
+	}
+
+#ifdef CONFIG_NET_ABORT
+	if (net_abort_detected()) {
+		/* 多发送几次回复消息，确保客户端能收到 */
+		for (int i = 0; i < 5; i++) {
+			net_abort_reply();
+			mdelay(200);
+		}
+	}
+#endif
+
+	httpd_running = true;
+	httpd_done = false;
+	tcp_done = false;
+
+	tcp_start();
+
+#ifdef CONFIG_DHCPD
+	dhcpd_start();
+#endif
+#ifdef CONFIG_TELNETD
+	{
+		const char *disable_str = getenv("telnet_disable");
+		const char *port_str = getenv("telnet_port");
+		ulong port = 23;
+
+		if (!disable_str) {
+			if (port_str) {
+				port = simple_strtoul(port_str, NULL, 10);
+				if (port < 1 || port > 65535)
+					port = 23;
+			}
+			telnetd_start((u16)port);
+		}
+	}
+#endif
+
+	while (!ctrlc() && !tcp_done && !httpd_done) {
+		eth_rx();
+		if (tcp_periodic_check())
+			tcp_done = true;
+	}
+
+#ifdef CONFIG_DHCPD
+	dhcpd_stop();
+#endif
+#ifdef CONFIG_TELNETD
+	telnetd_stop();
+#endif
+
+	httpd_running = false;
+	tcp_close_all_conn();
+	eth_halt();
+
+	return 0;
+}
+
 int start_web_failsafe(void)
 {
 	struct httpd_instance *inst;
+	int ret;
 
 	inst = httpd_find_instance(80);
 	if (inst)
@@ -602,40 +697,13 @@ int start_web_failsafe(void)
 
 	httpd_register_uri_handler(inst, "", &not_found_handler, NULL);
 
-#if defined(CONFIG_DHCPD)
-	dhcpd_start();
-#endif
-#if defined(CONFIG_TELNETD)
-	{
-		const char *disable_str = getenv("telnet_disable");
-		const char *port_str = getenv("telnet_port");
-		ulong port = 23;
-
-		if (!disable_str) {
-			if (port_str) {
-				port = simple_strtoul(port_str, NULL, 10);
-				if (port < 1 || port > 65535)
-					port = 23;
-			}
-			telnetd_start((u16)port);
-		}
-	}
-#endif
-
-	net_loop(TCP);
+	ret = failsafe_loop();
 
 	inst = httpd_find_instance(80);
 	if (inst)
 		httpd_free_instance(inst);
 
-#if defined(CONFIG_DHCPD)
-	dhcpd_stop();
-#endif
-#if defined(CONFIG_TELNETD)
-	telnetd_stop();
-#endif
-
-	return 0;
+	return ret ? CMD_RET_FAILURE : CMD_RET_SUCCESS;
 }
 
 static int do_httpd(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
