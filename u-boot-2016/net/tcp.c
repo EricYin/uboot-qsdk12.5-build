@@ -1042,7 +1042,7 @@ static void tcp_conn_check(struct tcp_conn *c)
 	}
 }
 
-void tcp_periodic_check(void)
+int tcp_periodic_check(void)
 {
 	struct list_head *lh, *n;
 	struct tcp_conn *c;
@@ -1057,8 +1057,7 @@ void tcp_periodic_check(void)
 	if (list_empty(&listen_head))
 		tcp_stop = 1;
 
-	if (tcp_stop && !num)
-		net_state = NETLOOP_SUCCESS;
+	return (list_empty(&listen_head) && !num) ? 1 : 0;
 }
 
 static int tcp_send_packet_opt(struct tcp_conn *c, u16 flags, u32 seq, u32 ack,

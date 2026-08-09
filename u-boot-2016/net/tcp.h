@@ -84,6 +84,6 @@ enum tcp_state {
 bool receive_tcp(struct ip_hdr *ip, int len, struct ethernet_hdr *et);
 
 /* Called periodically to check the TCP status & send packets */
-void tcp_periodic_check(void);
+int tcp_periodic_check(void);
 
 #endif /* __TCP_H__ */

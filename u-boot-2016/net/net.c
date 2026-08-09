@@ -606,8 +606,8 @@ restart:
 		/*
 		 *	TCP periodic check
 		 */
-		if (protocol == TCP)
-			tcp_periodic_check();
+		if (tcp_periodic_check() && protocol == TCP)
+			net_set_state(NETLOOP_SUCCESS);
 #endif
 
 		/*

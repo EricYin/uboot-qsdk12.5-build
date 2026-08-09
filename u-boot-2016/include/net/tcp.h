@@ -69,4 +69,7 @@ void tcp_reset_all_conn(void);
 /* Return 1 if connection is in ESTABLISHED state */
 int tcp_conn_is_alive(const void *conn);
 
+/* Called periodically to check the TCP status & send packets */
+int tcp_periodic_check(void);
+
 #endif /* __NET_TCP_H__ */
