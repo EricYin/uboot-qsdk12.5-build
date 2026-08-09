@@ -133,7 +133,8 @@ static int failsafe_loop(void)
 	}
 
 #ifdef CONFIG_DHCPD
-	dhcpd_stop();
+	if (dhcpd_is_running())
+		dhcpd_stop();
 #endif
 #ifdef CONFIG_TELNETD
 	if (telnetd_is_running())

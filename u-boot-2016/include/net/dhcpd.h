@@ -17,5 +17,6 @@
 
 int dhcpd_start(void);
 void dhcpd_stop(void);
+bool dhcpd_is_running(void);
 
 #endif /* __NET_DHCPD_H__ */

@@ -924,3 +924,8 @@ void dhcpd_stop(void)
 	prev_udp_handler = NULL;
 	dhcpd_running = false;
 }
+
+bool dhcpd_is_running(void)
+{
+    return dhcpd_running;
+}
