@@ -12,6 +12,7 @@
 
 bool net_abort_prepare(void);
 bool net_abort_detected(void);
+void net_abort_state_reset(void);
 void net_abort_reply(void);
 void net_abort_finish(void);
 

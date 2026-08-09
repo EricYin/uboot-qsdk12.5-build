@@ -569,6 +569,7 @@ static int failsafe_loop(void)
 			net_abort_reply();
 			mdelay(200);
 		}
+		net_abort_state_reset();
 	}
 #endif
 

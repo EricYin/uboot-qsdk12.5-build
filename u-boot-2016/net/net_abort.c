@@ -44,6 +44,11 @@ static void net_abort_timeout_handler(void)
 	net_set_timeout_handler(100, net_abort_timeout_handler);
 }
 
+void net_abort_state_reset(void)
+{
+	net_abort_pkt_received = false;
+}
+
 bool net_abort_detected(void)
 {
 	return net_abort_pkt_received;
