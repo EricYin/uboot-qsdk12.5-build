@@ -122,19 +122,8 @@ static int failsafe_loop(void)
 	dhcpd_start();
 #endif
 #ifdef CONFIG_TELNETD
-	{
-		const char *port_str = getenv("telnet_port");
-		ulong port = 23;
-
-		if (get_enable_state("telnet_enable", true)) {
-			if (port_str) {
-				port = simple_strtoul(port_str, NULL, 10);
-				if (port < 1 || port > 65535)
-					port = 23;
-			}
-			telnetd_start((u16)port);
-		}
-	}
+	if (get_enable_state("telnet_enable", true))
+		telnetd_start(telnetd_get_port_from_env());
 #endif
 
 	while (!ctrlc() && !tcp_done && !auto_action_pending) {

@@ -13,6 +13,16 @@
 #include <stdbool.h>
 
 /**
+ * telnetd_get_port_from_env() - get telnetd port from env
+ *
+ * If "telnet_port" env variable is not set or its value is invalid,
+ * 23 is used as default port.
+ *
+ * Return: port for telnetd
+ */
+u16 telnetd_get_port_from_env(void);
+
+/**
  * telnetd_start() - Start the telnet server on a given port
  *
  * @port: TCP port number (host byte order)
