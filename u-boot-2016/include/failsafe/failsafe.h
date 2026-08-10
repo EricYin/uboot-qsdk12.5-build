@@ -77,6 +77,7 @@ static inline void handle_success_led_state(void)
 	led_on("system_led");
 }
 
+bool httpd_is_running(void);
 int boot_from_mem(ulong data_addr);
 int failsafe_validate_image(upgrade_type_t upgrade_type, const char *filename,
         const void *data_addr, ulong data_size, struct httpd_response *response);

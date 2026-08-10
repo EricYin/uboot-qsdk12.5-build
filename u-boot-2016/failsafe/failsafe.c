@@ -1,10 +1,10 @@
-/* SPDX-License-Identifier: GPL-2.0 */
+// SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (C) 2022 MediaTek Inc. All Rights Reserved.
+ * Copyright (C) 2026 chenxin527. All Rights Reserved.
  *
- * Author: Weijie Gao <weijie.gao@mediatek.com>
+ * This file is part of the project uboot-qsdk12.5-build
  *
- * Failsafe Web UI
+ * Failsafe main entry point
  */
 
 #include <common.h>
@@ -36,8 +36,8 @@ DECLARE_GLOBAL_DATA_PTR;
 bool httpd_debug_on;
 #endif /* CONFIG_HTTPD_DEBUG */
 
-bool httpd_running;
-bool tcp_done;
+bool httpd_running = false;
+bool tcp_done = false;
 
 extern bool auto_action_pending;
 extern const void *upload_data;
@@ -61,6 +61,11 @@ register_uri_handlers_func_t register_uri_handlers_funcs[] = {
 	upgrade_register_uri_handlers,
 	webterm_register_uri_handlers,
 };
+
+bool httpd_is_running(void)
+{
+	return httpd_running;
+}
 
 static void print_greeting_message(void)
 {
