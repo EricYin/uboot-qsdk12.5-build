@@ -9,6 +9,7 @@
 
 #include <common.h>
 #include <command.h>
+#include <console.h>
 #include <errno.h>
 #include <malloc.h>
 #include <image.h>
@@ -45,6 +46,8 @@ struct wget_pdata {
 	bool data_len_unspec;
 };
 
+static bool tcp_done;
+static bool wget_done;
 static const char http_end_of_header[] = "\r\n\r\n";
 static const char http_end_of_line[] = "\r\n";
 static const char content_length_str[] = "Content-Length:";
@@ -114,6 +117,7 @@ static void wget_initiate(struct wget_pdata *pdata, struct tcp_cb_data *cbd)
 		pdata->url, pdata->host);
 
 	if (ret < 0) {
+		wget_done = true;
 		tcp_close_conn(cbd->conn, 1);
 		printf("No memory for HTTP request header\n");
 		pdata->result = -ENOMEM;
@@ -258,6 +262,7 @@ static void wget_rx(struct wget_pdata *pdata, struct tcp_cb_data *cbd)
 					  pdata->resp_hdr_len + cbd->datalen + 1);
 
 		if (!new_ptr) {
+			wget_done = true;
 			tcp_close_conn(cbd->conn, 1);
 			printf("No memory for HTTP response header\n");
 			__wget_cleanup(pdata);
@@ -277,6 +282,7 @@ static void wget_rx(struct wget_pdata *pdata, struct tcp_cb_data *cbd)
 				return;
 
 			if (ret > 0) {
+				wget_done = true;
 				tcp_close_conn(cbd->conn, 1);
 				return;
 			}
@@ -292,7 +298,8 @@ static void wget_rx(struct wget_pdata *pdata, struct tcp_cb_data *cbd)
 			return;
 
 		if (ret > 0) {
-			tcp_close_conn(cbd->conn, 0);
+			wget_done = true;
+			tcp_close_conn(cbd->conn, 1);
 			return;
 		}
 	}
@@ -411,6 +418,50 @@ static char *encode_url(const char *path)
 	return str;
 }
 
+static int wget_loop(void)
+{
+	int ret;
+
+	net_init();
+	if (eth_is_on_demand_init()) {
+		eth_halt();
+		eth_set_current();
+		ret = eth_init();
+		while (ret < 0) {
+			ulong ts = get_timer(0);
+			do {
+				if (ctrlc()) {
+					eth_halt();
+					return ret;
+				}
+				udelay(10000);
+			} while (get_timer(ts) < 1000);
+			ret = eth_init();
+		}
+		if (ret < 0) {
+			eth_halt();
+			return ret;
+		}
+	} else {
+		eth_init_state_only();
+	}
+
+	tcp_done = false;
+	wget_done = false;
+
+	tcp_start();
+
+	while (!ctrlc() && !wget_done && !tcp_done) {
+		eth_rx();
+		if (tcp_periodic_check())
+			tcp_done = true;
+	}
+
+	eth_halt();
+
+	return 0;
+}
+
 int start_wget(ulong load_addr, const char *url, size_t *retlen)
 {
 	struct wget_pdata pdata = { 0 };
@@ -418,6 +469,7 @@ int start_wget(ulong load_addr, const char *url, size_t *retlen)
 	char tmp[46], *p;
 	size_t len = 0;
 	ulong val;
+	int ret;
 
 	p = strstr(url, "://");
 	if (p) {
@@ -531,7 +583,7 @@ int start_wget(ulong load_addr, const char *url, size_t *retlen)
 	tcp_connect(pdata.ipaddr.s_addr, pdata.port, wget_tcp_callback,
 			&pdata);
 
-	net_loop(TCP);
+	ret = wget_loop();
 
 	free(pdata.host);
 	free(pdata.url);
@@ -542,7 +594,7 @@ int start_wget(ulong load_addr, const char *url, size_t *retlen)
 	if (retlen)
 		*retlen = pdata.data_len;
 
-	return 0;
+	return ret;
 }
 
 static int do_wget(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
@@ -560,9 +612,12 @@ static int do_wget(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 		url = argv[2];
 	} else {
 		loadaddr = getenv("loadaddr");
-        if (!loadaddr)
-            return CMD_RET_USAGE;
-		load_addr = simple_strtoul(loadaddr, NULL, 16);
+		if (loadaddr)
+			load_addr = simple_strtoul(loadaddr, NULL, 16);
+		else
+			load_addr = (gd->ram_size >= SZ_512M)
+						? (CONFIG_SYS_SDRAM_BASE + SZ_256M)
+						: IPQ_TFTP_MIN_ADDR;
 		url = argv[1];
 	}
 
