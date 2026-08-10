@@ -783,16 +783,7 @@ static int read_partition(const char *part_name, const ulong load_addr)
 		return ret;
 	}
 
-    setenv_hex("fileaddr", load_addr);
-    setenv_hex("filesize", size_bytes);
-    if (has_mmc()) {
-        if (!size_blocks) {
-			mmc_dev = mmc_get_dev(mmc_host.dev_num);
-			if (mmc_dev && mmc_dev->blksz)
-				size_blocks = size_bytes / mmc_dev->blksz + (size_bytes % mmc_dev->blksz != 0);
-		}
-		setenv_hex("filesize_blks", size_blocks);
-    }
+	set_file_info_env(load_addr, size_bytes);
 
     return CMD_RET_SUCCESS;
 

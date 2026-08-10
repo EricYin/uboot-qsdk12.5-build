@@ -169,6 +169,7 @@ static int wget_recv_data(struct wget_pdata *pdata, void *data, size_t len)
 	if (pdata->data_rcvd_len == pdata->data_len) {
 		flush_cache((ulong)pdata->data_ptr, pdata->data_len);
 		net_boot_file_size = (u32)pdata->data_len;
+		set_file_info_env((ulong)pdata->data_ptr, pdata->data_len);
 		putc('\n');
 		return 1;
 	}

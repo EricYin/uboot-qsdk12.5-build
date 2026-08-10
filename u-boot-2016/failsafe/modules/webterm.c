@@ -182,8 +182,6 @@ static void webterm_upload_handler(enum httpd_uri_handler_status status,
 		struct httpd_response *response)
 {
 	struct httpd_form_value *file;
-	block_dev_desc_t *mmc_dev;
-	ulong size_blocks;
 	char *buf;
 	size_t len = 0;
 
@@ -203,16 +201,7 @@ static void webterm_upload_handler(enum httpd_uri_handler_status status,
 		return;
 	}
 
-	setenv_hex("fileaddr", (ulong)file->data);
-    setenv_hex("filesize", (ulong)file->size);
-    if (has_mmc()) {
-        mmc_dev = mmc_get_dev(mmc_host.dev_num);
-        if (mmc_dev && mmc_dev->blksz) {
-            size_blocks = file->size / mmc_dev->blksz +
-                            (file->size % mmc_dev->blksz != 0);
-            setenv_hex("filesize_blks", size_blocks);
-        }
-    }
+	set_file_info_env((ulong)file->data, (ulong)file->size);
 
 	buf = malloc(WEBTERM_UPLOAD_FILE_INFO_SIZE);
 	if (buf) {

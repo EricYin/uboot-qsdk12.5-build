@@ -741,3 +741,17 @@ bool mmc_part_exists(const char *part_name)
 
 	return ret ? false : true;
 }
+
+void set_file_info_env(ulong file_addr, ulong file_size_bytes)
+{
+	setenv_hex("fileaddr", file_addr);
+    setenv_hex("filesize", file_size_bytes);
+    if (has_mmc()) {
+        block_dev_desc_t *mmc_dev = mmc_get_dev(mmc_host.dev_num);
+        if (mmc_dev && mmc_dev->blksz) {
+            setenv_hex("filesize_blks",
+				file_size_bytes / mmc_dev->blksz
+				+ (file_size_bytes % mmc_dev->blksz != 0));
+        }
+    }
+}

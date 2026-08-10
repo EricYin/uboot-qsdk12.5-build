@@ -77,5 +77,6 @@ const char *flash_type_to_string(uint32_t flash_type);
 int string_to_flash_type(const char *str);
 
 int print_board_info(void);
+void set_file_info_env(ulong fileaddr, ulong filesize);
 
 #endif /* __IPQ_API__ */

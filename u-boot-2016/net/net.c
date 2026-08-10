@@ -671,18 +671,12 @@ restart:
 			if (net_boot_file_size > 0) {
 				printf("Bytes transferred = %d (0x%x)\n",
 				       net_boot_file_size, net_boot_file_size);
+#ifdef CONFIG_LIB_IPQ_API
+				set_file_info_env(load_addr, net_boot_file_size);
+#else
 				setenv_hex("fileaddr", load_addr);
 				setenv_hex("filesize", net_boot_file_size);
-				if (has_mmc()) {
-					ulong file_size_in_blocks;
-					block_dev_desc_t *mmc_dev;
-					mmc_dev = mmc_get_dev(mmc_host.dev_num);
-					if (mmc_dev && mmc_dev->blksz) {
-						file_size_in_blocks = net_boot_file_size / mmc_dev->blksz +
-										(net_boot_file_size % mmc_dev->blksz != 0);
-						setenv_hex("filesize_blks", file_size_in_blocks);
-					}
-				}
+#endif /* CONFIG_LIB_IPQ_API */
 			}
 			if (protocol != NETCONS)
 				eth_halt();
