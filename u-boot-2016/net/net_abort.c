@@ -146,5 +146,8 @@ void net_abort_finish(void)
 	}
 
 	eth_halt();
+#ifndef CONFIG_DM_ETH
+	eth_unregister(eth_get_dev());
+#endif
 	mdelay(500);
 }
