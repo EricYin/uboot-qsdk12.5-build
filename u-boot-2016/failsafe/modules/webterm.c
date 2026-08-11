@@ -47,6 +47,16 @@ extern bool is_last_command_repeatable(void);
 extern void webterm_init_repeat_flag(void);
 extern void webterm_repeat_last_command(bool repeat);
 
+struct webterm_exec_session {
+	char resp_buf[2048];
+	char *output_buf;
+	size_t output_buf_size;
+	struct httpd_form_value *raw_cmd;
+	bool body_sent;
+};
+
+static bool webterm_exec_resp_custom;
+
 static struct {
 	char data[WEBTERM_MAX_CMD_SIZE + 1];
 	bool repeatable;
@@ -81,70 +91,125 @@ static void webterm_exec_handler(enum httpd_uri_handler_status status,
 		struct httpd_response *response)
 {
 	struct httpd_form_value *raw_cmd;
+	struct webterm_exec_session *sess;
 	const char *echo_str = "";
 	const char *do_repeat_str = "__DO_REPEAT__";
 	const char *cancel_repeat_str = "__CANCEL_REPEAT__";
-	char *buf;
+	char *output_buf;
+	size_t output_buf_size = WEBTERM_RECORD_OUT_SIZE;
 	size_t out_len = 0;
 	int ret;
 
+	if (status == HTTP_CB_NEW) {
+		webterm_exec_resp_custom = false;
+		response->session_data = NULL;
+
+		if (!request || request->method != HTTP_POST) {
+			handle_response_message(response, 405, "bad method", -1, NULL);
+			return;
+		}
+
+		raw_cmd = httpd_request_find_value(request, "cmd");
+		if (!raw_cmd || !raw_cmd->data || !raw_cmd->size) {
+			handle_response_message(response, 400, "no cmd", -1, NULL);
+			return;
+		}
+
+		sess = calloc(1, sizeof(*sess));
+		if (!sess) {
+			handle_response_message(response, 500, "no mem for session data", -1, NULL);
+			return;
+		}
+
+		output_buf = malloc(output_buf_size);
+		if (!output_buf) {
+			free(sess);
+			handle_response_message(response, 500, "no mem for output buffer", -1, NULL);
+			return;
+		}
+
+		webterm_exec_resp_custom = true;
+		sess->raw_cmd = raw_cmd;
+		sess->output_buf = output_buf;
+		sess->output_buf_size = output_buf_size;
+		sess->body_sent = false;
+
+		response->session_data = sess;
+
+		response->status = HTTP_RESP_CUSTOM;
+
+		response->info.http_1_0 = 1;
+		response->info.content_length = -1;
+		response->info.connection_close = 1;
+		response->info.content_type = "text/plain";
+		response->info.code = 200;
+
+		response->size = http_make_response_header(&response->info,
+							sess->resp_buf, sizeof(sess->resp_buf));
+		response->data = sess->resp_buf;
+
+		return;
+	}
+
+	if (status == HTTP_CB_RESPONDING && webterm_exec_resp_custom) {
+		sess = response->session_data;
+		raw_cmd = sess->raw_cmd;
+		output_buf = sess->output_buf;
+
+		if (sess->body_sent) {
+			response->status = HTTP_RESP_NONE;
+			return;
+		}
+
+		if (raw_cmd->size == strlen(do_repeat_str) &&
+				!strcmp(raw_cmd->data, do_repeat_str)) {
+			if (!command.repeatable)
+				goto resp_empty;
+			webterm_repeat_last_command(true);
+			echo_str = "<REPEAT>";
+		} else if (raw_cmd->size == strlen(cancel_repeat_str) &&
+				!strcmp(raw_cmd->data, cancel_repeat_str)) {
+			command.repeatable = false;
+			webterm_repeat_last_command(false);
+			goto resp_empty;
+		} else {
+			strlcpy(command.data, raw_cmd->data, sizeof(command.data));
+			webterm_init_repeat_flag();
+			webterm_repeat_last_command(false);
+			echo_str = command.data;
+		}
+
+		printf("\nIPQ# %s\n", echo_str);
+
+		ret = call_func_capture(webterm_run_command, command.data,
+				output_buf, output_buf_size, &out_len);
+
+		command.repeatable = (!ret && is_last_command_repeatable()) ? true : false;
+
+		response->data = output_buf;
+		response->size = out_len;
+		sess->body_sent = true;
+
+		return;
+
+	resp_empty:
+		response->data = "";
+		response->size = strlen(response->data);
+		sess->body_sent = true;
+		return;
+	}
+
 	if (status == HTTP_CB_CLOSED) {
+		if (webterm_exec_resp_custom) {
+			sess = response->session_data;
+			if (sess && sess->output_buf) {
+				free(sess->output_buf);
+				sess->output_buf = NULL;
+			}
+		}
 		webterm_free_session_data(response);
 		return;
 	}
-
-	if (status != HTTP_CB_NEW)
-		return;
-
-	response->session_data = NULL;
-
-	if (!request || request->method != HTTP_POST) {
-		handle_response_message(response, 405, "bad method", -1, NULL);
-		return;
-	}
-
-	raw_cmd = httpd_request_find_value(request, "cmd");
-	if (!raw_cmd || !raw_cmd->data || !raw_cmd->size) {
-		handle_response_message(response, 400, "no cmd", -1, NULL);
-		return;
-	}
-
-	if (raw_cmd->size == strlen(do_repeat_str) &&
-		!strcmp(raw_cmd->data, do_repeat_str)) {
-		if (!command.repeatable) {
-			handle_response_message(response, 200, "", -1, NULL);
-			return;
-		}
-		webterm_repeat_last_command(true);
-		echo_str = "<REPEAT>";
-	} else if (raw_cmd->size == strlen(cancel_repeat_str) &&
-		!strcmp(raw_cmd->data, cancel_repeat_str)) {
-		command.repeatable = false;
-		webterm_repeat_last_command(false);
-		handle_response_message(response, 200, "", -1, NULL);
-		return;
-	} else {
-		strlcpy(command.data, raw_cmd->data, sizeof(command.data));
-		webterm_init_repeat_flag();
-		webterm_repeat_last_command(false);
-		echo_str = command.data;
-	}
-
-	buf = malloc(WEBTERM_RECORD_OUT_SIZE);
-	if (!buf) {
-		handle_response_message(response, 500, "no mem", -1, NULL);
-		return;
-	}
-
-	printf("\nIPQ# %s\n", echo_str);
-
-	ret = call_func_capture(webterm_run_command, command.data,
-			buf, WEBTERM_RECORD_OUT_SIZE, &out_len);
-
-	command.repeatable = (!ret && is_last_command_repeatable()) ? true : false;
-
-	handle_response_message(response, 200, buf, out_len, NULL);
-	response->session_data = buf;
 }
 
 static int print_file_info(void *arg)
