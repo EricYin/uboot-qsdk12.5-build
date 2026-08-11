@@ -12,6 +12,10 @@
 #include "ping.h"
 #include "arp.h"
 
+#ifdef CONFIG_HTTPD
+#include <failsafe/failsafe.h>
+#endif /* CONFIG_HTTPD */
+
 static ushort ping_seq_number;
 
 /* The ip address to ping */
@@ -67,7 +71,14 @@ static int ping_send(void)
 
 static void ping_timeout_handler(void)
 {
+#ifdef CONFIG_HTTPD
+	if (!httpd_is_running())
+		eth_halt();
+	else
+		print_eth_init_halt_skip_hint(0);
+#else
 	eth_halt();
+#endif /* CONFIG_HTTPD */
 	net_set_state(NETLOOP_FAIL);	/* we did not get the reply */
 }
 

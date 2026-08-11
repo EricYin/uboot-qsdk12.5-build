@@ -116,6 +116,9 @@
 #if defined(CONFIG_NET_ABORT)
 #include <net_abort.h>
 #endif
+#if defined(CONFIG_HTTPD)
+#include <failsafe/failsafe.h>
+#endif
 #include <ipq_api.h>
 #include <mmc.h>
 #include <sdhci.h>
@@ -420,32 +423,40 @@ int net_loop(enum proto_t protocol)
 	net_try_count = 1;
 	debug_cond(DEBUG_INT_STATE, "--- net_loop Entry\n");
 
-	bootstage_mark_name(BOOTSTAGE_ID_ETH_START, "eth_start");
-	net_init();
-	if (eth_is_on_demand_init() || protocol != NETCONS) {
-		eth_halt();
-		eth_set_current();
-		ret = eth_init();
-#if defined(CONFIG_TCP)
-		while (protocol == TCP && ret < 0) {
-			ulong ts = get_timer(0);
-			do {
-				if (ctrlc()) {
-					eth_halt();
-					return ret;
-				}
-				udelay(10000);
-			} while (get_timer(ts) < 1000);
-			ret = eth_init();
-		}
-#endif
-		if (ret < 0) {
+#ifdef CONFIG_HTTPD
+	if (!httpd_is_running()) {
+#endif /* CONFIG_HTTPD */
+		bootstage_mark_name(BOOTSTAGE_ID_ETH_START, "eth_start");
+		net_init();
+		if (eth_is_on_demand_init() || protocol != NETCONS) {
 			eth_halt();
-			return ret;
+			eth_set_current();
+			ret = eth_init();
+#ifdef CONFIG_TCP
+			while (protocol == TCP && ret < 0) {
+				ulong ts = get_timer(0);
+				do {
+					if (ctrlc()) {
+						eth_halt();
+						return ret;
+					}
+					udelay(10000);
+				} while (get_timer(ts) < 1000);
+				ret = eth_init();
+			}
+#endif /* CONFIG_TCP */
+			if (ret < 0) {
+				eth_halt();
+				return ret;
+			}
+		} else {
+			eth_init_state_only();
 		}
+#ifdef CONFIG_HTTPD
 	} else {
-		eth_init_state_only();
+		print_eth_init_halt_skip_hint(1);
 	}
+#endif /* CONFIG_HTTPD */
 
 restart:
 #ifdef CONFIG_USB_KEYBOARD
@@ -461,7 +472,7 @@ restart:
 	debug_cond(DEBUG_INT_STATE, "--- net_loop Init\n");
 	net_init_loop();
 
-#if defined(CONFIG_DHCPD)
+#if defined(CONFIG_DHCPD) && defined(CONFIG_TCP)
 	/*
 	 * net_init() clears UDP handlers on first call.
 	 * For web failsafe (TCP), enable the minimal DHCP server after init.
@@ -473,7 +484,14 @@ restart:
 	switch (net_check_prereq(protocol)) {
 	case 1:
 		/* network not configured */
+#ifdef CONFIG_HTTPD
+		if (!httpd_is_running())
+			eth_halt();
+		else
+			print_eth_init_halt_skip_hint(0);
+#else
 		eth_halt();
+#endif /* CONFIG_HTTPD */
 		return -ENODEV;
 
 	case 2:
@@ -618,7 +636,14 @@ restart:
 			net_arp_wait_packet_ip.s_addr = 0;
 
 			net_cleanup_loop();
+#ifdef CONFIG_HTTPD
+			if (!httpd_is_running())
+				eth_halt();
+			else
+				print_eth_init_halt_skip_hint(0);
+#else
 			eth_halt();
+#endif /* CONFIG_HTTPD */
 			/* Invalidate the last protocol */
 			eth_set_last_protocol(BOOTP);
 
@@ -678,10 +703,19 @@ restart:
 				setenv_hex("filesize", net_boot_file_size);
 #endif /* CONFIG_LIB_IPQ_API */
 			}
-			if (protocol != NETCONS)
-				eth_halt();
-			else
-				eth_halt_state_only();
+
+#ifdef CONFIG_HTTPD
+			if (!httpd_is_running()) {
+#endif /* CONFIG_HTTPD */
+				if (protocol != NETCONS)
+					eth_halt();
+				else
+					eth_halt_state_only();
+#ifdef CONFIG_HTTPD
+			} else {
+				print_eth_init_halt_skip_hint(0);
+			}
+#endif /* CONFIG_HTTPD */
 
 			eth_set_last_protocol(protocol);
 
@@ -710,6 +744,10 @@ done:
 	net_set_udp_handler(NULL);
 	net_set_icmp_handler(NULL);
 #endif
+#ifdef CONFIG_DHCPD
+	if (dhcpd_is_running())
+		dhcpd_start();
+#endif /* CONFIG_DHCPD */
 	return ret;
 }
 
@@ -743,7 +781,14 @@ int net_start_again(void)
 	}
 
 	if ((!retry_forever) && (net_try_count >= retrycnt)) {
+#ifdef CONFIG_HTTPD
+		if (!httpd_is_running())
+			eth_halt();
+		else
+			print_eth_init_halt_skip_hint(0);
+#else
 		eth_halt();
+#endif /* CONFIG_HTTPD */
 		net_set_state(NETLOOP_FAIL);
 		/*
 		 * We don't provide a way for the protocol to return an error,

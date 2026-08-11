@@ -67,6 +67,13 @@ bool httpd_is_running(void)
 	return httpd_running;
 }
 
+void print_eth_init_halt_skip_hint(int init)
+{
+	printf("httpd is running, skipping %s. "
+		"If this is not the case, run `httpd stop` first\n",
+		init ? "eth_init()" : "eth_halt()");
+}
+
 static void print_greeting_message(void)
 {
 	u32 ip = ntohl(net_ip.s_addr);
@@ -187,6 +194,17 @@ static int do_httpd(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	int ret;
 
+	if (argc > 1) {
+		if (!strcmp(argv[1], "stop")) {
+			httpd_running = false;
+			puts("httpd stopped.\n");
+			return CMD_RET_SUCCESS;
+		} else if (strcmp(argv[1], "start")) {
+			printf("Error: unknown argument: %s\n", argv[1]);
+			return CMD_RET_USAGE;
+		}
+	}
+
 #ifdef CONFIG_HTTPD_DEBUG
 	httpd_debug_on = get_enable_state("httpd_debug", true);
 #endif
@@ -212,7 +230,9 @@ static int do_httpd(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	return ret;
 }
 
-U_BOOT_CMD(httpd, 1, 0, do_httpd,
-	"Start failsafe HTTP server, no argument needed",
+U_BOOT_CMD(httpd, 2, 0, do_httpd,
+	"Failsafe HTTP Server\n"
+	"httpd [start]     - start http server\n"
+	"httpd stop        - stop http server (only set httpd_running flag to false)\n",
 	""
 );

@@ -4608,22 +4608,6 @@ const webTerminalManager = (() => {
         loadingCommands: false,
         fileInfoTimeout: null,
         forbiddenCommands: new Map([
-            ['bootp', {
-                reasonKey: 'webterm.cmd.forbid.reason.common'
-            }],
-            ['dhcp', {
-                reasonKey: 'webterm.cmd.forbid.reason.common'
-            }],
-            ['ping', {
-                reasonKey: 'webterm.cmd.forbid.reason.common'
-            }],
-            ['tftpboot', {
-                reasonKey: 'webterm.cmd.forbid.reason.common',
-                altKey: 'webterm.cmd.forbid.alt.tftpb'
-            }],
-            ['tftpput', {
-                reasonKey: 'webterm.cmd.forbid.reason.common'
-            }],
             ['editenv', {
                 reasonKey: 'webterm.cmd.forbid.reason.common'
             }],
@@ -7486,7 +7470,6 @@ const I18N = (() => {
             "webterm.clear": "Clear",
             "webterm.cmd.forbid.hint": "this command has been disabled!",
             "webterm.cmd.forbid.reason.common": "This command will cause the HTTPD service to exit abnormally. Do not use it in the web terminal!",
-            "webterm.cmd.forbid.alt.tftpb": "Use the upload function provided on this page instead.",
             "webterm.cmd.nomatch": "no matching command",
             "webterm.cmd.placeholder": "help; printenv",
             "webterm.cmd.unknown": "unknown command!",
@@ -7828,7 +7811,6 @@ const I18N = (() => {
             "webterm.clear": "清空",
             "webterm.cmd.forbid.hint": "此命令已被禁止执行！",
             "webterm.cmd.forbid.reason.common": "此命令会导致 HTTPD 服务异常退出，请勿在网页终端中使用！",
-            "webterm.cmd.forbid.alt.tftpb": "请使用本页面提供的上传功能替代。",
             "webterm.cmd.nomatch": "没有匹配的命令",
             "webterm.cmd.placeholder": "help; printenv",
             "webterm.cmd.unknown": "未知命令！",

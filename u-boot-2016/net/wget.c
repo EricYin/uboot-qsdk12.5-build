@@ -19,6 +19,9 @@
 #include <linux/sizes.h>
 #include <linux/compat.h>
 #include <ipq_api.h>
+#ifdef CONFIG_HTTPD
+#include <failsafe/failsafe.h>
+#endif /* CONFIG_HTTPD */
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -423,29 +426,37 @@ static int wget_loop(void)
 {
 	int ret;
 
-	net_init();
-	if (eth_is_on_demand_init()) {
-		eth_halt();
-		eth_set_current();
-		ret = eth_init();
-		while (ret < 0) {
-			ulong ts = get_timer(0);
-			do {
-				if (ctrlc()) {
-					eth_halt();
-					return ret;
-				}
-				udelay(10000);
-			} while (get_timer(ts) < 1000);
-			ret = eth_init();
-		}
-		if (ret < 0) {
+#ifdef CONFIG_HTTPD
+	if (!httpd_is_running()) {
+#endif /* CONFIG_HTTPD */
+		net_init();
+		if (eth_is_on_demand_init()) {
 			eth_halt();
-			return ret;
+			eth_set_current();
+			ret = eth_init();
+			while (ret < 0) {
+				ulong ts = get_timer(0);
+				do {
+					if (ctrlc()) {
+						eth_halt();
+						return ret;
+					}
+					udelay(10000);
+				} while (get_timer(ts) < 1000);
+				ret = eth_init();
+			}
+			if (ret < 0) {
+				eth_halt();
+				return ret;
+			}
+		} else {
+			eth_init_state_only();
 		}
+#ifdef CONFIG_HTTPD
 	} else {
-		eth_init_state_only();
+		print_eth_init_halt_skip_hint(1);
 	}
+#endif /* CONFIG_HTTPD */
 
 	tcp_done = false;
 	wget_done = false;
@@ -458,7 +469,14 @@ static int wget_loop(void)
 			tcp_done = true;
 	}
 
+#ifdef CONFIG_HTTPD
+	if (!httpd_is_running())
+		eth_halt();
+	else
+		print_eth_init_halt_skip_hint(0);
+#else
 	eth_halt();
+#endif /* CONFIG_HTTPD */
 
 	return 0;
 }

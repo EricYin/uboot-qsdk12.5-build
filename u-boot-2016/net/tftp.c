@@ -15,6 +15,9 @@
 #ifdef CONFIG_SYS_DIRECT_FLASH_TFTP
 #include <flash.h>
 #endif
+#ifdef CONFIG_HTTPD
+#include <failsafe/failsafe.h>
+#endif /* CONFIG_HTTPD */
 #include <ipq_api.h>
 
 /* Well known TFTP port # */
@@ -742,7 +745,14 @@ static void tftp_handler(uchar *pkt, unsigned dest, struct in_addr sip,
 		case TFTP_ERR_FILE_NOT_FOUND:
 		case TFTP_ERR_ACCESS_DENIED:
 			puts("Not retrying...\n");
+#ifdef CONFIG_HTTPD
+			if (!httpd_is_running())
+				eth_halt();
+			else
+				print_eth_init_halt_skip_hint(0);
+#else
 			eth_halt();
+#endif /* CONFIG_HTTPD */
 			net_set_state(NETLOOP_FAIL);
 			break;
 		case TFTP_ERR_UNDEFINED:
