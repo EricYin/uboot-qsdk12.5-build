@@ -298,10 +298,14 @@ static int initr_malloc(void)
 static int initr_console_record(void)
 {
 #if defined(CONFIG_CONSOLE_RECORD)
+# if defined(CONFIG_CONSOLE_RECORD_IN_SIZE)
 	if (!gd->console_out.start || !gd->console_in.start)
+# else
+	if (!gd->console_out.start)
+# endif /* CONFIG_CONSOLE_RECORD_IN_SIZE */
 		if (!console_record_init())
 			gd->flags |= GD_FLG_RECORD;
-#endif
+#endif /* CONFIG_CONSOLE_RECORD */
 	return 0;
 }
 

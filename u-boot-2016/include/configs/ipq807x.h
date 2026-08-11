@@ -402,7 +402,6 @@ extern loff_t board_env_size;
  * Console record support
  */
 #define CONFIG_CONSOLE_RECORD
-#define CONFIG_CONSOLE_RECORD_IN_SIZE  0x400
 #define CONFIG_CONSOLE_RECORD_OUT_SIZE 0x3000
 
 /*

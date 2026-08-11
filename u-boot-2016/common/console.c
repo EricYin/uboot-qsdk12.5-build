@@ -380,7 +380,7 @@ int getc(void)
 	if (!gd->have_console)
 		return 0;
 
-#ifdef CONFIG_CONSOLE_RECORD
+#if defined(CONFIG_CONSOLE_RECORD) && defined(CONFIG_CONSOLE_RECORD_IN_SIZE)
 	if (gd->console_in.start) {
 		int ch;
 
@@ -388,7 +388,7 @@ int getc(void)
 		if (ch != -1)
 			return 1;
 	}
-#endif
+#endif /* CONFIG_CONSOLE_RECORD && CONFIG_CONSOLE_RECORD_IN_SIZE */
 	if (gd->flags & GD_FLG_DEVINIT) {
 		/* Get from the standard input */
 		return fgetc(stdin);
@@ -409,12 +409,12 @@ int tstc(void)
 
 	if (!gd->have_console)
 		return 0;
-#ifdef CONFIG_CONSOLE_RECORD
+#if defined(CONFIG_CONSOLE_RECORD) && defined(CONFIG_CONSOLE_RECORD_IN_SIZE)
 	if (gd->console_in.start) {
 		if (membuff_peekbyte((struct membuff *)&gd->console_in) != -1)
 			return 1;
 	}
-#endif
+#endif /* CONFIG_CONSOLE_RECORD && CONFIG_CONSOLE_RECORD_IN_SIZE */
 	if (gd->flags & GD_FLG_DEVINIT) {
 		/* Test the standard input */
 		return ftstc(stdin);
@@ -576,9 +576,11 @@ int console_record_init(void)
 	int ret;
 
 	ret = membuff_new((struct membuff *)&gd->console_out, CONFIG_CONSOLE_RECORD_OUT_SIZE);
+#ifdef CONFIG_CONSOLE_RECORD_IN_SIZE
 	if (ret)
 		return ret;
 	ret = membuff_new((struct membuff *)&gd->console_in, CONFIG_CONSOLE_RECORD_IN_SIZE);
+#endif /* CONFIG_CONSOLE_RECORD_IN_SIZE */
 
 	return ret;
 }
@@ -586,7 +588,9 @@ int console_record_init(void)
 void console_record_reset(void)
 {
 	membuff_purge((struct membuff *)&gd->console_out);
+#ifdef CONFIG_CONSOLE_RECORD_IN_SIZE
 	membuff_purge((struct membuff *)&gd->console_in);
+#endif /* CONFIG_CONSOLE_RECORD_IN_SIZE */
 }
 
 void console_record_reset_enable(void)
@@ -594,7 +598,7 @@ void console_record_reset_enable(void)
 	console_record_reset();
 	gd->flags |= GD_FLG_RECORD;
 }
-#endif
+#endif /* CONFIG_CONSOLE_RECORD */
 
 /* test if ctrl-c was pressed */
 static int ctrlc_disabled = 0;	/* see disable_ctrl() */

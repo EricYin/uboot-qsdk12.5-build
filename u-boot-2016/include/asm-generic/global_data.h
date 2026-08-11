@@ -120,8 +120,10 @@ typedef struct global_data {
 	struct arch_global_data arch;	/* architecture-specific data */
 #ifdef CONFIG_CONSOLE_RECORD
 	struct membuff console_out;	/* console output */
+# ifdef CONFIG_CONSOLE_RECORD_IN_SIZE
 	struct membuff console_in;	/* console input */
-#endif
+# endif /* CONFIG_CONSOLE_RECORD_IN_SIZE */
+#endif /* CONFIG_CONSOLE_RECORD */
 } gd_t;
 #endif
 
