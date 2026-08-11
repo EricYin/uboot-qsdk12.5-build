@@ -171,9 +171,8 @@ static int wget_recv_data(struct wget_pdata *pdata, void *data, size_t len)
 
 	if (pdata->data_rcvd_len == pdata->data_len) {
 		flush_cache((ulong)pdata->data_ptr, pdata->data_len);
-		net_boot_file_size = (u32)pdata->data_len;
 		set_file_info_env((ulong)pdata->data_ptr, pdata->data_len);
-		putc('\n');
+		printf("Bytes transferred = %d (0x%x)\n", pdata->data_len, pdata->data_len);
 		return 1;
 	}
 
@@ -597,7 +596,7 @@ int start_wget(ulong load_addr, const char *url, size_t *retlen)
 	ip_to_string(net_server_ip, tmp);
 	setenv("serverip", tmp);
 
-	printf("Connecting to %s:%u... ", tmp, ntohs(pdata.port));
+	printf("Connecting to %s:%u... \n", tmp, ntohs(pdata.port));
 
 	tcp_connect(pdata.ipaddr.s_addr, pdata.port, wget_tcp_callback,
 			&pdata);
