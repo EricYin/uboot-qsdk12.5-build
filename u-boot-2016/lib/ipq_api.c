@@ -755,3 +755,35 @@ void set_file_info_env(ulong file_addr, ulong file_size_bytes)
         }
     }
 }
+
+void print_progress_bar(ulong progress, ulong interval, const char *end_str)
+{
+	int num_ch, num_hash, num_dot, idx = 0;
+	char buf[256];
+
+	if (interval == 0 || interval > 100 || 100 % interval != 0)
+		return;
+
+	memset(buf, '\0', sizeof(buf));
+
+	num_ch = 100 / interval;
+	num_hash = progress / interval;
+	num_dot = num_ch - num_hash;
+
+	buf[idx++] = '[';
+
+	for (int i = 0; i < num_hash; i++)
+		buf[idx++] = '#';
+
+	for (int j = 0; j < num_dot; j++)
+		buf[idx++] = '.';
+
+	buf[idx++] = ']';
+
+	idx += snprintf(buf + idx, sizeof(buf) - idx, " %lu%%", progress);
+
+	if (end_str)
+		strlcpy(buf + idx, end_str, sizeof(buf) - idx);
+
+	puts(buf);
+}

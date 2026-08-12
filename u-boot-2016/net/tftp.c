@@ -308,6 +308,41 @@ static void restart(const char *msg)
 	net_start_again();
 }
 
+#ifdef CONFIG_TFTP_DIGITAL_PROGRESS
+static void tftp_print_progress_bar(ulong progress)
+{
+    ulong tmp_size, interval;
+    const char *end_str;
+
+    if (!tftp_tsize)
+        return;
+
+    if (progress > 100) {
+#ifdef CONFIG_CMD_TFTPPUT
+		tmp_size = tftp_put_active ? sent_bytes : net_boot_file_size;
+#else
+		tmp_size = net_boot_file_size;
+#endif /* CONFIG_CMD_TFTPPUT */
+		progress = (unsigned long long)tmp_size * 100ULL /
+			(unsigned long long)tftp_tsize;
+    }
+
+    if (progress != last_progress) {
+#ifdef CONFIG_HTTPD
+        bool httpd_running = httpd_is_running();
+        interval = httpd_running ? 10 : 2;
+        end_str = (progress != 100) ? (httpd_running ? "\n" : "\r") : "  ";
+#else
+        interval = 2;
+        end_str = (progress != 100) ? "\r" : "  ";
+#endif /* CONFIG_HTTPD */
+        if (progress % interval == 0)
+            print_progress_bar(progress, interval, end_str);
+        last_progress = progress;
+    }
+}
+#endif /* CONFIG_TFTP_DIGITAL_PROGRESS */
+
 /*
  * Check if the block number has wrapped, and update progress
  *
@@ -331,20 +366,7 @@ static void update_block_number(void)
 		show_block_marker();
 	}
 #else
-	if (tftp_tsize) {
-# ifdef CONFIG_CMD_TFTPPUT
-		ulong tmp_size = tftp_put_active ? sent_bytes : net_boot_file_size;
-# else
-		ulong tmp_size = net_boot_file_size;
-# endif /* CONFIG_CMD_TFTPPUT */
-		ulong progress = (unsigned long long)tmp_size * 100 /
-			(unsigned long long)tftp_tsize;
-		if (progress != last_progress) {
-			last_progress = progress;
-			printf("%lu/%d (%lu%%)%s",
-				tmp_size, tftp_tsize, progress, progress != 100 ? "\r" : "");
-		}
-	}
+	tftp_print_progress_bar(ULONG_MAX);
 #endif /* CONFIG_TFTP_DIGITAL_PROGRESS */
 }
 
@@ -353,8 +375,8 @@ static void tftp_complete(void)
 {
 #ifdef CONFIG_TFTP_TSIZE
 # ifdef CONFIG_TFTP_DIGITAL_PROGRESS
-	if (tftp_tsize && last_progress < 100)
-		printf("%d/%d (100%%)", tftp_tsize, tftp_tsize);
+	if (last_progress < 100)
+		tftp_print_progress_bar(100);
 # else
 	/* Print hash marks for the last packet received */
 	while (tftp_tsize && tftp_tsize_num_hash < 49) {
@@ -367,11 +389,9 @@ static void tftp_complete(void)
 #endif /* CONFIG_TFTP_TSIZE */
 	time_start = get_timer(time_start);
 	if (time_start > 0) {
-#ifdef CONFIG_TFTP_DIGITAL_PROGRESS
-		puts("  ");
-#else
+#ifndef CONFIG_TFTP_DIGITAL_PROGRESS
 		puts("\n\t ");	/* Line up with "Loading: " */
-#endif /* CONFIG_TFTP_DIGITAL_PROGRESS */
+#endif /* !CONFIG_TFTP_DIGITAL_PROGRESS */
 		print_size(net_boot_file_size /
 			time_start * 1000, "/s");
 	}
@@ -612,18 +632,8 @@ static void tftp_handler(uchar *pkt, unsigned dest, struct in_addr sip,
 				debug("size = %s, %d\n",
 				      (char *)pkt + i + 6, tftp_tsize);
 # ifdef CONFIG_TFTP_DIGITAL_PROGRESS
-				if (tftp_tsize) {
-#  ifdef CONFIG_CMD_TFTPPUT
-					ulong tmp_size = tftp_put_active ? sent_bytes : net_boot_file_size;
-#  else
-					ulong tmp_size = net_boot_file_size;
-#  endif /* CONFIG_CMD_TFTPPUT */
-					ulong progress = (unsigned long long)tmp_size * 100 /
-						(unsigned long long)tftp_tsize;
-					last_progress = progress;
-					printf("%lu/%d (%lu%%)%s",
-						tmp_size, tftp_tsize, progress, progress != 100 ? "\r" : "");
-				}
+				last_progress = ULONG_MAX;
+				tftp_print_progress_bar(ULONG_MAX);
 # endif /* CONFIG_TFTP_DIGITAL_PROGRESS */
 			}
 #endif /* CONFIG_TFTP_TSIZE */

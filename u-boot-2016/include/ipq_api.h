@@ -78,5 +78,6 @@ int string_to_flash_type(const char *str);
 
 int print_board_info(void);
 void set_file_info_env(ulong fileaddr, ulong filesize);
+void print_progress_bar(ulong progress, ulong interval, const char *end_str);
 
 #endif /* __IPQ_API__ */

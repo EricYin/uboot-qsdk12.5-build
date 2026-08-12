@@ -46,6 +46,7 @@ struct wget_pdata {
 	size_t data_len;
 	size_t data_rcvd_len;
 	size_t last_percentage;
+	ulong start_time;
 	bool data_len_unspec;
 };
 
@@ -138,6 +139,8 @@ static int wget_recv_data(struct wget_pdata *pdata, void *data, size_t len)
 	bool initial_recv = false;
 	uint32_t percentage = 0;
 	size_t chksz;
+	ulong interval, transfer_duration;
+	const char *end_str;
 
 	if (!pdata->data_rcvd_len)
 		initial_recv = true;
@@ -161,10 +164,17 @@ static int wget_recv_data(struct wget_pdata *pdata, void *data, size_t len)
 				(unsigned long long)pdata->data_len;
 
 		if (initial_recv || percentage > pdata->last_percentage ||
-		    pdata->data_rcvd_len == pdata->data_len) {
-			printf("%zu/%zu (%u%%) received.\r",
-			       pdata->data_rcvd_len, pdata->data_len,
-			       percentage);
+				pdata->data_rcvd_len == pdata->data_len) {
+#ifdef CONFIG_HTTPD
+			bool httpd_running = httpd_is_running();
+			interval = httpd_running ? 10 : 2;
+			end_str = (percentage != 100) ? (httpd_running ? "\n" : "\r") : "  ";
+#else
+			interval = 2;
+			end_str = (percentage != 100) ? "\r" : "  ";
+#endif /* CONFIG_HTTPD */
+			if (percentage % interval == 0)
+				print_progress_bar(percentage, interval, end_str);
 			pdata->last_percentage = percentage;
 		}
 	}
@@ -172,7 +182,11 @@ static int wget_recv_data(struct wget_pdata *pdata, void *data, size_t len)
 	if (pdata->data_rcvd_len == pdata->data_len) {
 		flush_cache((ulong)pdata->data_ptr, pdata->data_len);
 		set_file_info_env((ulong)pdata->data_ptr, pdata->data_len);
-		printf("Bytes transferred = %d (0x%x)\n", pdata->data_len, pdata->data_len);
+		transfer_duration = get_timer(pdata->start_time);
+		if (transfer_duration > 0)
+			print_size(pdata->data_len / transfer_duration * 1000, "/s");
+		printf("\nBytes transferred = %d (0x%x)  ", pdata->data_len, pdata->data_len);
+		print_size(pdata->data_len, "\n");
 		return 1;
 	}
 
@@ -239,6 +253,8 @@ static int wget_parse_response(struct wget_pdata *pdata)
         puts("Error: file size too large\n");
         return 1;
     }
+
+	pdata->start_time = get_timer(0);
 
 	if (hdr_size == pdata->resp_hdr_len)
 		return 0;

@@ -694,8 +694,9 @@ restart:
 		case NETLOOP_SUCCESS:
 			net_cleanup_loop();
 			if (net_boot_file_size > 0) {
-				printf("Bytes transferred = %d (0x%x)\n",
+				printf("Bytes transferred = %d (0x%x)  ",
 				       net_boot_file_size, net_boot_file_size);
+				print_size(net_boot_file_size, "\n");
 #ifdef CONFIG_LIB_IPQ_API
 				set_file_info_env(load_addr, net_boot_file_size);
 #else
