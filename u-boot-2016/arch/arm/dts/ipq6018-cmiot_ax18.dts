@@ -52,7 +52,7 @@
 		compatible = "gpio-leds";
 
 		led_power {
-			label = "power_led", "blink_led";
+			label = "power_led";
 			gpio = <73>;
 			func = <0>;
 			out = <GPIO_OUT_HIGH>;
@@ -62,18 +62,8 @@
 			active_level = <GPIO_ACTIVE_HIGH>;
 		};
 
-		led_wps {
-			label = "system_led";
-			gpio = <69>;
-			func = <0>;
-			out = <GPIO_OUT_LOW>;
-			drvstr = <GPIO_8MA>;
-			pull = <GPIO_PULL_DOWN>;
-			oe = <GPIO_OE_ENABLE>;
-			active_level = <GPIO_ACTIVE_HIGH>;
-		};
-
 		led_wan {
+			label = "blink_led";
 			gpio = <74>;
 			func = <0>;
 			out = <GPIO_OUT_LOW>;
@@ -84,6 +74,7 @@
 		};
 
 		led_wlan2g {
+			label = "system_led";
 			gpio = <37>;
 			func = <0>;
 			out = <GPIO_OUT_LOW>;
