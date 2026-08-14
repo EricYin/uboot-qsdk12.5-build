@@ -36,7 +36,7 @@
 ## 其他
 
 - 默认开启 httpd_debug 模式，打印详细的日志信息，便于调试。
-- 调整 CMIOT AX18 和 ZN M2 的 LED 配置。
+- 调整 CMIOT AX18、Redmi AX5 JDCloud 和 ZN M2 的 LED 配置。
 - 精简部分机型包含的额外 DTB，减小 U-Boot 大小。
 
 > [!NOTE]

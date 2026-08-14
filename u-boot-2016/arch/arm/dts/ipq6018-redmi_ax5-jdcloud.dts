@@ -43,30 +43,8 @@
 	leds {
 		compatible = "gpio-leds";
 
-		led_blue {
+		system_blue {
 			label = "blink_led";
-			gpio = <31>;
-			func = <0>;
-			out = <GPIO_OUT_LOW>;
-			drvstr = <GPIO_8MA>;
-			pull = <GPIO_PULL_DOWN>;
-			oe = <GPIO_OE_ENABLE>;
-			active_level = <GPIO_ACTIVE_HIGH>;
-		};
-
-		led_yellow {
-			label = "power_led";
-			gpio = <32>;
-			func = <0>;
-			out = <GPIO_OUT_HIGH>;
-			drvstr = <GPIO_8MA>;
-			pull = <GPIO_PULL_DOWN>;
-			oe = <GPIO_OE_ENABLE>;
-			active_level = <GPIO_ACTIVE_HIGH>;
-		};
-
-		net_blue {
-			label = "system_led";
 			gpio = <29>;
 			func = <0>;
 			out = <GPIO_OUT_LOW>;
@@ -76,13 +54,36 @@
 			active_level = <GPIO_ACTIVE_HIGH>;
 		};
 
-		net_yellow {
+		system_yellow {
+			label = "power_led";
 			gpio = <30>;
+			func = <0>;
+			out = <GPIO_OUT_HIGH>;
+			drvstr = <GPIO_8MA>;
+			pull = <GPIO_PULL_DOWN>;
+			oe = <GPIO_OE_ENABLE>;
+			active_level = <GPIO_ACTIVE_HIGH>;
+		};
+
+		network_blue {
+			label = "system_led";
+			gpio = <31>;
 			func = <0>;
 			out = <GPIO_OUT_LOW>;
 			drvstr = <GPIO_8MA>;
 			pull = <GPIO_PULL_DOWN>;
 			oe = <GPIO_OE_ENABLE>;
+			active_level = <GPIO_ACTIVE_HIGH>;
+		};
+
+		network_yellow {
+			gpio = <32>;
+			func = <0>;
+			out = <GPIO_OUT_LOW>;
+			drvstr = <GPIO_8MA>;
+			pull = <GPIO_PULL_DOWN>;
+			oe = <GPIO_OE_ENABLE>;
+			active_level = <GPIO_ACTIVE_HIGH>;
 		};
 	};
 
