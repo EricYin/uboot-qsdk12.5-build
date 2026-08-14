@@ -50,8 +50,10 @@ struct wget_pdata {
 	bool data_len_unspec;
 };
 
+static bool tcp_connected;
 static bool tcp_done;
 static bool wget_done;
+static struct tcp_cb_data *tcp_cbd;
 static const char http_end_of_header[] = "\r\n\r\n";
 static const char http_end_of_line[] = "\r\n";
 static const char content_length_str[] = "Content-Length:";
@@ -92,17 +94,27 @@ static int asprintf(char **strp, const char *fmt, ...)
 	return strlen(p);
 }
 
-static void __wget_cleanup(struct wget_pdata *pdata)
+static void __wget_done(struct tcp_cb_data *cbd)
 {
-	if (pdata->req_hdr) {
+	wget_done = true;
+	tcp_cbd = NULL;
+
+	if (!cbd || !tcp_connected)
+		return;
+
+	struct wget_pdata *pdata = cbd->pdata;
+
+	if (pdata && pdata->req_hdr) {
 		free(pdata->req_hdr);
 		pdata->req_hdr = NULL;
 	}
 
-	if (pdata->resp_hdr) {
+	if (pdata && pdata->resp_hdr) {
 		free(pdata->resp_hdr);
 		pdata->resp_hdr = NULL;
 	}
+
+	tcp_close_conn(cbd->conn, 1);
 }
 
 static void wget_initiate(struct wget_pdata *pdata, struct tcp_cb_data *cbd)
@@ -121,8 +133,7 @@ static void wget_initiate(struct wget_pdata *pdata, struct tcp_cb_data *cbd)
 		pdata->url, pdata->host);
 
 	if (ret < 0) {
-		wget_done = true;
-		tcp_close_conn(cbd->conn, 1);
+		__wget_done(cbd);
 		printf("No memory for HTTP request header\n");
 		pdata->result = -ENOMEM;
 		return;
@@ -281,10 +292,8 @@ static void wget_rx(struct wget_pdata *pdata, struct tcp_cb_data *cbd)
 					  pdata->resp_hdr_len + cbd->datalen + 1);
 
 		if (!new_ptr) {
-			wget_done = true;
-			tcp_close_conn(cbd->conn, 1);
+			__wget_done(cbd);
 			printf("No memory for HTTP response header\n");
-			__wget_cleanup(pdata);
 			pdata->result = -ENOMEM;
 			return;
 		}
@@ -297,12 +306,8 @@ static void wget_rx(struct wget_pdata *pdata, struct tcp_cb_data *cbd)
 
 		if (strstr(pdata->resp_hdr, http_end_of_header)) {
 			ret = wget_parse_response(pdata);
-			if (ret < 0)
-				return;
-
-			if (ret > 0) {
-				wget_done = true;
-				tcp_close_conn(cbd->conn, 1);
+			if (ret) {
+				__wget_done(cbd);
 				return;
 			}
 
@@ -313,12 +318,8 @@ static void wget_rx(struct wget_pdata *pdata, struct tcp_cb_data *cbd)
 
 	case WGET_DATA_RECEIVING:
 		ret = wget_recv_data(pdata, cbd->data, cbd->datalen);
-		if (ret < 0)
-			return;
-
-		if (ret > 0) {
-			wget_done = true;
-			tcp_close_conn(cbd->conn, 1);
+		if (ret) {
+			__wget_done(cbd);
 			return;
 		}
 	}
@@ -330,6 +331,8 @@ static void wget_tcp_callback(struct tcp_cb_data *cbd)
 
 	switch (cbd->status) {
 	case TCP_CB_NEW_CONN:
+		tcp_cbd = cbd;
+		tcp_connected = true;
 		printf("Connected\n");
 		wget_initiate(pdata, cbd);
 		break;
@@ -361,7 +364,7 @@ static void wget_tcp_callback(struct tcp_cb_data *cbd)
 
 		/* fall through */
 	case TCP_CB_CLOSED:
-		__wget_cleanup(pdata);
+		__wget_done(cbd);
 		break;
 
 	default:;
@@ -437,8 +440,9 @@ static char *encode_url(const char *path)
 	return str;
 }
 
-static int wget_loop(void)
+static int wget_loop(struct wget_pdata *pdata)
 {
+	char tmp[46];
 	int ret;
 
 #ifdef CONFIG_HTTPD
@@ -473,23 +477,48 @@ static int wget_loop(void)
 	}
 #endif /* CONFIG_HTTPD */
 
+	tcp_connected = false;
 	tcp_done = false;
 	wget_done = false;
-
-	tcp_start();
-
-	while (!ctrlc() && !wget_done && !tcp_done) {
-		eth_rx();
-		if (tcp_periodic_check())
-			tcp_done = true;
-	}
+	tcp_cbd = NULL;
 
 #ifdef CONFIG_HTTPD
 	if (!httpd_is_running())
+#endif /* CONFIG_HTTPD */
+		tcp_reset_all_conn();
+
+	net_server_ip = pdata->ipaddr;
+
+	ip_to_string(net_server_ip, tmp);
+	setenv("serverip", tmp);
+
+	printf("\nConnecting to %s:%u... \n", tmp, ntohs(pdata->port));
+
+	tcp_connect(pdata->ipaddr.s_addr, pdata->port, wget_tcp_callback, pdata);
+
+	tcp_start();
+
+	while (!wget_done && !tcp_done) {
+		eth_rx();
+		if (tcp_periodic_check())
+			tcp_done = true;
+
+		if (ctrlc()) {
+			__wget_done(tcp_cbd);
+			puts("\nAbort\n");;
+			break;
+		}
+	}
+
+#ifdef CONFIG_HTTPD
+	if (!httpd_is_running()) {
+		tcp_reset_all_conn();
 		eth_halt();
-	else
+	} else {
 		print_eth_init_halt_skip_hint(0);
+	}
 #else
+	tcp_reset_all_conn();
 	eth_halt();
 #endif /* CONFIG_HTTPD */
 
@@ -500,7 +529,7 @@ int start_wget(ulong load_addr, const char *url, size_t *retlen)
 {
 	struct wget_pdata pdata = { 0 };
 	const char *host_str, *path;
-	char tmp[46], *p;
+	char *p;
 	size_t len = 0;
 	ulong val;
 	int ret;
@@ -607,17 +636,7 @@ int start_wget(ulong load_addr, const char *url, size_t *retlen)
 
 	pdata.data_ptr = (void *)load_addr;
 
-	net_server_ip = pdata.ipaddr;
-
-	ip_to_string(net_server_ip, tmp);
-	setenv("serverip", tmp);
-
-	printf("Connecting to %s:%u... \n", tmp, ntohs(pdata.port));
-
-	tcp_connect(pdata.ipaddr.s_addr, pdata.port, wget_tcp_callback,
-			&pdata);
-
-	ret = wget_loop();
+	ret = wget_loop(&pdata);
 
 	free(pdata.host);
 	free(pdata.url);
