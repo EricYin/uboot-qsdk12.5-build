@@ -69,9 +69,9 @@ bool httpd_is_running(void)
 
 void print_eth_init_halt_skip_hint(int init)
 {
-	printf("httpd is running, skipping %s. "
+	printf("httpd is running, skipping eth_%s(). "
 		"If this is not the case, run `httpd stop` first\n",
-		init ? "eth_init()" : "eth_halt()");
+		init ? "init" : "halt");
 }
 
 static void print_greeting_message(void)
@@ -128,6 +128,8 @@ static int failsafe_loop(void)
 	tcp_done = false;
 	auto_action_pending = false;
 
+	tcp_reset_all_conn();
+
 	tcp_start();
 
 #ifdef CONFIG_DHCPD
@@ -154,7 +156,7 @@ static int failsafe_loop(void)
 #endif
 
 	httpd_running = false;
-	tcp_close_all_conn();
+	tcp_reset_all_conn();
 	eth_halt();
 
 	return 0;
