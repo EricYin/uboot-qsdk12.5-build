@@ -442,7 +442,7 @@ static ulong get_nand_writable_data_size(uint32_t data_size)
 	return (ulong)writable_size;
 }
 
-static int exec_command(void *cmd)
+static int failsafe_run_command(void *cmd)
 {
 	return run_command((const char *)cmd, 0);
 }
@@ -454,7 +454,7 @@ static int failsafe_run_command_capture(const char *cmd)
 
 	printf("\n### Executing: %s\n", cmd);
 
-	ret = call_func_capture(exec_command, (void *)cmd,
+	ret = call_func_capture(failsafe_run_command, (void *)cmd,
 			output, sizeof(output), NULL);
 
 	if (ret)
@@ -694,7 +694,7 @@ static int failsafe_write_firmware(ulong data_addr, ulong data_size)
 		}
 #if !defined(CONFIG_ARCH_IPQ5332) && !defined(CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000)
 		ADD_CMD_TO_LIST("flasherase rootfs_data");
-#endif /* CONFIG_ARCH_IPQ5332 */
+#endif /* !CONFIG_ARCH_IPQ5332 && !CONFIG_TARGET_IPQ5018_JDCLOUD_AX3000 */
 		break;
 	case FW_TYPE_SYSUPGRADE:
 	case FW_TYPE_ASUSWRT_EMMC:
@@ -812,8 +812,8 @@ static int failsafe_write_simg(ulong data_addr, ulong data_size)
 	case FW_TYPE_SIMG_NAND:
 		RETURN_IF_NAND_FLASH_NOT_FOUND;
 		writable_size = get_nand_writable_data_size(data_size);
-		ADD_CMD_TO_LIST("nand erase 0x0 0x%lx && nand write 0x%lx 0x0 0x%lx",
-			writable_size, data_addr, writable_size);
+		ADD_CMD_TO_LIST("nand device %d && nand erase 0x0 0x%lx && nand write 0x%lx 0x0 0x%lx",
+			CONFIG_NAND_FLASH_INFO_IDX, writable_size, data_addr, writable_size);
 		break;
 	case FW_TYPE_SIMG_NOR:
 		RETURN_IF_NOR_FLASH_NOT_FOUND;
