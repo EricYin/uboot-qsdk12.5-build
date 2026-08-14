@@ -338,8 +338,8 @@ static int parse_factory_firmware(const void *data_addr, ulong data_size)
 	while (size_remain >= magic_len) {
 		size_remain--;
 		if (!memcmp(p, &magic, magic_len) &&
-			((p - data_addr) % SZ_2M == 0)) {
-			/* 内核大小需为 2 MiB 的整数倍 */
+			((p - data_addr) % SZ_1M == 0)) {
+			/* 内核大小需为 1 MiB 的整数倍 */
 			factory_fw_kernel_size = p - data_addr;
 			return RET_SUCCESS;
 		}
