@@ -1153,6 +1153,10 @@ void net_process_received_packet(uchar *in_packet, int len)
 
 	debug_cond(DEBUG_NET_PKT, "packet received\n");
 
+#if defined(CONFIG_ARCH_IPQ5332) || defined(CONFIG_ARCH_IPQ9574)
+	ppe_reset_timeout();
+#endif /* CONFIG_ARCH_IPQ5332 || CONFIG_ARCH_IPQ9574 */
+
 	net_rx_packet = in_packet;
 	net_rx_packet_len = len;
 	et = (struct ethernet_hdr *)in_packet;

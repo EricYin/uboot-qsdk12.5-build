@@ -132,6 +132,10 @@ static int failsafe_loop(void)
 
 	tcp_start();
 
+#if defined(CONFIG_ARCH_IPQ5332) || defined(CONFIG_ARCH_IPQ9574)
+	ppe_kick_start();
+#endif /* CONFIG_ARCH_IPQ5332 || CONFIG_ARCH_IPQ9574 */
+
 #ifdef CONFIG_DHCPD
 	dhcpd_start();
 #endif
@@ -144,6 +148,10 @@ static int failsafe_loop(void)
 		eth_rx();
 		if (tcp_periodic_check())
 			tcp_done = true;
+
+#if defined(CONFIG_ARCH_IPQ5332) || defined(CONFIG_ARCH_IPQ9574)
+		ppe_keep_alive();
+#endif /* CONFIG_ARCH_IPQ5332 || CONFIG_ARCH_IPQ9574 */
 	}
 
 #ifdef CONFIG_DHCPD

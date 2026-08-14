@@ -498,10 +498,18 @@ static int wget_loop(struct wget_pdata *pdata)
 
 	tcp_start();
 
+#if defined(CONFIG_ARCH_IPQ5332) || defined(CONFIG_ARCH_IPQ9574)
+	ppe_kick_start();
+#endif /* CONFIG_ARCH_IPQ5332 || CONFIG_ARCH_IPQ9574 */
+
 	while (!wget_done && !tcp_done) {
 		eth_rx();
 		if (tcp_periodic_check())
 			tcp_done = true;
+
+#if defined(CONFIG_ARCH_IPQ5332) || defined(CONFIG_ARCH_IPQ9574)
+		ppe_keep_alive();
+#endif /* CONFIG_ARCH_IPQ5332 || CONFIG_ARCH_IPQ9574 */
 
 		if (ctrlc()) {
 			__wget_done(tcp_cbd);

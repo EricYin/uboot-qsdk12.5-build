@@ -85,7 +85,6 @@ static u16 tcp_port_seq = 50000;
 
 void tcp_start(void)
 {
-	arp_probe();
 	tcp_stop = 0;
 }
 

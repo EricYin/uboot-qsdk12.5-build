@@ -19,6 +19,8 @@
 #include <asm/cache.h>
 #include <asm/byteorder.h>	/* for nton* / ntoh* stuff */
 
+#include <ipq_api.h>
+
 #define PORT0					0
 #define PORT1					1
 #define PORT2					2
@@ -651,6 +653,10 @@ static inline void net_send_packet(uchar *pkt, int len)
 {
 	/* Currently no way to return errors from eth_send() */
 	(void) eth_send(pkt, len);
+
+#if defined(CONFIG_ARCH_IPQ5332) || defined(CONFIG_ARCH_IPQ9574)
+	ppe_reset_timeout();
+#endif /* CONFIG_ARCH_IPQ5332 || CONFIG_ARCH_IPQ9574 */
 }
 
 /*

@@ -80,4 +80,27 @@ int print_board_info(void);
 void set_file_info_env(ulong fileaddr, ulong filesize);
 void print_progress_bar(ulong progress, ulong interval, const char *end_str);
 
+#if defined(CONFIG_ARCH_IPQ5332) || defined(CONFIG_ARCH_IPQ9574)
+#define PPE_TIMEOUT  60000UL /* 60000 毫秒 = 60 秒 */
+extern ulong ppe_last_pkt_rcvd_or_sent;
+extern void arp_probe(void);
+
+static inline void ppe_kick_start(void)
+{
+	arp_probe();
+	ppe_last_pkt_rcvd_or_sent = get_timer(0);
+}
+
+static inline void ppe_keep_alive(void)
+{
+	if (get_timer(0) - ppe_last_pkt_rcvd_or_sent > PPE_TIMEOUT)
+		ppe_kick_start();
+}
+
+static inline void ppe_reset_timeout(void)
+{
+	ppe_last_pkt_rcvd_or_sent = get_timer(0);
+}
+#endif /* CONFIG_ARCH_IPQ5332 || CONFIG_ARCH_IPQ9574 */
+
 #endif /* __IPQ_API__ */
