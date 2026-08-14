@@ -144,7 +144,7 @@ static int failsafe_loop(void)
 		telnetd_start(telnetd_get_port_from_env());
 #endif
 
-	while (!ctrlc() && !tcp_done && !auto_action_pending) {
+	while (!tcp_done && !auto_action_pending) {
 		eth_rx();
 		if (tcp_periodic_check())
 			tcp_done = true;
@@ -152,6 +152,11 @@ static int failsafe_loop(void)
 #if defined(CONFIG_ARCH_IPQ5332) || defined(CONFIG_ARCH_IPQ9574)
 		ppe_keep_alive();
 #endif /* CONFIG_ARCH_IPQ5332 || CONFIG_ARCH_IPQ9574 */
+
+		if (ctrlc()) {
+			puts("\nAbort\n");
+			break;
+		}
 	}
 
 #ifdef CONFIG_DHCPD
