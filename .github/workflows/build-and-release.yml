@@ -17,6 +17,7 @@ on:
           - ipq60xx
           - ipq807x
           - aliyun_ap8220
+          - anysafe_e1
           - cmcc_mr3000d-ci
           - cmcc_pz-l8
           - cmcc_rax3000q
@@ -36,9 +37,11 @@ on:
           - oppo_ckb01
           - philips_ly1800
           - qihoo_360v6
+          - redmi_ax5
           - redmi_ax5-jdcloud
           - redmi_ax6
           - sy_y6010
+          - xiaomi_ax1800
           - xiaomi_ax3600
           - xiaomi_be3600-pro
           - zn_m2
