@@ -1225,6 +1225,11 @@ unsigned int get_dts_machid(unsigned int machid)
 {
 	switch (machid)
 	{
+		// case MACH_TYPE_IPQ6018_AP_CP01_C2:
+		// case MACH_TYPE_IPQ6018_AP_CP01_C3:
+		// case MACH_TYPE_IPQ6018_AP_CP01_C4:
+		// case MACH_TYPE_IPQ6018_AP_CP01_C5:
+		// 	return MACH_TYPE_IPQ6018_AP_CP01_C1;
 		default:
 			return machid;
 	}
@@ -1235,6 +1240,22 @@ void ipq_uboot_fdt_fixup(void)
 	init_config_list();
 	switch (gd->bd->bi_arch_number)
 	{
+		// case MACH_TYPE_IPQ6018_AP_CP01_C2:
+		// 	add_config_entry("config@cp01-c2");
+		// 	add_config_entry("config-cp01-c2");
+		// 	break;
+		// case MACH_TYPE_IPQ6018_AP_CP01_C3:
+		// 	add_config_entry("config@cp01-c3");
+		// 	add_config_entry("config-cp01-c3");
+		// 	break;
+		// case MACH_TYPE_IPQ6018_AP_CP01_C4:
+		// 	add_config_entry("config@cp01-c4");
+		// 	add_config_entry("config-cp01-c4");
+		// 	break;
+		// case MACH_TYPE_IPQ6018_AP_CP01_C5:
+		// 	add_config_entry("config@cp01-c5");
+		// 	add_config_entry("config-cp01-c5");
+		// 	break;
 #ifdef CONFIG_TARGET_IPQ6018_PHILIPS_LY1800
 		case MACH_TYPE_IPQ6018_JDCLOUD_RE_SS_01:
 		case MACH_TYPE_IPQ6018_PHILIPS_LY1800:
