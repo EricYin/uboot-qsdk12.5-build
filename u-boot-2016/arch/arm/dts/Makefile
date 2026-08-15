@@ -142,8 +142,10 @@ $(info CONFIG_TARGET_IPQ6018_LINK_NN6000       = $(CONFIG_TARGET_IPQ6018_LINK_NN
 $(info CONFIG_TARGET_IPQ6018_OCEANBLUE_S200_H  = $(CONFIG_TARGET_IPQ6018_OCEANBLUE_S200_H))
 $(info CONFIG_TARGET_IPQ6018_PHILIPS_LY1800    = $(CONFIG_TARGET_IPQ6018_PHILIPS_LY1800))
 $(info CONFIG_TARGET_IPQ6018_QIHOO_360V6       = $(CONFIG_TARGET_IPQ6018_QIHOO_360V6))
+$(info CONFIG_TARGET_IPQ6018_REDMI_AX5         = $(CONFIG_TARGET_IPQ6018_REDMI_AX5))
 $(info CONFIG_TARGET_IPQ6018_REDMI_AX5_JDCLOUD = $(CONFIG_TARGET_IPQ6018_REDMI_AX5_JDCLOUD))
 $(info CONFIG_TARGET_IPQ6018_SY_Y6010          = $(CONFIG_TARGET_IPQ6018_SY_Y6010))
+$(info CONFIG_TARGET_IPQ6018_XIAOMI_AX1800     = $(CONFIG_TARGET_IPQ6018_XIAOMI_AX1800))
 $(info CONFIG_TARGET_IPQ6018_ZN_M2             = $(CONFIG_TARGET_IPQ6018_ZN_M2))
 $(info CONFIG_TARGET_IPQ807x_ALIYUN_AP8220     = $(CONFIG_TARGET_IPQ807x_ALIYUN_AP8220))
 $(info CONFIG_TARGET_IPQ807X_CRADLEPOINT_E320  = $(CONFIG_TARGET_IPQ807X_CRADLEPOINT_E320))
@@ -169,8 +171,10 @@ dtb-$(CONFIG_TARGET_IPQ6018_LINK_NN6000)       += ipq6018-link_nn6000.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_OCEANBLUE_S200_H)  += ipq6018-oceanblue_s200-h.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_PHILIPS_LY1800)    += ipq6018-philips_ly1800.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_QIHOO_360V6)       += ipq6018-qihoo_360v6.dtb
+dtb-$(CONFIG_TARGET_IPQ6018_REDMI_AX5)         += ipq6018-redmi_ax5.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_REDMI_AX5_JDCLOUD) += ipq6018-redmi_ax5-jdcloud.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_SY_Y6010)          += ipq6018-sy_y6010.dtb
+dtb-$(CONFIG_TARGET_IPQ6018_XIAOMI_AX1800)     += ipq6018-xiaomi_ax1800.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_ZN_M2)             += ipq6018-zn_m2.dtb
 dtb-$(CONFIG_TARGET_IPQ807x_ALIYUN_AP8220)     += ipq807x-aliyun_ap8220.dtb
 dtb-$(CONFIG_TARGET_IPQ807X_CRADLEPOINT_E320)  += ipq807x-cradlepoint_e320.dtb
@@ -208,11 +212,17 @@ dtb-$(CONFIG_TARGET_IPQ6018_OCEANBLUE_S200_H)  += ipq6018-jdcloud_re-cs-02.dtb \
 												  ipq6018-jdcloud_re-ss-01.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_PHILIPS_LY1800)    += ipq6018-jdcloud_re-cs-02.dtb \
 												  ipq6018-jdcloud_re-cs-07.dtb
+dtb-$(CONFIG_TARGET_IPQ6018_REDMI_AX5)         += ipq6018-jdcloud_re-cs-02.dtb \
+												  ipq6018-jdcloud_re-cs-07.dtb \
+												  ipq6018-jdcloud_re-ss-01.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_REDMI_AX5_JDCLOUD) += ipq6018-jdcloud_re-cs-02.dtb \
 												  ipq6018-jdcloud_re-cs-07.dtb \
 												  ipq6018-jdcloud_re-ss-01.dtb
 dtb-$(CONFIG_TARGET_IPQ6018_SY_Y6010)          += ipq6018-jdcloud_re-cs-02.dtb \
 												  ipq6018-jdcloud_re-cs-07.dtb
+dtb-$(CONFIG_TARGET_IPQ6018_XIAOMI_AX1800)     += ipq6018-jdcloud_re-cs-02.dtb \
+												  ipq6018-jdcloud_re-cs-07.dtb \
+												  ipq6018-jdcloud_re-ss-01.dtb
 dtb-$(CONFIG_TARGET_IPQ807x_ALIYUN_AP8220)     += ipq807x-cradlepoint_e320.dtb \
 											  	  ipq807x-inseego_fg2000.dtb \
 											  	  ipq807x-xiaomi_ax3600.dtb
@@ -231,7 +241,7 @@ dtb-$(CONFIG_TARGET_IPQ807x_REDMI_AX6)  	   += ipq807x-aliyun_ap8220.dtb \
 dtb-$(CONFIG_TARGET_IPQ807x_XIAOMI_AX3600)     += ipq807x-aliyun_ap8220.dtb \
 											  	  ipq807x-cradlepoint_e320.dtb \
 											  	  ipq807x-inseego_fg2000.dtb
-endif
+endif # CONFIG_INCLUDE_EXTRA_DTB
 
 dtb-$(CONFIG_ARCH_IPQ9574) += ipq9574-al01-c1.dtb \
 			ipq9574-al02-c1.dtb \

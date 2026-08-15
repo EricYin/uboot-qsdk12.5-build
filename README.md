@@ -51,8 +51,10 @@
 | IPQ60xx | OceanBlue Cloud S200-H      | oceanblue_s200-h  | 待测试                       |
 | IPQ60xx | Philips LY1800              | philips_ly1800    |                              |
 | IPQ60xx | Qihoo 360V6                 | qihoo_360v6       |                              |
+| IPQ60xx | Redmi AX5                   | redmi_ax5         | 待测试                        |
 | IPQ60xx | Redmi AX5 JDCloud           | redmi_ax5-jdcloud |                              |
 | IPQ60xx | SY Y6010                    | sy_y6010          |                              |
+| IPQ60xx | Xiaomi AX1800               | xiaomi_ax1800     | 待测试                        |
 | IPQ60xx | ZN M2                       | zn_m2             |                              |
 | IPQ807x | Aliyun AP8220               | aliyun_ap8220     |                              |
 | IPQ807x | Cradlepoint E320            | cradlepoint_e320  | 待测试；原机 CPU 有锁，需更换无锁 CPU 才能刷写此 U-Boot |
@@ -165,8 +167,10 @@ sudo ./build.sh install_deps
     oceanblue_s200-h          OceanBlue Cloud S200-H
     philips_ly1800            Philips LY1800
     qihoo_360v6               Qihoo 360V6
+    redmi_ax5                 Redmi AX5
     redmi_ax5-jdcloud         Redmi AX5 JDCloud
     sy_y6010                  SY Y6010
+    xiaomi_ax1800             Xiaomi AX1800
     zn_m2                     ZN M2
 
   ipq807x:

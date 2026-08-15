@@ -86,17 +86,29 @@ config TARGET_IPQ6018_QIHOO_360V6
     help
       Enable support for Qihoo 360V6 board
 
-config TARGET_IPQ6018_REDMI_AX5_JDCLOUD
-    bool "Redmi AX5 JDCloud board support"
+config TARGET_IPQ6018_REDMI_AX5
+    bool "Redmi AX5 (RA67) board support"
 	default n
     help
-      Enable support for Redmi AX5 JDCloud board
+      Enable support for Redmi AX5 (RA67) board
+
+config TARGET_IPQ6018_REDMI_AX5_JDCLOUD
+    bool "Redmi AX5 JDCloud (RA50) board support"
+	default n
+    help
+      Enable support for Redmi AX5 JDCloud (RA50) board
 
 config TARGET_IPQ6018_SY_Y6010
     bool "SY Y6010 board support"
 	default n
     help
       Enable support for SY Y6010 board
+
+config TARGET_IPQ6018_XIAOMI_AX1800
+    bool "Xiaomi AX1800 (RM1800) board support"
+	default n
+    help
+      Enable support for Xiaomi AX1800 (RM1800) board
 
 config TARGET_IPQ6018_ZN_M2
     bool "ZN M2 board support"
