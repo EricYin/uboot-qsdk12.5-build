@@ -42,7 +42,7 @@
 | IPQ53xx | JDCloud BE6500              | jdcloud_re-cs-06  |                              |
 | IPQ53xx | JDCloud ER2                 | jdcloud_re-cs-08  | 待测试；MAC 位置未明确       |
 | IPQ53xx | Xiaomi BE3600 Pro (5/8 Ethernet ports) | xiaomi_be3600-pro | 该机型正式版可能有锁，若有锁则不要刷写此 U-Boot |
-| IPQ60xx | CMIOT AX18                  | cmiot_ax18        | WAN 口（靠近 Reset 键）不通  |
+| IPQ60xx | CMIOT AX18                  | cmiot_ax18        |                              |
 | IPQ60xx | GL.iNet AX1800              | glinet_gl-ax1800  | 待测试                       |
 | IPQ60xx | JDCloud AX6600 (Athena)     | jdcloud_re-cs-02  |                              |
 | IPQ60xx | JDCloud ER1                 | jdcloud_re-cs-07  |                              |
@@ -50,10 +50,10 @@
 | IPQ60xx | Link NN6000                 | link_nn6000       |                              |
 | IPQ60xx | OceanBlue Cloud S200-H      | oceanblue_s200-h  | 待测试                       |
 | IPQ60xx | Philips LY1800              | philips_ly1800    |                              |
-| IPQ60xx | Qihoo 360V6                 | qihoo_360v6       | 靠近 USB 的第二个网口不通    |
-| IPQ60xx | Redmi AX5 JDCloud           | redmi_ax5-jdcloud | LAN2 口（靠近 DC 电源口的第二个网口）不通 |
+| IPQ60xx | Qihoo 360V6                 | qihoo_360v6       |                              |
+| IPQ60xx | Redmi AX5 JDCloud           | redmi_ax5-jdcloud |                              |
 | IPQ60xx | SY Y6010                    | sy_y6010          |                              |
-| IPQ60xx | ZN M2                       | zn_m2             | WAN 口（靠近 Reset 键）不通  |
+| IPQ60xx | ZN M2                       | zn_m2             |                              |
 | IPQ807x | Aliyun AP8220               | aliyun_ap8220     |                              |
 | IPQ807x | Cradlepoint E320            | cradlepoint_e320  | 待测试；原机 CPU 有锁，需更换无锁 CPU 才能刷写此 U-Boot |
 | IPQ807x | Inseego FG2000              | inseego_fg2000    | 5G 网口未驱动                |

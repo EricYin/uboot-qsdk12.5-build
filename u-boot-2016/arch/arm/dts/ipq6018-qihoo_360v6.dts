@@ -91,7 +91,6 @@
 		malibu_gpio = <75>;
 		malibu_gpio_cnt = <1>;
 		mdc_mdio_gpio = <64 65>;
-		malibu2port_phy = <1>;
 		port_phyinfo {
 			port@0 {
 				phy_address = <0>;
@@ -102,7 +101,7 @@
 				phy_type = <MALIBU_PHY_TYPE>;
 			};
 			port@2 {
-				phy_address = <4>;
+				phy_address = <2>;
 				phy_type = <MALIBU_PHY_TYPE>;
 			};
 			port@3 {
@@ -110,7 +109,7 @@
 				phy_type = <MALIBU_PHY_TYPE>;
 			};
 			port@4 {
-				phy_address = <2>;
+				phy_address = <4>;
 				phy_type = <MALIBU_PHY_TYPE>;
 			};
 		};

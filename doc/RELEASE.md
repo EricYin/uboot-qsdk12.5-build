@@ -24,6 +24,7 @@
 - 修复网络命令 (ping, tftpboot, tftpput 等) 在网页终端/Telnet 终端下执行后 httpd 可能失联的问题。
 - 修复网页终端下部分命令执行时间过长导致 TCP 连接超时的问题。
 - 修复 JDCloud BE6500 的 factory 固件解析失败的问题（将 factory 固件 kernel 大小限制调整为 1 MiB 的整数倍）。
+- 修复 CMIOT AX18、Qihoo 360V6、Redmi AX5 JDCloud 和 ZN M2 部分网口不通的问题。
 
 ## 优化
 
