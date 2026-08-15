@@ -32,6 +32,12 @@ config LIST_FUSE
 	bool "Enable fuse list command"
 	default n
 
+config TARGET_IPQ6018_ANYSAFE_E1
+    bool "AnySafe E1 board support"
+	default n
+    help
+      Enable support for AnySafe E1 board
+
 config TARGET_IPQ6018_CMIOT_AX18
     bool "CMIOT AX18 board support"
 	default n

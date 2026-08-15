@@ -3,6 +3,7 @@
 | 平台    | 设备                                   | 型号              | 备注                                            |
 | :------ | :------------------------------------- | :---------------- | :---------------------------------------------- |
 | IPQ53xx | Xiaomi BE3600 Pro (5/8 Ethernet ports) | xiaomi_be3600-pro | 该机型正式版可能有锁，若有锁则不要刷写此 U-Boot        |
+| IPQ60xx | AnySafe E1                             | anysafe_e1        | 待测试                                           |
 | IPQ60xx | Redmi AX5                              | redmi_ax5         | 待测试                                           |
 | IPQ60xx | Xiaomi AX1800                          | xiaomi_ax1800     | 待测试                                           |
 | IPQ807x | Cradlepoint E320                       | cradlepoint_e320  | 原机 CPU 有锁，需更换无锁 CPU 才能刷写此 U-Boot      |

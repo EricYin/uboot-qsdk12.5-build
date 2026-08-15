@@ -72,6 +72,7 @@ DEVICE_LIST=(
     "ipq53xx:jdcloud_re-cs-06:ipq5332_jdcloud_re_cs_06:JDCloud BE6500"
     "ipq53xx:jdcloud_re-cs-08:ipq5332_jdcloud_re_cs_08:JDCloud ER2"
     "ipq53xx:xiaomi_be3600-pro:ipq5332_xiaomi_be3600_pro:Xiaomi BE3600 Pro (5/8 Ethernet ports)"
+    "ipq60xx:anysafe_e1:ipq6018_anysafe_e1:AnySafe E1"
     "ipq60xx:cmiot_ax18:ipq6018_cmiot_ax18:CMIOT AX18"
     "ipq60xx:glinet_gl-ax1800:ipq6018_glinet_gl_ax1800:GL.iNet AX1800"
     "ipq60xx:jdcloud_re-cs-02:ipq6018_jdcloud_re_cs_02:JDCloud AX6600 (Athena)"

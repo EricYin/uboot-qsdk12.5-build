@@ -42,13 +42,14 @@
 | IPQ53xx | JDCloud BE6500              | jdcloud_re-cs-06  |                              |
 | IPQ53xx | JDCloud ER2                 | jdcloud_re-cs-08  | 待测试；MAC 位置未明确       |
 | IPQ53xx | Xiaomi BE3600 Pro (5/8 Ethernet ports) | xiaomi_be3600-pro | 该机型正式版可能有锁，若有锁则不要刷写此 U-Boot |
+| IPQ60xx | AnySafe E1                  | anysafe_e1        | 待测试                        |
 | IPQ60xx | CMIOT AX18                  | cmiot_ax18        |                              |
-| IPQ60xx | GL.iNet AX1800              | glinet_gl-ax1800  | 待测试                       |
+| IPQ60xx | GL.iNet AX1800              | glinet_gl-ax1800  | 待测试                        |
 | IPQ60xx | JDCloud AX6600 (Athena)     | jdcloud_re-cs-02  |                              |
 | IPQ60xx | JDCloud ER1                 | jdcloud_re-cs-07  |                              |
 | IPQ60xx | JDCloud AX1800 Pro (Arthur) | jdcloud_re-ss-01  |                              |
 | IPQ60xx | Link NN6000                 | link_nn6000       |                              |
-| IPQ60xx | OceanBlue Cloud S200-H      | oceanblue_s200-h  | 待测试                       |
+| IPQ60xx | OceanBlue Cloud S200-H      | oceanblue_s200-h  | 待测试                        |
 | IPQ60xx | Philips LY1800              | philips_ly1800    |                              |
 | IPQ60xx | Qihoo 360V6                 | qihoo_360v6       |                              |
 | IPQ60xx | Redmi AX5                   | redmi_ax5         | 待测试                        |
@@ -158,6 +159,7 @@ sudo ./build.sh install_deps
     xiaomi_be3600-pro         Xiaomi BE3600 Pro (5/8 Ethernet ports)
 
   ipq60xx:
+    anysafe_e1                AnySafe E1
     cmiot_ax18                CMIOT AX18
     glinet_gl-ax1800          GL.iNet AX1800
     jdcloud_re-cs-02          JDCloud AX6600 (Athena)
