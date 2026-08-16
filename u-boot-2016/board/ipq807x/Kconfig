@@ -77,3 +77,9 @@ config TARGET_IPQ807x_XIAOMI_AX3600
 	default n
     help
 	  Enable support for Xiaomi AX3600 board
+
+config TARGET_IPQ807x_XIAOMI_AX9000
+    bool "Xiaomi AX9000 board support"
+	default n
+    help
+	  Enable support for Xiaomi AX9000 board

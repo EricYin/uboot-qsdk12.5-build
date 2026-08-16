@@ -63,6 +63,7 @@
 | IPQ807x | OPPO CKB01 (SoftBank Air 5G) | oppo_ckb01       |                              |
 | IPQ807x | Redmi AX6                   | redmi_ax6         |                              |
 | IPQ807x | Xiaomi AX3600               | xiaomi_ax3600     |                              |
+| IPQ807x | Xiaomi AX9000               | xiaomi_ax9000     | 待测试                        |
 
 ## 支持固件
 

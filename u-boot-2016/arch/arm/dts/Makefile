@@ -154,6 +154,7 @@ $(info CONFIG_TARGET_IPQ807x_INSEEGO_FG2000    = $(CONFIG_TARGET_IPQ807x_INSEEGO
 $(info CONFIG_TARGET_IPQ807X_OPPO_CKB01        = $(CONFIG_TARGET_IPQ807X_OPPO_CKB01))
 $(info CONFIG_TARGET_IPQ807x_REDMI_AX6         = $(CONFIG_TARGET_IPQ807x_REDMI_AX6))
 $(info CONFIG_TARGET_IPQ807x_XIAOMI_AX3600     = $(CONFIG_TARGET_IPQ807x_XIAOMI_AX3600))
+$(info CONFIG_TARGET_IPQ807x_XIAOMI_AX9000     = $(CONFIG_TARGET_IPQ807x_XIAOMI_AX9000))
 
 dtb-$(CONFIG_TARGET_IPQ5018_CMCC_MR3000D_CI)   += ipq5018-cmcc_mr3000d-ci.dtb
 dtb-$(CONFIG_TARGET_IPQ5018_CMCC_PZ_L8)        += ipq5018-cmcc_pz-l8.dtb
@@ -184,6 +185,7 @@ dtb-$(CONFIG_TARGET_IPQ807x_INSEEGO_FG2000)    += ipq807x-inseego_fg2000.dtb
 dtb-$(CONFIG_TARGET_IPQ807X_OPPO_CKB01)        += ipq807x-oppo_ckb01.dtb
 dtb-$(CONFIG_TARGET_IPQ807x_REDMI_AX6)         += ipq807x-redmi_ax6.dtb
 dtb-$(CONFIG_TARGET_IPQ807x_XIAOMI_AX3600)     += ipq807x-xiaomi_ax3600.dtb
+dtb-$(CONFIG_TARGET_IPQ807x_XIAOMI_AX9000)     += ipq807x-xiaomi_ax9000.dtb
 
 ifdef CONFIG_INCLUDE_EXTRA_DTB
 dtb-$(CONFIG_TARGET_IPQ5018_CMCC_MR3000D_CI)   += ipq5018-jdcloud_ax3000.dtb \
@@ -247,6 +249,10 @@ dtb-$(CONFIG_TARGET_IPQ807x_REDMI_AX6)  	   += ipq807x-aliyun_ap8220.dtb \
 dtb-$(CONFIG_TARGET_IPQ807x_XIAOMI_AX3600)     += ipq807x-aliyun_ap8220.dtb \
 											  	  ipq807x-cradlepoint_e320.dtb \
 											  	  ipq807x-inseego_fg2000.dtb
+dtb-$(CONFIG_TARGET_IPQ807x_XIAOMI_AX9000)     += ipq807x-aliyun_ap8220.dtb \
+											  	  ipq807x-cradlepoint_e320.dtb \
+											  	  ipq807x-inseego_fg2000.dtb \
+												  ipq807x-xiaomi_ax3600.dtb
 endif # CONFIG_INCLUDE_EXTRA_DTB
 
 dtb-$(CONFIG_ARCH_IPQ9574) += ipq9574-al01-c1.dtb \

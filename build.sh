@@ -93,6 +93,7 @@ DEVICE_LIST=(
     "ipq807x:oppo_ckb01:ipq807x_oppo_ckb01:OPPO CKB01 (SoftBank Air 5G)"
     "ipq807x:redmi_ax6:ipq807x_redmi_ax6:Redmi AX6"
     "ipq807x:xiaomi_ax3600:ipq807x_xiaomi_ax3600:Xiaomi AX3600"
+    "ipq807x:xiaomi_ax9000:ipq807x_xiaomi_ax9000:Xiaomi AX9000"
 )
 
 # 获取设备配置

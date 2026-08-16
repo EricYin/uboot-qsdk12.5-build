@@ -1,0 +1,159 @@
+/*
+ * Copyright (c) 2016 - 2020, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+/dts-v1/;
+#include "ipq807x-soc.dtsi"
+#include <dt-bindings/qcom/gpio-ipq807x.h>
+/ {
+    host_name = "Xiaomi AX9000";
+	model = "ipq807x-xiaomi_ax9000";
+	compatible = "qca,ipq807x-hk14", "qca,ipq807x";
+	machid = <0x08010012>;
+	config_name = "config@hk14", "config-hk14";
+
+	aliases {
+		console = "/serial@78B3000";
+		uart2 = "/serial@78B0000";
+		pci0 = "/pci@20000000";
+		pci1 = "/pci@10000000";
+	};
+
+    keys {
+		compatible = "gpio-keys";
+
+        reset {
+            gpio = <47>;
+            func = <0>;
+            drvstr = <GPIO_8MA>;
+            pull = <GPIO_PULL_UP>;
+            oe = <GPIO_OE_DISABLE>;
+			active_level = <GPIO_ACTIVE_LOW>;
+        };
+
+        mesh {
+            gpio = <46>;
+            func = <0>;
+            drvstr = <GPIO_8MA>;
+            pull = <GPIO_PULL_UP>;
+            oe = <GPIO_OE_DISABLE>;
+			active_level = <GPIO_ACTIVE_LOW>;
+        };
+    };
+
+    leds {
+		compatible = "gpio-leds";
+
+		system_blue {
+			label = "blink_led";
+			gpio = <48>;
+			func = <0>;
+			out = <GPIO_OUT_LOW>;
+			drvstr = <GPIO_8MA>;
+			pull = <GPIO_PULL_DOWN>;
+			oe = <GPIO_OE_ENABLE>;
+            active_level = <GPIO_ACTIVE_HIGH>;
+		};
+
+		system_yellow {
+			label = "power_led";
+			gpio = <52>;
+			func = <0>;
+			out = <GPIO_OUT_HIGH>;
+			drvstr = <GPIO_8MA>;
+			pull = <GPIO_PULL_DOWN>;
+			oe = <GPIO_OE_ENABLE>;
+            active_level = <GPIO_ACTIVE_HIGH>;
+		};
+
+		network_blue {
+			label = "system_led";
+			gpio = <51>;
+			func = <0>;
+			out = <GPIO_OUT_LOW>;
+			drvstr = <GPIO_8MA>;
+			pull = <GPIO_PULL_DOWN>;
+			oe = <GPIO_OE_ENABLE>;
+            active_level = <GPIO_ACTIVE_HIGH>;
+		};
+
+		network_yellow {
+			gpio = <50>;
+			func = <0>;
+			out = <GPIO_OUT_LOW>;
+			drvstr = <GPIO_8MA>;
+			pull = <GPIO_PULL_DOWN>;
+			oe = <GPIO_OE_ENABLE>;
+            active_level = <GPIO_ACTIVE_HIGH>;
+		};
+
+		top_red {
+			gpio = <63>;
+			func = <0>;
+			out = <GPIO_OUT_LOW>;
+			drvstr = <GPIO_8MA>;
+			pull = <GPIO_PULL_DOWN>;
+			oe = <GPIO_OE_ENABLE>;
+            active_level = <GPIO_ACTIVE_HIGH>;
+		};
+
+		top_green {
+			gpio = <64>;
+			func = <0>;
+			out = <GPIO_OUT_LOW>;
+			drvstr = <GPIO_8MA>;
+			pull = <GPIO_PULL_DOWN>;
+			oe = <GPIO_OE_ENABLE>;
+            active_level = <GPIO_ACTIVE_HIGH>;
+		};
+
+		top_blue {
+			gpio = <66>;
+			func = <0>;
+			out = <GPIO_OUT_LOW>;
+			drvstr = <GPIO_8MA>;
+			pull = <GPIO_PULL_DOWN>;
+			oe = <GPIO_OE_ENABLE>;
+            active_level = <GPIO_ACTIVE_HIGH>;
+		};
+    };
+
+	ess-switch {
+		switch_mac_mode = <0x00>;
+		switch_mac_mode1 = <0x06>;
+		switch_mac_mode2 = <0xFF>;
+		aquantia_port = <44>;
+		aquantia_gpio = <1>;
+		port_phyinfo {
+			port@0 {
+				phy_address = <0>;
+				phy_type = <1>;
+			};
+			port@1 {
+				phy_address = <1>;
+				phy_type = <1>;
+			};
+			port@2 {
+				phy_address = <2>;
+				phy_type = <1>;
+			};
+			port@3 {
+				phy_address = <3>;
+				phy_type = <1>;
+			};
+			port@4 {
+				phy_address = <24>;
+				phy_type = <2>;
+			};
+		};
+	};
+};
