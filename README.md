@@ -183,6 +183,7 @@ sudo ./build.sh install_deps
     oppo_ckb01                OPPO CKB01 (SoftBank Air 5G)
     redmi_ax6                 Redmi AX6
     xiaomi_ax3600             Xiaomi AX3600
+    xiaomi_ax9000             Xiaomi AX9000
 
 
 示例:

@@ -37,6 +37,7 @@
 - 优化 tftp/wget 文件传输进度、传输速率及文件大小信息显示。
 - IPQ53xx/IPQ95xx: 防止长时间无网络活动导致 PPE 硬件休眠。
 - wget/flashread: 当用户未指定加载地址且 loadaddr 环境变量未设置时，根据设备内存大小自动设置默认加载地址。
+- autoboot: 若 bootcmd 不是 bootipq 且其运行失败，则自动尝试运行 bootipq。
 
 ## 其他
 
