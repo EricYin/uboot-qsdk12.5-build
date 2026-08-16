@@ -140,7 +140,7 @@ static int failsafe_loop(void)
 	dhcpd_start();
 #endif
 #ifdef CONFIG_TELNETD
-	if (get_enable_state("telnet_enable", true))
+	if (get_enable_state("telnet_en", true))
 		telnetd_start(telnetd_get_port_from_env());
 #endif
 
