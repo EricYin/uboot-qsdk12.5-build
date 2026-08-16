@@ -49,7 +49,7 @@
 			func = <0>;
 			out = <GPIO_OUT_LOW>;
 			drvstr = <GPIO_8MA>;
-			pull = <GPIO_PULL_UP>;
+			pull = <GPIO_PULL_DOWN>;
 			oe = <GPIO_OE_ENABLE>;
             active_level = <GPIO_ACTIVE_HIGH>;
 		};
@@ -60,7 +60,7 @@
 			func = <0>;
 			out = <GPIO_OUT_HIGH>;
 			drvstr = <GPIO_8MA>;
-			pull = <GPIO_PULL_UP>;
+			pull = <GPIO_PULL_DOWN>;
 			oe = <GPIO_OE_ENABLE>;
             active_level = <GPIO_ACTIVE_HIGH>;
 		};
@@ -71,7 +71,7 @@
 			func = <0>;
 			out = <GPIO_OUT_LOW>;
 			drvstr = <GPIO_8MA>;
-			pull = <GPIO_PULL_UP>;
+			pull = <GPIO_PULL_DOWN>;
 			oe = <GPIO_OE_ENABLE>;
             active_level = <GPIO_ACTIVE_HIGH>;
 		};
@@ -81,7 +81,7 @@
 			func = <0>;
 			out = <GPIO_OUT_LOW>;
 			drvstr = <GPIO_8MA>;
-			pull = <GPIO_PULL_UP>;
+			pull = <GPIO_PULL_DOWN>;
 			oe = <GPIO_OE_ENABLE>;
             active_level = <GPIO_ACTIVE_HIGH>;
 		};
@@ -91,7 +91,7 @@
 			func = <0>;
 			out = <GPIO_OUT_LOW>;
 			drvstr = <GPIO_8MA>;
-			pull = <GPIO_PULL_UP>;
+			pull = <GPIO_PULL_DOWN>;
 			oe = <GPIO_OE_ENABLE>;
             active_level = <GPIO_ACTIVE_HIGH>;
 		};
