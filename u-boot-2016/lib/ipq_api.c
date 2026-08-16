@@ -795,3 +795,21 @@ void print_progress_bar(ulong progress, ulong interval, const char *end_str)
 
 	puts(buf);
 }
+
+bool get_enable_state(const char *env_key, bool enable_by_default)
+{
+	if (!env_key || !env_key[0])
+		return enable_by_default;
+
+	const char *state_str = getenv(env_key);
+	const char *disable_strs[] = {"0", "false", "no", "off"};
+
+	if (!state_str)
+		return enable_by_default;
+
+	for (int i = 0; i < ARRAY_SIZE(disable_strs); i++)
+		if (!strcasecmp(state_str, disable_strs[i]))
+			return false;
+
+	return true;
+}

@@ -79,6 +79,7 @@ int string_to_flash_type(const char *str);
 int print_board_info(void);
 void set_file_info_env(ulong fileaddr, ulong filesize);
 void print_progress_bar(ulong progress, ulong interval, const char *end_str);
+bool get_enable_state(const char *env_key, bool enable_by_default);
 
 #if defined(CONFIG_ARCH_IPQ5332) || defined(CONFIG_ARCH_IPQ9574)
 #define PPE_TIMEOUT  60000UL /* 60000 毫秒 = 60 秒 */
