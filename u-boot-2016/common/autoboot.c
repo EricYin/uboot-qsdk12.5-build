@@ -440,6 +440,11 @@ void autoboot_command(const char *s)
 #if defined(CONFIG_AUTOBOOT_KEYED) && !defined(CONFIG_AUTOBOOT_KEYED_CTRLC)
 		disable_ctrlc(prev);	/* restore Control C checking */
 #endif
+		const char *cmd = "bootipq";
+		if (!s || strncmp(s, cmd, strlen(cmd))) {
+			printf("Failed to run `%s`, try `%s`\n", s, cmd);
+			run_command(cmd, 0);
+		}
 	}
 
 #ifdef CONFIG_MENUKEY
