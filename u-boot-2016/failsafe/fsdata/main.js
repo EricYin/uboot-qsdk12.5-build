@@ -1601,7 +1601,7 @@ class FileUploadComponent {
 
         if (warningItems) {
             if (warningItems.common) {
-                for (let i = 1; i <= 2; i++) {
+                for (let i = 1; i <= 1; i++) {
                     warningList += `<li data-i18n="common.warn.${i}"></li>`;
                 }
             }
@@ -7391,7 +7391,6 @@ const I18N = (() => {
             "common.upgrade_hint": 'If all information above is correct, click "Update" or "Update & Reboot".',
             "common.warnings": "WARNINGS",
             "common.warn.1": "Do not power off the device during update.",
-            "common.warn.2": "If everything goes well, the device will restart.",
             "file.select": "Please select a file first!",
             "label.name": "File",
             "label.type": "Type",
@@ -7732,7 +7731,6 @@ const I18N = (() => {
             "common.upgrade_hint": "如果以上信息确认无误，请点击 “更新” 或 “更新并重启”。",
             "common.warnings": "注意事项",
             "common.warn.1": "刷写过程中请勿断电。",
-            "common.warn.2": "如果更新成功，设备将自动重启。",
             "file.select": "请选择文件！",
             "label.name": "文件",
             "label.type": "类型",
