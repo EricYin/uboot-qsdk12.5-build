@@ -803,6 +803,7 @@ bool get_enable_state(const char *env_key, bool enable_by_default)
 
 	const char *state_str = getenv(env_key);
 	const char *disable_strs[] = {"0", "false", "no", "off"};
+	const char *enable_strs[] = {"1", "true", "yes", "on"};
 
 	if (!state_str)
 		return enable_by_default;
@@ -811,5 +812,9 @@ bool get_enable_state(const char *env_key, bool enable_by_default)
 		if (!strcasecmp(state_str, disable_strs[i]))
 			return false;
 
-	return true;
+	for (int i = 0; i < ARRAY_SIZE(enable_strs); i++)
+		if (!strcasecmp(state_str, enable_strs[i]))
+			return true;
+
+	return enable_by_default;
 }
