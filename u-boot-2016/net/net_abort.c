@@ -62,7 +62,7 @@ bool net_abort_prepare(void)
 
 	net_abort_pkt_received = false;
 
-	if (getenv("disable_net_abort"))
+	if (!get_enable_state("net_abort_enable", true))
 		return false;
 
 	printf("WAIT PHY LINK TO SETTLE DOWN: %-2d", counter);
