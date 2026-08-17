@@ -47,17 +47,25 @@ on:
           - xiaomi_be3600-pro
           - zn_m2
         default: 'all'
+      CREATE_RELEASE:
+        description: '发布到 GitHub Release'
+        required: true
+        type: boolean
+        default: true
       PRERELEASE:
-        description: '作为预发布版本'
+        description: '作为 Pre-release 发布'
         required: true
         type: boolean
         default: false
 
 env:
   BUILD_TARGET: ${{ inputs.BUILD_TARGET }}
+  CREATE_RELEASE: ${{ inputs.CREATE_RELEASE }}
   PRERELEASE: ${{ inputs.PRERELEASE }}
 
-permissions: write-all
+permissions:
+  actions: write
+  contents: write
 
 jobs:
   core:
@@ -65,7 +73,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@main
+        uses: actions/checkout@v7.0.1
 
       - name: 安装编译依赖
         env:
@@ -79,14 +87,23 @@ jobs:
         run: |
           ./build.sh check_deps
 
-      - name: 编译 U-Boot
+      - name: 开始编译
         run: |
-          . ./build.sh build $BUILD_TARGET
+          source ./build.sh build $BUILD_TARGET
 
           echo "RELEASE_VERSION=$_RELEASE_VERSION_" >> $GITHUB_ENV
 
-      - name: 发布 U-Boot
-        uses: softprops/action-gh-release@master
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: uboot-${{ env.RELEASE_VERSION }}
+          path: |
+            ./bin/${{ env.RELEASE_VERSION }}/
+            !./bin/${{ env.RELEASE_VERSION }}/uboot-all-*.zip
+
+      - name: 发布到 GitHub Release
+        if: env.CREATE_RELEASE == 'true'
+        uses: softprops/action-gh-release@v3.0.2
         with:
           tag_name: ${{ env.RELEASE_VERSION }}
           files: ./bin/${{ env.RELEASE_VERSION }}/*
