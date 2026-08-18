@@ -1,3 +1,5 @@
+
+
 # uBootKit - Qualcomm IPQ Platform U-Boot
 
 ## 项目简介
@@ -201,7 +203,7 @@ sudo ./build.sh install_deps
 
 #### 云编译
 
-Fork 本仓库后使用 GitHub Actions 云编译。
+Fork 本仓库后，在 GitHub Actions 中手动触发“构建并发布”工作流进行云编译。
 
 ## 相关项目
 
